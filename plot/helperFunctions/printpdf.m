@@ -1,6 +1,6 @@
 function printpdf(h,outfilename, varargin)
 
-vars = {'square', 'fontsize'};
+vars = {'square1', 'fontsize'};
 defaults = {0, 20};
 varargparse(varargin, vars, defaults);
 
@@ -9,7 +9,7 @@ for ax = axs
   set(ax,'TickLabelInterpreter', 'latex')
 end
 
-if square
+if square1
   pbaspect([1,1,1]);
 else
   pbaspect([( 1 + sqrt(5) ) / 2, 1, 1])
@@ -21,7 +21,7 @@ pos=get(h,'Position');
 
 set(gca, 'fontsize', fontsize);
 
-if square
+if square1
   set(h,'PaperSize',[pos(3) pos(3)]);
   set(h,'PaperPositionMode', 'manual');
   set(h, 'PaperPosition',[0 0 pos(3) pos(3)]);

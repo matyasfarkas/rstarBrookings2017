@@ -165,7 +165,7 @@ leg = legend([l1,l2], 'VAR', 'DSGE', 'location', 'SouthWest','interpreter','late
 set(leg,'interpreter', 'latex')
 ylim([0,3.5]);
 set(gca,'YTick',[0:0.5:3.5])
-printpdf(fig1,[figurespath, 'Figure1'], 'square', 0);
+printpdf(fig1,[figurespath, 'Figure1'], 'square1', 0);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% VAR
@@ -187,7 +187,7 @@ plot(Time,Time*0,'k','LineWidth',.25)
 ylim([-1 6])
 hold off
 filename= fullfile(figurespath, 'Figure2a');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 f = figure('Name','Figure 2(b)','NumberTitle','off');
 PlotStatesShaded(Time,qPi_bar)
@@ -201,7 +201,7 @@ plot(Time,Time*0,'k','LineWidth',.25)
 ylim([-1 10])
 hold off
 filename = fullfile(figurespath, 'Figure2b');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 % request for marco
 clear Time
@@ -213,7 +213,7 @@ set(gca,'XTick', Time(1:40:end),'XMinorTick','on')
 box on; axis([-inf inf 0 3.5])
 hold off;
 filename= fullfile(figurespath,'Figure2a_alt');
-printpdf(f, filename, 'square', 1);
+printpdf(f, filename, 'square1', 1);
 
 f = figure('Name','Figure 2(b) alt','NumberTitle','off');
 bands(Time,qPi_bar);
@@ -221,7 +221,7 @@ set(gca,'XTick', Time(1:40:end),'XMinorTick','on')
 box on; axis([-inf inf 0 7.5])
 hold off;
 filename= fullfile(figurespath,'Figure2b_alt');
-printpdf(f, filename, 'square', 1);
+printpdf(f, filename, 'square1', 1);
 
 %% Figure 3
 clear Time
@@ -249,7 +249,7 @@ plot(Time,Time*0,'k','LineWidth',.25)
 ylim([-1 6])
 hold off
 filename= fullfile(figurespath, 'Figure3a');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 f = figure('Name','Figure 3(b)','NumberTitle','off');
 PlotStatesShaded(Time,qCy_bar)
@@ -261,7 +261,7 @@ plot(Time,Time*0,'k','LineWidth',.25)
 ylim([-1 6])
 hold off
 filename= fullfile(figurespath,'Figure3b');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 f = figure('Name','Figure 3(c)','NumberTitle','off');
 PlotStatesShaded(Time,qM_bar)
@@ -273,7 +273,7 @@ plot(Time,Time*0,'k','LineWidth',.25)
 ylim([1 8])
 hold off
 filename= fullfile(figurespath,'Figure3c');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 
 
@@ -298,7 +298,7 @@ set(gca,'XTick', Time(1:40:end),'XMinorTick','on')
 box on; axis([-inf inf 0 3.5])
 hold off;
 filename= fullfile(figurespath,'Figure4a');
-printpdf(f, filename, 'square', 1);
+printpdf(f, filename, 'square1', 1);
 
 f = figure('Name','Figure 4(b)','NumberTitle','off');
 bands(Time,qR_bar,-qCy_bar-(-qCy_bar(tmax,3)-qR_bar(tmax,3)))
@@ -306,7 +306,7 @@ set(gca,'XTick', Time(1:40:end),'XMinorTick','on')
 box on; axis([-inf inf 0 3.5])
 hold off;
 filename= fullfile(figurespath,'Figure4b');
-printpdf(f, filename, 'square', 1);
+printpdf(f, filename, 'square1', 1);
 
 f = figure('Name','Figure 4(c)','NumberTitle','off');
 bands(Time,qR_bar,qM_bar-(qM_bar(tmax,3)-qR_bar(tmax,3)))
@@ -314,7 +314,7 @@ set(gca,'XTick', Time(1:40:end),'XMinorTick','on')
 box on; axis([-inf inf 0 3.5])
 hold off;
 filename= fullfile(figurespath,'Figure4c');
-printpdf(f, filename, 'square', 1);
+printpdf(f, filename, 'square1', 1);
 
 
 %% Figure 5
@@ -329,7 +329,7 @@ hold on
 plot(Time,y(:,7)-y(:,5),'b:','linewidth',1)
 hold off
 filename=fullfile(figurespath,'Figure5a');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 f = figure('Name','Figure 5(b)','NumberTitle','off');
 PlotStatesShaded(Time,qSafe_bar)
@@ -339,7 +339,7 @@ hold on
 plot(Time,y(:,7)-y(:,6),'b:','linewidth',1)
 hold off
 filename=fullfile(figurespath,'Figure5b');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 f = figure('Name','Figure 5(c)','NumberTitle','off');
 PlotStatesShaded(Time,qLiq_bar)
@@ -349,7 +349,7 @@ hold on
 plot(Time,y(:,6)-y(:,5),'b:','linewidth',1)
 hold off
 filename= fullfile(figurespath,'Figure5c');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 
 %% Figure 6
@@ -368,7 +368,7 @@ ylim([-2 6])
 plot(Time,Time*0,'k','LineWidth',.25)
 hold off
 filename= fullfile(figurespath,'Figure6');
-printpdf(f,filename, 'square', 0);
+printpdf(f,filename, 'square1', 0);
 
 
 %% Figure 7
@@ -410,7 +410,7 @@ hold off
 %     set(gca,'YColor',y_color1,'YTick',y_tick1,'YTickLabel',y_tick_label1,'YLim',y_lim1);
 % %%%
 filename = fullfile(figurespath, 'Figure7a');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 %%% Industrial spreads
 
@@ -443,7 +443,7 @@ set(gca,'YTick',[0:1:5])
 set(gca,'XLim',[715877 736605]);
 hold off
 filename = fullfile(figurespath, 'Figure7b');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 f = figure('Name','Figure 7(c)','NumberTitle','off');
 bands(Time,qLiq_bar)
@@ -464,7 +464,7 @@ set(gca,'YTick',[-3:0.5:7])
 set(gca,'XLim',[715877 736605]);
 hold off
 filename = fullfile(figurespath, 'Figure7c');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 
 %%% Refcorp
@@ -489,7 +489,7 @@ ylim([-.5 1])
 set(gca,'YTick',[-.5:0.5:1.1])
 hold off
 filename = fullfile(figurespath, 'Figure7d');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 %% Figure 8
 load(fullfile(tvarTablespath,'OutModDDforCharts'));
@@ -502,7 +502,7 @@ axis([-inf inf 2 14])
 xlim([datenum('01-Jan-1960') datenum('01-Oct-2016')])
 hold off
 filename= fullfile(figurespath, 'Figure8'); %FiguresModelDD/DD
-printpdf(f,filename, 'square', 0);
+printpdf(f,filename, 'square1', 0);
 
 %% Figure 9
 clear Time
@@ -534,7 +534,7 @@ ylim([-1 6])
 plot(Time,Time*0,'k','LineWidth',.25)
 hold off
 filename=fullfile(figurespath, 'Figure9a');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 f = figure('Name','Figure 9(b)','NumberTitle','off');
 PlotStatesShaded(Time,qCy_bar)
@@ -546,7 +546,7 @@ ylim([-1 6])
 plot(Time,Time*0,'k','LineWidth',.25)
 hold off
 filename=fullfile(figurespath, 'Figure9b');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 f = figure('Name','Figure 9(c)','NumberTitle','off');
 PlotStatesShaded(Time,qM_bar)
@@ -558,7 +558,7 @@ ylim([1 8])
 plot(Time,Time*0,'k','LineWidth',.25)
 hold off
 filename= fullfile(figurespath, 'Figure9c');
-printpdf(f,filename, 'square', 1);
+printpdf(f,filename, 'square1', 1);
 
 %% Figure 10: Drivers of TVAR r*
 load(fullfile(tvarTablespath, 'OutMod4forCharts'))
@@ -596,7 +596,7 @@ end
 % bands(Time,qR_bar_bands);
 
 hold off
-printpdf(fig10, [figurespath, 'Figure10'], 'square', 0, 'fontsize', 12);
+printpdf(fig10, [figurespath, 'Figure10'], 'square1', 0, 'fontsize', 12);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DSGE
@@ -612,7 +612,7 @@ hold off;
 leg = legend([l1,l2], 'VAR', 'DSGE', 'location', 'SouthWest','interpreter','latex');
 set(leg,'interpreter', 'latex')
 ylim([0,3.5]);
-printpdf(fig11a,fullfile(figurespath, 'Figure11a'), 'square', 1);
+printpdf(fig11a,fullfile(figurespath, 'Figure11a'), 'square1', 1);
 
 % Panel B: DSGE 30yr fwd r and rstar with TVAR
 fig11b = figure('Name','Figure 11(b)','NumberTitle','off');
@@ -623,7 +623,7 @@ hold off;
 leg = legend([l1,l2], 'VAR', 'DSGE', 'location', 'SouthWest','interpreter','latex');
 set(leg,'interpreter', 'latex')
 ylim([0,3.5]);
-printpdf(fig11b,[figurespath, 'Figure11b'], 'square', 1);
+printpdf(fig11b,[figurespath, 'Figure11b'], 'square1', 1);
 
 %% Figure 12
 % Panel A: DSGE 5yr fwd r and rstar
@@ -636,7 +636,7 @@ hold off;
 leg = legend([l1,l2], 'Actual', 'Natural', 'location', 'SouthWest','interpreter','latex');
 set(leg,'interpreter', 'latex')
 ylim([-1,5]);
-printpdf(fig12a,[figurespath, 'Figure12a'], 'square', 1);
+printpdf(fig12a,[figurespath, 'Figure12a'], 'square1', 1);
 
 % Panel B: DSGE 10yr fwd r and rstar
 fig12b = figure('Name','Figure 12(b)','NumberTitle','off');
@@ -648,7 +648,7 @@ hold off;
 leg = legend([l1,l2], 'Actual', 'Natural', 'location', 'SouthWest','interpreter','latex');
 set(leg,'interpreter', 'latex')
 ylim([-1,5]);
-printpdf(fig12b,[figurespath, 'Figure12b'], 'square', 1);
+printpdf(fig12b,[figurespath, 'Figure12b'], 'square1', 1);
 
 
 %% Figure 13: DSGE 5-year fwd r* vs LW r*
@@ -663,7 +663,7 @@ hold off;
 leg = legend([l3,l5], 'DSGE', 'Laubach-Williams');
 set(leg,'interpreter', 'latex')
 ylim([-1,7]);
-printpdf(fig13,[figurespath, 'Figure13'], 'square', 0);
+printpdf(fig13,[figurespath, 'Figure13'], 'square1', 0);
 
 %% Figure 14: 30-year fwd r* and component attributable to convenience yield
 %shockcats     = {[b_liqtil_sh b_liqp_sh b_safetil_sh b_safep_sh]; ...
@@ -694,7 +694,7 @@ if adjustLevel
   ymin = 1.0;
   ax1 = addTrendToShockdec(ax, trend, accuracy, 'ymax', ymax, 'ymin', ymin);
 end
-printpdf(fig14, [figurespath, 'Figure14'], 'square', 0, 'fontsize', 12);
+printpdf(fig14, [figurespath, 'Figure14'], 'square1', 0, 'fontsize', 12);
 
 
 %% Figure 15: DSGE ST r and r*
@@ -708,7 +708,7 @@ box on;
 hold off;
 leg = legend([l1,l2], 'r', 'r*');
 set(leg,'interpreter', 'latex');
-printpdf(fig15,[figurespath, 'Figure15'], 'square', 0);
+printpdf(fig15,[figurespath, 'Figure15'], 'square1', 0);
 
 
 %% Figure 16: Shock decomposition of r*
@@ -727,4 +727,4 @@ set(gca, 'YTick', [-10:2:12]);
 legend(barPos, {'Convenience Yield'; 'Risk'; 'Productivity'; 'Other'}, 'interpreter', 'latex', ...
     'location', 'southoutside', 'orientation', 'horizontal');
 legend boxoff
-printpdf(fig16, [figurespath, 'Figure16'], 'square', 0, 'fontsize', 12);
+printpdf(fig16, [figurespath, 'Figure16'], 'square1', 0, 'fontsize', 12);

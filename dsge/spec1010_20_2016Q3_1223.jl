@@ -16,24 +16,24 @@ m = Model1010("ss20")
 # Settings for data, paths, etc.
 dataroot = joinpath(dirname(@__FILE__()), "input_data")
 saveroot = dirname(@__FILE__())
-m <= Setting(:dataroot, dataroot, "Input data directory path")
-m <= Setting(:saveroot, saveroot, "Output data directory path")
-m <= Setting(:data_vintage, "161223")
-m <= Setting(:use_population_forecast, false)
+m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
+m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
+m <= DSGE.Setting(:data_vintage, "161223")
+m <= DSGE.Setting(:use_population_forecast, false)
 
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
-m <= Setting(:reoptimize, true)
-m <= Setting(:calculate_hessian, true)
+m <= DSGE.Setting(:reoptimize, true)
+m <= DSGE.Setting(:calculate_hessian, true)
 
 # Settings for forecast dates
-m <= Setting(:date_forecast_start,  quartertodate("2016-Q4"))
-m <= Setting(:date_conditional_end, quartertodate("2016-Q4"))
-m <= Setting(:shockdec_startdate,   Nullable(date_mainsample_start(m)))
+m <= DSGE.Setting(:date_forecast_start,  quartertodate("2016-Q4"))
+m <= DSGE.Setting(:date_conditional_end, quartertodate("2016-Q4"))
+m <= DSGE.Setting(:shockdec_startdate,   DSGE.Nullable(date_mainsample_start(m)))
 
 # Parallelization
-m <= Setting(:forecast_block_size,  500)
-nworkers = 1
+m <= DSGE.Setting(:forecast_block_size,  50)
+nworkers = 20
 addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
 
 ##########################################################################################
@@ -90,8 +90,8 @@ if run_modal_forecast || run_full_forecast
 
     # Full-distribution forecast
     if run_full_forecast
-        my_procs = addprocsfcn(nworkers)
-        @everywhere using DSGE
+        #my_procs = DSGE.addprocsfcn(nworkers)
+        ClusterManagers.@everywhere using DSGE
 
         forecast_one(m, :full, cond_type, output_vars; verbose = :high, forecast_string = forecast_string)
         rstar_bands = [0.68, 0.95]
