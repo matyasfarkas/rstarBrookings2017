@@ -18,7 +18,7 @@ dataroot = joinpath(dirname(@__FILE__()), "input_data")
 saveroot = dirname(@__FILE__())
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= DSGE.Setting(:data_vintage, "240316")
+m <= DSGE.Setting(:data_vintage, "161223")
 m <= DSGE.Setting(:use_population_forecast, false)
 
 # Settings for estimation
@@ -27,8 +27,9 @@ m <= DSGE.Setting(:reoptimize, true)
 m <= DSGE.Setting(:calculate_hessian, true)
 
 # Settings for forecast dates
-m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q1"))
-m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q1"))
+m <= DSGE.Setting(:date_forecast_start,  quartertodate("2016-Q4"))
+m <= DSGE.Setting(:date_conditional_end, quartertodate("2016-Q4"))
+
 m <= DSGE.Setting(:forecast_block_size,  50)
 nworkers = 20
 addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
