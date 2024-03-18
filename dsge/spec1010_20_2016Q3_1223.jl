@@ -5,8 +5,8 @@ using DSGE, ClusterManagers, HDF5
 ##########################################################################################
 
 # What do you want to do?
-run_estimation     = false
-run_modal_forecast = false
+run_estimation     = false 
+run_modal_forecast = false 
 run_full_forecast  = true
 
 # Initialize model object
@@ -18,7 +18,7 @@ dataroot = joinpath(dirname(@__FILE__()), "input_data")
 saveroot = dirname(@__FILE__())
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= DSGE.Setting(:data_vintage, "161223")
+m <= DSGE.Setting(:data_vintage, "240316")
 m <= DSGE.Setting(:use_population_forecast, false)
 
 # Settings for estimation
@@ -27,11 +27,8 @@ m <= DSGE.Setting(:reoptimize, true)
 m <= DSGE.Setting(:calculate_hessian, true)
 
 # Settings for forecast dates
-m <= DSGE.Setting(:date_forecast_start,  quartertodate("2016-Q4"))
-m <= DSGE.Setting(:date_conditional_end, quartertodate("2016-Q4"))
-m <= DSGE.Setting(:shockdec_startdate,   DSGE.Nullable(date_mainsample_start(m)))
-
-# Parallelization
+m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q1"))
+m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q1"))
 m <= DSGE.Setting(:forecast_block_size,  50)
 nworkers = 20
 addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
@@ -46,8 +43,8 @@ if run_estimation
     if reoptimize(m)
         # Start from ss18 mode
         mode_file = rawpath(m, "estimate", "paramsmode.h5")
-        mode_file = replace(mode_file, "ss20", "ss18")
-        update!(m, h5read(mode_file, "params"))
+        #mode_file = replace(mode_file, "ss20", "ss18")
+        DSGE.update!(m, h5read(mode_file, "params"))
     else
         # Use calculated ss18 mode
         mode_file = joinpath(dataroot, "user", "paramsmode_vint=161223.h5")
@@ -59,8 +56,9 @@ if run_estimation
         hessian_file = joinpath(dataroot, "user", "hessian_vint=161223.h5")
         specify_hessian(m, hessian_file)
     end
-
-    estimate(m)
+    df = DSGE.load_data(m)
+    data = df_to_matrix(m, df)
+    estimate(m, data; verbose=:low)
 
     # Print tables of estimated parameter moments
     groupings = DSGE.parameter_groupings(m)
@@ -86,6 +84,16 @@ if run_modal_forecast || run_full_forecast
 
         # compute means and bands
         compute_meansbands(m, :mode, cond_type, output_vars)
+
+                # print history means and bands tables to csv
+                table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                :RealNaturalRate, :Forward5YearRealNaturalRate,
+                :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
+                :Forward30YearRealNaturalRate]
+  
+                write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string = forecast_string,
+                              vars = table_vars)
+
     end
 
     # Full-distribution forecast
