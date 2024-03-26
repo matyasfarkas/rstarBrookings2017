@@ -36,7 +36,7 @@ tvarTablespath = fullfile('..', 'tvar', 'output_data');
 dsgeTablespath = fullfile('..', 'dsge', 'output_data', 'm1010', 'ss20', ...
     'forecast', 'tables');
 otherTablespath = 'Tables/';
-suffix = '_cond=none_para=full_vint=161223.csv';
+suffix = '_cond=none_para=full_vint=240320.csv';
 
 % Do we want to label shockdecs with trend (adjustLevel = 1) or starting at 0?
 adjustLevel = 1;
@@ -156,10 +156,10 @@ purple = [.494 .204 .624]; orange = [.937 .506 .275]; sea_green = [.18; .62; .48
 
 %% Figure 1 - DSGE 30-year forward r* vs TVAR rbar
 fig1 = figure(1);
-l1 = PlotStatesShadedv3_oneband(time,rstarTrendyVAR(:,2:4));
+l1 = PlotStatesShadedv3_oneband(time(1:size(rstarTrendyVAR,1)),rstarTrendyVAR(:,2:4));
 hold on;
 
-l2 = PlotStatesShadedv3_oneband(time,DSGE_rstar30fwd(:,2:4),[0 0 1], 0.2);
+l2 = PlotStatesShadedv3_oneband(time,DSGE_rstar30fwd(:,2:4)+1,[0 0 1], 0.2);
 hold off;
 leg = legend([l1,l2], 'VAR', 'DSGE', 'location', 'SouthWest','interpreter','latex');
 set(leg,'interpreter', 'latex')
