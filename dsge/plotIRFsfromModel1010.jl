@@ -1,13 +1,10 @@
 using DSGE;
 path = dirname(@__FILE__)
 
-# Initialize the plotting backend
-gr()
-GR.inline("pdf")
-
 
 m = Model1010("ss20");
 
+system = compute_system(m)
 
 shock_names = [:b_safetil_sh, :b_safep_sh, :b_liqtil_sh, :b_liqp_sh];
 shock_values = ones(4,1);
@@ -18,7 +15,16 @@ titlelist = keys(m.observable_mappings);
 var_name = :y_t;
 shock_name = :b_safetil_sh;
 var_value = 10.
-states_irf, obs_irf, pseudo_irf = impulse_responses(m, system, horizon, shock_name , var_name, var_value)
+shock_values = 1.
+
+# states_irf, obs_irf, pseudo_irf = impulse_responses(m, system, horizon, shock_name , var_name, var_value)
+
+
+shock_names = [:b_safetil_sh]
+shock_values = [1.0]
+states_irf, obs_irf, pseudo_irf  = impulse_responses(m, system, horizon, shock_names, shock_values)
+
+
 
 
 using Plots # no need for `using Plots` as that is reexported here
