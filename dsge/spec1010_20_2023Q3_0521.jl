@@ -5,7 +5,7 @@ using DSGE, ClusterManagers, HDF5
 ##########################################################################################
 
 # What do you want to do?
-run_estimation     = false 
+run_estimation     = true 
 run_modal_forecast = false 
 run_full_forecast  = true
 
@@ -37,6 +37,35 @@ addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterMana
 ##########################################################################################
 ## RUN
 ##########################################################################################
+
+system = compute_system(m)
+smoother = :durbin_koopman
+m <= DSGE.Setting(:forecast_smoother, :durbin_koopman)
+df = load_data(m)
+_, histshocks, _, init_states = DSGE.smooth(m, load_data(m), system; cond_type = :full)
+m <= DSGE.Setting(:shockdec_startdate, nothing)
+shockstates, shockobs, shockpseudo = DSGE.shock_decompositions(m, system, histshocks)
+
+SP_shock = :g_sh
+SP_obs = :obs_consumption
+SP_time = "2020-Q2"
+HVD_c_obs_percent = abs(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df)) , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] ))
+
+# Simulate Data
+sim_data = DSGE.simulate_observables(m;burnin=1000,n_periods=size(df,1))' 
+# Update dataframe
+sim_df = copy(df)
+# Logical indexing for non-missing values
+for j in 1:ncol(df)-1
+    non_nan_idx = findall(!isnan, df[:, j+1])
+    sim_df[non_nan_idx, j+1] .= sim_data[non_nan_idx, j]
+end
+
+_, histshocks_sim, _,_ = DSGE.smooth(m, sim_df, system; cond_type = :full)
+shockstates, shockobs, shockpseudo = DSGE.shock_decompositions(m, system, histshocks_sim)
+
+HVD_c_obs_percent_sim = abs(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df)) , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] ))
+
 
 # Run estimation
 if run_estimation
