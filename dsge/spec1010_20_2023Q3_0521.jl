@@ -1,4 +1,72 @@
-using DSGE, ClusterManagers, HDF5
+using DSGE, ClusterManagers, HDF5, Distributions, DataFrames
+using Distributed
+# TO RUN NARRATIVE SYSTEM PRIORS ADD Dataframes to the packages and in DSGE package's src/estimate/posterior.jl function in the section of # Return total log-likelihood, excluding the presample before the return command the following lines:
+
+
+# # df = DSGE.load_data(m)
+# # data = df_to_matrix(m, df)
+# # system = compute_system(m)
+
+
+# # @time begin
+#     SP_shock = :g_sh
+#     SP_obs = :obs_consumption
+#     SP_time = "2020-Q2"
+#     simnum = 100
+#     # Declare containers
+#     HVD_c_obs_percent = zeros(1)
+#     logSP = zeros(1)
+#     logSPweight  =zeros(1)
+#     HVD_c_obs_percent_sim = zeros(simnum)
+#     # df = DSGE.load_data(m)
+#     start_year = 1959
+#     start_quarter = 3
+#     end_year = 2023
+#     end_quarter = 4
+
+#     quarters = []
+#     for year in start_year:end_year
+#         for quarter in 1:4
+#             if (year == start_year && quarter < start_quarter) || (year == end_year && quarter > end_quarter)
+#                 continue
+#             end
+#             push!(quarters, DSGE.quartertodate("$year-Q$quarter"))
+#         end
+#     end
+
+#     datenums = quarters
+#     df = DataFrame(date=datenums)
+#     variable_names = string.(keys(m.observables))
+#     for (i, var) in enumerate(variable_names)
+#         df[!,var] = data[i, :]
+#     end
+#     _, histshocks, _, _ = DSGE.smooth(m, df, system)
+#     m <= DSGE.Setting(:shockdec_startdate, nothing)
+#     _, shockobs, _ = DSGE.shock_decompositions(m, system, histshocks)
+#     HVD_c_obs_percent = abs(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df)) , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] ))
+#     logSP = log(pdf(DSGE.BetaAlt(0.20, 0.10), HVD_c_obs_percent))
+#     println("Log system prior is:", logSP)
+#         HVD_c_obs_percent_sim = zeros(simnum,1)
+#        @distributed for i= 1:simnum
+#             # Simulate Data
+#             sim_data = DSGE.simulate_observables(m;burnin=1000,n_periods=size(df,1))' 
+#             # Update dataframe
+#             sim_df = copy(df)
+#             # Logical indexing for non-missing values
+#             for j in 1:ncol(df)-1
+#                 non_nan_idx = findall(!isnan, df[:, j+1])
+#                 sim_df[non_nan_idx, j+1] .= sim_data[non_nan_idx, j]
+#             end
+#             _, histshocks_sim, _,_ = DSGE.smooth(m, sim_df, system; cond_type = :full)
+#             shockstates, shockobssim, shockpseudo = DSGE.shock_decompositions(m, system, histshocks_sim)
+            
+#             HVD_c_obs_percent_sim[i] = abs(shockobssim[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobssim[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df)) , [i for i in 1:size(shockobssim,3) if i != m.exogenous_shocks[SP_shock]]] ))
+#         end
+#         logSPweight = mean(log.(pdf(DSGE.BetaAlt(0.20, 0.10), HVD_c_obs_percent_sim)))
+ 
+#     println("Log system prior weight is:", logSPweight)
+# # end
+
 
 ##########################################################################################
 ## SETUP
@@ -34,38 +102,11 @@ m <= DSGE.Setting(:forecast_block_size,  50)
 nworkers = 20
 addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
 
+
+
 ##########################################################################################
 ## RUN
 ##########################################################################################
-
-system = compute_system(m)
-smoother = :durbin_koopman
-m <= DSGE.Setting(:forecast_smoother, :durbin_koopman)
-df = load_data(m)
-_, histshocks, _, init_states = DSGE.smooth(m, load_data(m), system; cond_type = :full)
-m <= DSGE.Setting(:shockdec_startdate, nothing)
-shockstates, shockobs, shockpseudo = DSGE.shock_decompositions(m, system, histshocks)
-
-SP_shock = :g_sh
-SP_obs = :obs_consumption
-SP_time = "2020-Q2"
-HVD_c_obs_percent = abs(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df)) , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] ))
-
-# Simulate Data
-sim_data = DSGE.simulate_observables(m;burnin=1000,n_periods=size(df,1))' 
-# Update dataframe
-sim_df = copy(df)
-# Logical indexing for non-missing values
-for j in 1:ncol(df)-1
-    non_nan_idx = findall(!isnan, df[:, j+1])
-    sim_df[non_nan_idx, j+1] .= sim_data[non_nan_idx, j]
-end
-
-_, histshocks_sim, _,_ = DSGE.smooth(m, sim_df, system; cond_type = :full)
-shockstates, shockobs, shockpseudo = DSGE.shock_decompositions(m, system, histshocks_sim)
-
-HVD_c_obs_percent_sim = abs(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df)) , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] ))
-
 
 # Run estimation
 if run_estimation
@@ -88,7 +129,7 @@ if run_estimation
     end
     df = DSGE.load_data(m)
     data = df_to_matrix(m, df)
-    estimate(m, data; verbose=:low)
+    DSGE.estimate(m, data; verbose=:low)
 
     # Print tables of estimated parameter moments
     groupings = DSGE.parameter_groupings(m)
