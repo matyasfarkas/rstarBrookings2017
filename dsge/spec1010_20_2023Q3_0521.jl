@@ -1,71 +1,95 @@
-using DSGE, ClusterManagers, HDF5, Distributions, DataFrames
+using DSGE, ClusterManagers, HDF5, Distributions, DataFrames 
 using Distributed
+
+
 # TO RUN NARRATIVE SYSTEM PRIORS ADD Dataframes to the packages and in DSGE package's src/estimate/posterior.jl function in the section of # Return total log-likelihood, excluding the presample before the return command the following lines:
 
-
+# logSP_minus = get_setting(m, :logSP_minus)
+# logSPweight = get_setting(m, :logSPweight_minus)
+# threshold = get_setting(m,:threshold)
+# simnum = get_setting(m,:SP_simnum)
+# SP_shock = :g_sh
+# SP_obs = :obs_consumption
+# SP_first = "2020-Q2"
+# SP_last = "2021-Q2"
+# SP_vint = "2020-Q2"
+# simnum = 100
+# # Declare containers
+# HVD_c_obs_percent = zeros(1)
+# logSP = zeros(1)
+# logSPweight  =zeros(1)
+# HVD_c_obs_percent_sim = zeros(simnum)
 # # df = DSGE.load_data(m)
-# # data = df_to_matrix(m, df)
-# # system = compute_system(m)
+# start_year = 1959
+# start_quarter = 3
+# end_year = 2023
+# end_quarter = 4
 
-
-# # @time begin
-#     SP_shock = :g_sh
-#     SP_obs = :obs_consumption
-#     SP_time = "2020-Q2"
-#     simnum = 100
-#     # Declare containers
-#     HVD_c_obs_percent = zeros(1)
-#     logSP = zeros(1)
-#     logSPweight  =zeros(1)
-#     HVD_c_obs_percent_sim = zeros(simnum)
-#     # df = DSGE.load_data(m)
-#     start_year = 1959
-#     start_quarter = 3
-#     end_year = 2023
-#     end_quarter = 4
-
-#     quarters = []
-#     for year in start_year:end_year
-#         for quarter in 1:4
-#             if (year == start_year && quarter < start_quarter) || (year == end_year && quarter > end_quarter)
-#                 continue
-#             end
-#             push!(quarters, DSGE.quartertodate("$year-Q$quarter"))
+# quarters = []
+# for year in start_year:end_year
+#     for quarter in 1:4
+#         if (year == start_year && quarter < start_quarter) || (year == end_year && quarter > end_quarter)
+#             continue
 #         end
+#         push!(quarters, DSGE.quartertodate("$year-Q$quarter"))
 #     end
+# end
 
-#     datenums = quarters
-#     df = DataFrame(date=datenums)
-#     variable_names = string.(keys(m.observables))
-#     for (i, var) in enumerate(variable_names)
-#         df[!,var] = data[i, :]
-#     end
-#     _, histshocks, _, _ = DSGE.smooth(m, df, system)
-#     m <= DSGE.Setting(:shockdec_startdate, nothing)
-#     _, shockobs, _ = DSGE.shock_decompositions(m, system, histshocks)
-#     HVD_c_obs_percent = abs(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df)) , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] ))
-#     logSP = log(pdf(DSGE.BetaAlt(0.20, 0.10), HVD_c_obs_percent))
-#     println("Log system prior is:", logSP)
-#         HVD_c_obs_percent_sim = zeros(simnum,1)
-#        @distributed for i= 1:simnum
-#             # Simulate Data
-#             sim_data = DSGE.simulate_observables(m;burnin=1000,n_periods=size(df,1))' 
-#             # Update dataframe
-#             sim_df = copy(df)
-#             # Logical indexing for non-missing values
-#             for j in 1:ncol(df)-1
-#                 non_nan_idx = findall(!isnan, df[:, j+1])
-#                 sim_df[non_nan_idx, j+1] .= sim_data[non_nan_idx, j]
-#             end
-#             _, histshocks_sim, _,_ = DSGE.smooth(m, sim_df, system; cond_type = :full)
-#             shockstates, shockobssim, shockpseudo = DSGE.shock_decompositions(m, system, histshocks_sim)
-            
-#             HVD_c_obs_percent_sim[i] = abs(shockobssim[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobssim[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_time), eachrow(df)) , [i for i in 1:size(shockobssim,3) if i != m.exogenous_shocks[SP_shock]]] ))
+# datenums = quarters
+# df = DataFrame(date=datenums)
+# variable_names = string.(keys(m.observables))
+# for (i, var) in enumerate(variable_names)
+#     df[!,var] = data[i, :]
+# end
+# _, histshocks, _, _ = DSGE.smooth(m, df, system)
+# m <= DSGE.Setting(:shockdec_startdate, nothing)
+# _, shockobs, _ = DSGE.shock_decompositions(m, system, histshocks)
+# try 
+#     HVD_c_obs_percent = sum(abs(shockobs[m.observables[SP_obs], (findfirst(row -> row[1] == quartertodate(SP_first), eachrow(df))-1) : (findfirst(row -> row[1] == quartertodate(SP_last), eachrow(df))-1) ,m.exogenous_shocks[SP_shock]])) / sum(sum(abs.(shockobs[m.observables[SP_obs],(findfirst(row -> row[1] == quartertodate(SP_first), eachrow(df))-1) : (findfirst(row -> row[1] == quartertodate(SP_last), eachrow(df))-1) , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] )))
+# catch
+#     HVD_c_obs_percent = abs(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_vint), eachrow(df))-1 ,m.exogenous_shocks[SP_shock]])/sum(abs.(shockobs[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_vint), eachrow(df))-1 , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] ))
+# end
+# logSP = log(pdf(DSGE.BetaAlt(0.10, 0.05), HVD_c_obs_percent))
+# println("Log system prior is:", logSP)
+# # Check if the change in logSP is small
+
+# if abs(logSP - logSP_minus) > threshold
+#     println("Change in logSP is significant. Running simulation loop...")
+    
+#     # Run the simulation loop
+#     HVD_c_obs_percent_sim = zeros(simnum, 1)
+#         for i = 1:simnum
+#         sim_data = DSGE.simulate_observables(m; burnin=500, n_periods=size(df, 1))'
+#         sim_df = copy(df)
+
+#         for j in 1:ncol(df)-1
+#             non_nan_idx = findall(!isnan, df[:, j+1])
+#             sim_df[non_nan_idx, j+1] .= sim_data[non_nan_idx, j]
 #         end
-#         logSPweight = mean(log.(pdf(DSGE.BetaAlt(0.20, 0.10), HVD_c_obs_percent_sim)))
- 
+
+#         _, histshocks_sim, _, _ = DSGE.smooth(m, sim_df, system; cond_type = :full)
+#         shockstates, shockobssim, shockpseudo = DSGE.shock_decompositions(m, system, histshocks_sim)
+#         try 
+#             HVD_c_obs_percent_sim[i] = sum(abs(shockobs[m.observables[SP_obs], (findfirst(row -> row[1] == quartertodate(SP_first), eachrow(df))-1) : (findfirst(row -> row[1] == quartertodate(SP_last), eachrow(df))-1) ,m.exogenous_shocks[SP_shock]])) / sum(sum(abs.(shockobs[m.observables[SP_obs],(findfirst(row -> row[1] == quartertodate(SP_first), eachrow(df))-1) : (findfirst(row -> row[1] == quartertodate(SP_last), eachrow(df))-1) , [i for i in 1:size(shockobs,3) if i != m.exogenous_shocks[SP_shock]]] )))
+#         catch
+#             HVD_c_obs_percent_sim[i] = abs(shockobssim[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_vint), eachrow(df))-1, m.exogenous_shocks[SP_shock]]) / sum(abs.(shockobssim[m.observables[SP_obs], findfirst(row -> row[1] == quartertodate(SP_vint), eachrow(df))-1, [i for i in 1:size(shockobssim, 3) if i != m.exogenous_shocks[SP_shock]]]))
+#         end
+# end
+
+#     logSPweight = mean(log.(pdf(DSGE.BetaAlt(0.10, 0.05), HVD_c_obs_percent_sim)))
 #     println("Log system prior weight is:", logSPweight)
-# # end
+# else
+#     println("Change in logSP is smaller than ", threshold, ". Skipping simulation loop...")
+#     logSPweight =  try get_setting(m, :logSPweight_minus) catch; return end
+#     # Reuse the previous weight
+# end
+# # Update global variables
+# m <= DSGE.Setting(:logSP_minus,  logSP)
+# m <= DSGE.Setting(:logSPweight_minus, logSPweight)
+
+# return ψ_l * sum(filter_likelihood(m, data, system;
+#                                    include_presample = false, tol = tol)) +
+#                                        ψ_p * penalty + logSPweight + logSP
 
 
 ##########################################################################################
@@ -101,6 +125,12 @@ m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q1"))
 m <= DSGE.Setting(:forecast_block_size,  50)
 nworkers = 20
 addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
+
+
+m <= DSGE.Setting(:logSP_minus,  0.0)
+m <= DSGE.Setting(:logSPweight_minus, 0.0)
+m <= DSGE.Setting(:threshold,  10^-4)
+m <= DSGE.Setting(:SP_simnum, 1000)
 
 
 
