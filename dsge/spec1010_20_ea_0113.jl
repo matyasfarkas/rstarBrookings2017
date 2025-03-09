@@ -180,11 +180,13 @@ if run_modal_forecast || run_full_forecast
 
     # Forecast label: all forecast output filenames will contain this string
     forecast_string = ""
-
+    m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1972-Q2"))
+    m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
+    
     # Modal forecast
     if run_modal_forecast
         # run modal forecasts and save all draws
-        forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
+        forecast_one(m, :mode, cond_type, output_vars; verbose = :low)
 
         # compute means and bands
         compute_meansbands(m, :mode, cond_type, output_vars)
