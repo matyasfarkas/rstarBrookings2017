@@ -115,6 +115,7 @@ m <= DSGE.Setting(:use_population_forecast, false)
 
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
+
 m <= DSGE.Setting(:reoptimize, true)
 m <= DSGE.Setting(:calculate_hessian, true)
 m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1970-Q2"))
@@ -161,7 +162,7 @@ if run_estimation
     end
     df = DSGE.load_data(m)
     data = df_to_matrix(m, df)
-    DSGE.estimate(m, data; verbose=:high)
+    DSGE.estimate(m, data; verbose=:low)
 
     # Print tables of estimated parameter moments
     groupings = DSGE.parameter_groupings(m)
