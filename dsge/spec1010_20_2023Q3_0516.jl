@@ -7,7 +7,7 @@ using DSGE, ClusterManagers, HDF5
 # What do you want to do?
 run_estimation     = false 
 run_modal_forecast = false 
-run_full_forecast  = true
+run_full_forecast  = true   
 
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
