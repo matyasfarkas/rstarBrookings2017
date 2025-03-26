@@ -103,7 +103,7 @@ run_full_forecast  = false
 
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
-m = Model1010("ss20")
+m = Model1010("ss23")
 
 # Settings for data, paths, etc.
 dataroot = joinpath(dirname(@__FILE__()), "input_data")
