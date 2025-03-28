@@ -32,7 +32,7 @@ m <= Setting(:date_forecast_start, quartertodate("2025-Q1"))
 # changing the settings yourself.
 m <= Setting(:n_mh_simulations, 100) # Do 100 MH steps during estimation
 m <= Setting(:use_population_forecast, false) # Population forecast not available as data to turn off
-m <= Setting(:forecast_block_size, 2) # adjust block size to run on small number of estimations
+m <= Setting(:forecast_block_size, 5) # adjust block size to run on small number of estimations
 
 #############
 # Estimation
@@ -76,12 +76,21 @@ compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
 # Optionally add 10 processes to run the forecast in parallel (uncomment the 3 lines below).
 # Alternatively, you can load the ClusterManagers package and add processes
 # using one of the schedulers such as SGE or Slurm.
-# addprocs(10)
-# @everywhere using DSGE
-# m <= Setting(:use_parallel_workers, true)
+addprocs(10)
+@everywhere using DSGE
+m <= Setting(:use_parallel_workers, true)
 
 forecast_one(m, :full, :none, output_vars; check_empty_columns = false)
 compute_meansbands(m, :full, :none, output_vars; check_empty_columns = false)
 
 # Comment out the line below if you did not run the forecast in parallel.
 # rmprocs(procs())
+plot_history_and_forecast(m, :obs_gdp, :obs, :full, :none,
+                              use_bdd = :bdd_and_unbdd,
+                              start_date = DSGE.quartertodate("2007-Q1"),
+                              end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
+                              verbose = :none)
+
+## Hair plot test
+
+
