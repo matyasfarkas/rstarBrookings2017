@@ -116,8 +116,8 @@ m <= DSGE.Setting(:use_population_forecast, false)
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
 
-m <= DSGE.Setting(:reoptimize, true)
-m <= DSGE.Setting(:calculate_hessian, true)
+m <= DSGE.Setting(:reoptimize, false)
+m <= DSGE.Setting(:calculate_hessian, false)
 m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1970-Q2"))
 m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
 
@@ -151,13 +151,13 @@ if run_estimation
         DSGE.update!(m, h5read(mode_file, "params"))
     else
         # Use calculated ss18 mode
-        mode_file = joinpath(dataroot, "user", "paramsmode_vint=240521.h5")
+        mode_file = joinpath(dataroot, "user", "paramsmode_vint=250113.h5")
         specify_mode!(m, mode_file)
     end
 
     # Use calculated ss18 hessian
     if !calculate_hessian(m)
-        hessian_file = joinpath(dataroot, "user", "hessian_vint=240521.h5")
+        hessian_file = joinpath(dataroot, "user", "hessian_vint=250113.h5")
         specify_hessian(m, hessian_file)
     end
     df = DSGE.load_data(m)
@@ -180,8 +180,8 @@ if run_modal_forecast || run_full_forecast
 
     # Forecast label: all forecast output filenames will contain this string
     forecast_string = ""
-    m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1972-Q2"))
-    m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
+    m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1985-Q1"))
+    m <= DSGE.Setting(:date_presample_start,  quartertodate("1987-Q1"))
     
     # Modal forecast
     if run_modal_forecast

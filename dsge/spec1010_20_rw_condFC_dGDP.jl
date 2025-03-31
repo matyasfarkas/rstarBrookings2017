@@ -1,5 +1,5 @@
 using DSGE, ModelConstructors, Distributed
-using Nullables, DataFrames, OrderedCollections, Dates
+using Nullables, DataFrames, OrderedCollections, Dates,HDF5, CSV
 
 #############################
 # Written by: Matyas Farkas, IMF
@@ -19,10 +19,10 @@ using Nullables, DataFrames, OrderedCollections, Dates
 # Model Setup
 ##############
 # Instantiate the FRBNY DSGE model object
-m = Model1002("ss10")
+m = Model1010("ss20")
 
 # estimate as of 2015-Q3 using the default data vintage from 2015 Nov 27
-m <= DSGE.Setting(:data_vintage, "250328")
+m <= Setting(:data_vintage, "250331")
 m <= Setting(:date_forecast_start, quartertodate("2025-Q1"))
 
 # The following settings ensure that this script runs in
@@ -30,8 +30,10 @@ m <= Setting(:date_forecast_start, quartertodate("2025-Q1"))
 # forecast, we recommend either using the default settings
 # (i.e. comment out the settings below) or
 # changing the settings yourself.
-m <= Setting(:n_mh_simulations, 100) # Do 100 MH steps during estimation
-m <= Setting(:use_population_forecast, false) # Population forecast not available as data to turn off
+m <= Setting(:n_mh_simulations, 500) # Do 500 MH steps during estimation
+m <= Setting(:n_mh_blocks, 10) # Do 10 blocks
+
+# m <= Setting(:use_population_forecast, false) # Population forecast not available as data to turn off
 m <= Setting(:forecast_block_size, 5) # adjust block size to run on small number of estimations
 
 #############
@@ -53,7 +55,7 @@ m <= Setting(:forecast_block_size, 5) # adjust block size to run on small number
 end
 
 # produce LaTeX tables of parameter moments
-moment_tables(m)
+# moment_tables(m)
 
 ############
 # Forecasts
@@ -66,7 +68,7 @@ moment_tables(m)
 # to annualized quarterly aggregate percent change.
 
 # The variables we want to forecast. In this case, all of the model observables
-output_vars = [:histobs, :forecastobs]
+output_vars = [ :histobs, :forecastobs ]
 
 # Modal forecast (point forecast)
 forecast_one(m, :mode, :none, output_vars; check_empty_columns = false)
@@ -76,12 +78,9 @@ compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
 # Optionally add 10 processes to run the forecast in parallel (uncomment the 3 lines below).
 # Alternatively, you can load the ClusterManagers package and add processes
 # using one of the schedulers such as SGE or Slurm.
-addprocs(10)
-@everywhere using DSGE
-m <= Setting(:use_parallel_workers, true)
-
-forecast_one(m, :full, :none, output_vars; check_empty_columns = false)
-compute_meansbands(m, :full, :none, output_vars; check_empty_columns = false)
+# addprocs(10)
+# @everywhere using DSGE
+# m <= Setting(:use_parallel_workers, true)
 
 # Comment out the line below if you did not run the forecast in parallel.
 # rmprocs(procs())
@@ -90,7 +89,80 @@ plot_history_and_forecast(m, :obs_gdp, :obs, :full, :none,
                               start_date = DSGE.quartertodate("2007-Q1"),
                               end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
                               verbose = :none)
+## Conditional forecast  - works!!!!
+# forecast_one(m, :full, :none, output_vars; check_empty_columns = false)
+# compute_meansbands(m, :full, :none, output_vars; check_empty_columns = false)
+# m <= Setting(:use_population_forecast, true) # disable population forecasts 
+# plot_history_and_forecast(m, :obs_gdp, :obs, :mode, :full,
+#                               use_bdd = :bdd_and_unbdd,
+#                               start_date = DSGE.quartertodate("2007-Q1"),
+#                               end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
+#                               verbose = :none)
 
-## Hair plot test
 
+
+
+                          
+                                                       
+## Run the rolling window estimation with pseudo real time out of sample forecasts
+
+finvars = [:date, :obs_nominalrate, :obs_BBBspread, :obs_AAAspread]
+
+for i_year in 2000:2000
+    for i_quarter in 1:1
+        
+
+        #  Construct conditioning datasets
+        mnc = Model1010("ss20")
+        mnc <= DSGE.Setting(:data_vintage, "250331")
+        if i_quarter ==4
+            vint_nc_cond= string(quartertodate(string(i_year+1)*"-Q"*string(1)))
+            mnc <= Setting(:date_forecast_start, (quartertodate(string(i_year+1)*"-Q"*string(1))))
+        else
+            vint_nc_cond= string(quartertodate(string(i_year)*"-Q"*string(i_quarter+1)))
+            mnc <= Setting(:date_forecast_start, (quartertodate(string(i_year)*"-Q"*string(i_quarter+1))))
+        end
+        vint_nc_cond = vint_nc_cond[3:4]*vint_nc_cond[6:7]*vint_nc_cond[9:10]
+        mnc <= DSGE.Setting(:cond_vintage, vint_nc_cond)
+        dfnc = load_data(mnc, try_disk = false, check_empty_columns = false, summary_statistics = :none)
+        conditional_path =  joinpath(get_setting(mnc, :dataroot), "cond")
+        dfnc[end,Not(finvars)] .= missing
+        df_to_write = DataFrame(dfnc[end,:])
+        file_path = joinpath(conditional_path, "cond_cdid=02_cdvt=" * vint_nc_cond * ".csv")
+
+        CSV.write(file_path, df_to_write; missingstring="")
+
+        # Update the forecast start to be the looper in the model
+        mnc <= Setting(:date_forecast_start, (quartertodate(string(i_year)*"-Q"*string(i_quarter))))
+   
+        forecast_one(mnc, :mode, :full, output_vars; check_empty_columns = false)     
+        compute_meansbands(m, :mode, :full, output_vars; check_empty_columns = false)
+        plot_history_and_forecast(m, :obs_gdp, :obs, :mode, :full,
+                                      use_bdd = :bdd_and_unbdd,
+                                      start_date = DSGE.quartertodate(string(quartertodate(string(i_year-10)*"-Q"*string(1)))),
+                                      end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
+                                      verbose = :none)
+
+        # #
+        # vint_1yearahead_cond= string(quartertodate(string(i_year+1)*"-Q"*string(i_quarter)))
+        # vint_1yearahead_cond = vint_1yearahead_cond[3:4]*vint_1yearahead_cond[6:7]*vint_1yearahead_cond[9:10]
+
+        # vint_2yearsahead_cond= string(quartertodate(string(i_year+2)*"-Q"*string(i_quarter)))
+        # vint_2yearsahead_cond = vint_2yearsahead_cond[3:4]*vint_2yearsahead_cond[6:7]*vint_2yearsahead_cond[9:10]
+
+    
+        # m <= DSGE.Setting(:data_vintage, vint)
+
+        # forecast_one(m, :full, :full, output_vars; check_empty_columns = false)
+        # compute_meansbands(m, :full, :none, output_vars; check_empty_columns = false)
+        # plot_history_and_forecast(m, :obs_gdp, :obs, :full, :none,
+        #                             use_bdd = :bdd_and_unbdd,
+        #                             start_date = DSGE.quartertodate(string(i_year-5)*"-Q"*string(i_quarter)),
+        #                             end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
+        #                             verbose = :none)
+
+    end
+           
+end
+  
 
