@@ -49,9 +49,18 @@ m <= Setting(:forecast_block_size, 5) # adjust block size to run on small number
 # Warnings will be still thrown after calling load_data indicating which columns
 # are empty. However, estimate will still run when data is missing.
 @time begin
+# Run estimation
+if run_estimation
+   
+    # Start from full sample mode
+   mode_file = rawpath(m, "estimate", "paramsmode.h5")
+   #mode_file = replace(mode_file, "ss20", "ss18")
+   DSGE.update!(m, h5read(mode_file, "params"))
+else
     df = load_data(m, try_disk = false, check_empty_columns = false, summary_statistics = :none)
     data = df_to_matrix(m, df)
     DSGE.estimate(m, data)
+
 end
 
 # produce LaTeX tables of parameter moments
@@ -72,7 +81,16 @@ output_vars = [ :histobs, :forecastobs ]
 
 # Modal forecast (point forecast)
 forecast_one(m, :mode, :none, output_vars; check_empty_columns = false)
+m <= Setting(:use_population_forecast, false) # disable population forecasts
 compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
+
+#  Modal conditional forecast
+forecast_one(m, :mode, :full, output_vars; check_empty_columns = false)
+compute_meansbands(m, :mode, :full, output_vars; check_empty_columns = false)
+
+table_vars = [:obs_gdp]
+write_meansbands_tables_all(m, :mode, :full, [:forecastobs], forecast_string = "", vars = table_vars)
+
 
 # Full-distribution forecast (point forecast (mean) and uncertainty bands)
 # Optionally add 10 processes to run the forecast in parallel (uncomment the 3 lines below).
@@ -84,11 +102,12 @@ compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
 
 # Comment out the line below if you did not run the forecast in parallel.
 # rmprocs(procs())
-plot_history_and_forecast(m, :obs_gdp, :obs, :full, :none,
+plot_history_and_forecast(m, :obs_gdp, :obs, :mode, :full,
                               use_bdd = :bdd_and_unbdd,
                               start_date = DSGE.quartertodate("2007-Q1"),
                               end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
                               verbose = :none)
+
 ## Conditional forecast  - works!!!!
 # forecast_one(m, :full, :none, output_vars; check_empty_columns = false)
 # compute_meansbands(m, :full, :none, output_vars; check_empty_columns = false)
@@ -108,41 +127,66 @@ plot_history_and_forecast(m, :obs_gdp, :obs, :full, :none,
 
 finvars = [:date, :obs_nominalrate, :obs_BBBspread, :obs_AAAspread]
 
-for i_year in 2000:2000
-    for i_quarter in 1:1
-        
-
+for i_year in 2000:2024
+    for i_quarter in 1:4
         #  Construct conditioning datasets
-        mnc = Model1010("ss20")
-        mnc <= DSGE.Setting(:data_vintage, "250331")
+        mnc = m
+        mode_file = joinpath(dataroot, "user", "paramsmode_vint=250113.h5")
+        specify_mode!(m, mode_file)
+
+        
+        #  Create Nowcast cond series
         if i_quarter ==4
-            vint_nc_cond= string(quartertodate(string(i_year+1)*"-Q"*string(1)))
-            mnc <= Setting(:date_forecast_start, (quartertodate(string(i_year+1)*"-Q"*string(1))))
+            date_nc_cond = quartertodate(string(i_year+1)*"-Q"*string(1))
+            vint_nc_cond= string(date_nc_cond)
+            mnc <= Setting(:date_forecast_start,date_nc_cond)
         else
-            vint_nc_cond= string(quartertodate(string(i_year)*"-Q"*string(i_quarter+1)))
-            mnc <= Setting(:date_forecast_start, (quartertodate(string(i_year)*"-Q"*string(i_quarter+1))))
+            date_nc_cond = quartertodate(string(i_year)*"-Q"*string(i_quarter+1))
+            vint_nc_cond= string(date_nc_cond)
+            mnc <= Setting(:date_forecast_start,date_nc_cond)
         end
-        vint_nc_cond = vint_nc_cond[3:4]*vint_nc_cond[6:7]*vint_nc_cond[9:10]
-        mnc <= DSGE.Setting(:cond_vintage, vint_nc_cond)
-        dfnc = load_data(mnc, try_disk = false, check_empty_columns = false, summary_statistics = :none)
+       vint_nc_cond = vint_nc_cond[3:4]*vint_nc_cond[6:7]*vint_nc_cond[9:10]
+       mnc <= Setting(:date_forecast_start,date_nc_cond)
+
+       dfnc = load_data(mnc, try_disk = false, check_empty_columns = false, summary_statistics = :none)
+
         conditional_path =  joinpath(get_setting(mnc, :dataroot), "cond")
         dfnc[end,Not(finvars)] .= missing
         df_to_write = DataFrame(dfnc[end,:])
         file_path = joinpath(conditional_path, "cond_cdid=02_cdvt=" * vint_nc_cond * ".csv")
-
         CSV.write(file_path, df_to_write; missingstring="")
 
-        # Update the forecast start to be the looper in the model
-        mnc <= Setting(:date_forecast_start, (quartertodate(string(i_year)*"-Q"*string(i_quarter))))
-   
-        forecast_one(mnc, :mode, :full, output_vars; check_empty_columns = false)     
-        compute_meansbands(m, :mode, :full, output_vars; check_empty_columns = false)
-        plot_history_and_forecast(m, :obs_gdp, :obs, :mode, :full,
-                                      use_bdd = :bdd_and_unbdd,
-                                      start_date = DSGE.quartertodate(string(quartertodate(string(i_year-10)*"-Q"*string(1)))),
-                                      end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
-                                      verbose = :none)
 
+        date_last_obs = quartertodate(string(i_year)*"-Q"*string(i_quarter))
+        mnc <= Setting(:date_forecast_start,date_last_obs)
+        mnc <= Setting(:date_conditional_end,date_last_obs)
+
+        dfnc = load_data(mnc, try_disk = false, check_empty_columns = false, summary_statistics = :none)
+
+
+        #  Create population forecasts
+        filename = inpath(m, "raw", "population_data_levels_" * "2024q4_full" * ".csv") # Load full population data 
+        popdf = CSV.read(filename, DataFrame, copycols = true)
+        DSGE.format_dates!(:date, popdf)
+        sort!(popdf, :date)
+        rename!(popdf,:CNP16OV => :POPULATION)
+        popdf_forecast_to_write=filter!(row -> row.date < date_nc_cond, popdf)
+        file_path = joinpath(joinpath(get_setting(mnc, :dataroot), "raw"), "population_forecast_" * vint_nc_cond * ".csv")
+        CSV.write(file_path, popdf_forecast_to_write; missingstring="")
+
+
+        # Update the forecast start to be the looper in the model
+        forecast_one(mnc, :mode, :full, output_vars; check_empty_columns = false, verbose = :low)
+
+        compute_meansbands(mnc, :mode, :full, output_vars; check_empty_columns = false)
+        # plot_history_and_forecast(mnc, :obs_gdp, :obs, :mode, :full,
+        #                               use_bdd = :bdd_and_unbdd,
+        #                               start_date = DSGE.quartertodate(string(i_year-10)*"-Q"*string(1)),
+        #                               end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
+        #                               verbose = :none)
+        table_vars = [:obs_gdp]
+        write_meansbands_tables_all(mnc, :mode, :full, [:forecastobs], forecast_string ="" , vars = table_vars)
+        mv(tablespath(mnc,"forecast")*"\\forecast_obs_gdp_cond=full_para=mode_vint=250331.csv", tablespath(mnc,"forecast")*"\\forecast_obs_gdp_nowcast_cond="* string(date_last_obs) *".csv")
         # #
         # vint_1yearahead_cond= string(quartertodate(string(i_year+1)*"-Q"*string(i_quarter)))
         # vint_1yearahead_cond = vint_1yearahead_cond[3:4]*vint_1yearahead_cond[6:7]*vint_1yearahead_cond[9:10]
