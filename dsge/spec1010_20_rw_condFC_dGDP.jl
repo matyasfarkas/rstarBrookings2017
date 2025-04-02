@@ -64,7 +64,7 @@ else
     DSGE.estimate(m, data)
 
 end
-
+end
 # produce LaTeX tables of parameter moments
 # moment_tables(m)
 
@@ -87,11 +87,11 @@ m <= Setting(:use_population_forecast, false) # disable population forecasts
 compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
 
 #  Modal conditional forecast
-m <= Setting(:cond_vintage, "250331")
-forecast_one(m, :mode, :semi, output_vars; check_empty_columns = false)
-compute_meansbands(m, :mode, :semi, output_vars; check_empty_columns = false)
-table_vars = [:obs_nominalrate]
-write_meansbands_tables_all(m, :mode, :semi, [:forecastobs], forecast_string = "", vars = table_vars)
+# m <= Setting(:cond_vintage, "250331")
+# forecast_one(m, :mode, :semi, output_vars; check_empty_columns = false)
+# compute_meansbands(m, :mode, :semi, output_vars; check_empty_columns = false)
+# table_vars = [:obs_nominalrate]
+# write_meansbands_tables_all(m, :mode, :semi, [:forecastobs], forecast_string = "", vars = table_vars)
 
 
 # Full-distribution forecast (point forecast (mean) and uncertainty bands)
@@ -126,7 +126,7 @@ write_meansbands_tables_all(m, :mode, :semi, [:forecastobs], forecast_string = "
 
 finvars = [:date, :obs_nominalrate, :obs_BBBspread, :obs_AAAspread]
 
-for i_year in 2008:2022
+for i_year in 2020:2024
     for i_quarter in 1:4
         #  Construct model used for forecasting based on full sample estimated DSGE
                 mnc = m
@@ -208,7 +208,7 @@ for i_year in 2008:2022
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
                 for i_var in size(table_vars,1)
-                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* vint_last_obs  *".csv",force=true) # mv(tablespath(mnc,"forecast")*"\\forecast_obs_gdp_cond=full_para=mode_vint=250331.csv", tablespath(mnc,"forecast")*"\\forecast_obs_gdp_nowcast_cond="* string(date_last_obs) *".csv",force=true)
+                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* vint_last_obs  *".csv",force=true)
                 end            
 
         #  1 YEAR AHEAD
@@ -263,7 +263,7 @@ for i_year in 2008:2022
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
                 for i_var in size(table_vars,1)
-                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* vint_last_obs *".csv",force=true)) # mv(tablespath(mnc,"forecast")*"\\forecast_obs_gdp_cond=full_para=mode_vint=250331.csv", tablespath(mnc,"forecast")*"\\forecast_obs_gdp_nowcast_cond="* string(date_last_obs) *".csv",force=true)
+                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* vint_last_obs * ".csv",force=true) 
                 end    
                     
                 
@@ -317,7 +317,7 @@ for i_year in 2008:2022
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
                 for i_var in size(table_vars,1)
-                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* vint_last_obs *".csv",force=true)) # mv(tablespath(mnc,"forecast")*"\\forecast_obs_gdp_cond=full_para=mode_vint=250331.csv", tablespath(mnc,"forecast")*"\\forecast_obs_gdp_nowcast_cond="* string(date_last_obs) *".csv",force=true)
+                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* vint_last_obs *".csv",force=true)
                 end            
             end
            
