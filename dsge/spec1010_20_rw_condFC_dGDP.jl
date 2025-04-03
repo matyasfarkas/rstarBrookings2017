@@ -98,9 +98,9 @@ compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
 # Optionally add 10 processes to run the forecast in parallel (uncomment the 3 lines below).
 # Alternatively, you can load the ClusterManagers package and add processes
 # using one of the schedulers such as SGE or Slurm.
-# addprocs(8)
-# @everywhere using DSGE
-# m <= Setting(:use_parallel_workers, true)
+addprocs(8)
+@everywhere using DSGE
+m <= Setting(:use_parallel_workers, true)
 
 # Comment out the line below if you did not run the forecast in parallel.
 # rmprocs(procs())
