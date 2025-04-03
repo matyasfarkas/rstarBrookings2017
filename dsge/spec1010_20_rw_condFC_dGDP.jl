@@ -207,7 +207,7 @@ for i_year in 2020:2024
 
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
-                for i_var in size(table_vars,1)
+                for i_var in 1:size(table_vars,1)
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* vint_last_obs  *".csv",force=true)
                 end            
 
@@ -262,7 +262,7 @@ for i_year in 2020:2024
 
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
-                for i_var in size(table_vars,1)
+                for i_var in 1:size(table_vars,1)
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* vint_last_obs * ".csv",force=true) 
                 end    
                     
