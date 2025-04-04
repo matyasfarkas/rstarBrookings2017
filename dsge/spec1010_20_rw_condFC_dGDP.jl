@@ -98,7 +98,7 @@ compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
 # Optionally add 10 processes to run the forecast in parallel (uncomment the 3 lines below).
 # Alternatively, you can load the ClusterManagers package and add processes
 # using one of the schedulers such as SGE or Slurm.
-addprocs(8)
+addprocs(4)
 @everywhere using DSGE
 m <= Setting(:use_parallel_workers, true)
 
@@ -125,9 +125,10 @@ m <= Setting(:use_parallel_workers, true)
 ## Run the rolling window estimation with pseudo real time out of sample forecasts
 
 finvars = [:date, :obs_nominalrate, :obs_BBBspread, :obs_AAAspread]
-
-for i_year in 2020:2024
+k =1
+for i_year in 2001:2024
     for i_quarter in 1:4
+
         #  Construct model used for forecasting based on full sample estimated DSGE
                 mnc = m
                 mnc <= Setting(:data_vintage, "250331")
@@ -203,13 +204,17 @@ for i_year in 2020:2024
                                             start_date = DSGE.quartertodate(string(i_year-10)*"-Q"*string(1)),
                                             end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
                                             verbose = :none)
+               cp(figurespath(mnc,"forecast" ) *"\\forecast_obs_gdp_cond=semi_para=full_vint=250331.pdf", figurespath(mnc,"forecast" ) *"\\obs_gdp_forecast_density_semi_nowcast_cond="* string(k) *".pdf",force=true)
                 mv(figurespath(mnc,"forecast" ) *"\\forecast_obs_gdp_cond=semi_para=full_vint=250331.pdf", figurespath(mnc,"forecast" ) *"\\obs_gdp_forecast_density_semi_nowcast_cond="* vint_last_obs *".pdf",force=true)
 
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
                 for i_var in 1:size(table_vars,1)
+                    cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* string(k)  *".csv",force=true)
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* vint_last_obs  *".csv",force=true)
+                
                 end            
+                
 
         #  1 YEAR AHEAD
               
@@ -258,12 +263,15 @@ for i_year in 2020:2024
                                             start_date = DSGE.quartertodate(string(i_year-10)*"-Q"*string(1)),
                                             end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
                                             verbose = :none)
+                cp(figurespath(mnc,"forecast" ) *"\\forecast_obs_gdp_cond=semi_para=full_vint=250331.pdf", figurespath(mnc,"forecast" ) *"\\obs_gdp_forecast_density_semi_1year_h5_cond="* string(k) *".pdf",force=true)
                 mv(figurespath(mnc,"forecast" ) *"\\forecast_obs_gdp_cond=semi_para=full_vint=250331.pdf", figurespath(mnc,"forecast" ) *"\\obs_gdp_forecast_density_semi_1year_h5_cond="* vint_last_obs *".pdf",force=true)
 
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
                 for i_var in 1:size(table_vars,1)
+                    cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* string(k) * ".csv",force=true) 
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* vint_last_obs * ".csv",force=true) 
+
                 end    
                     
                 
@@ -312,13 +320,18 @@ for i_year in 2020:2024
                                             start_date = DSGE.quartertodate(string(i_year-10)*"-Q"*string(1)),
                                             end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
                                             verbose = :none)
+                cp(figurespath(mnc,"forecast" ) *"\\forecast_obs_gdp_cond=semi_para=full_vint=250331.pdf", figurespath(mnc,"forecast" ) *"\\obs_gdp_forecast_density_semi_2years_h9_cond="* string(k) *".pdf",force=true)
+
                 mv(figurespath(mnc,"forecast" ) *"\\forecast_obs_gdp_cond=semi_para=full_vint=250331.pdf", figurespath(mnc,"forecast" ) *"\\obs_gdp_forecast_density_semi_2years_h9_cond="* vint_last_obs *".pdf",force=true)
 
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
                 for i_var in 1:size(table_vars,1)
+                   cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* string(k) *".csv",force=true)
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* vint_last_obs *".csv",force=true)
-                end            
+                end
+                
+                k=k+1;
             end
            
 end
