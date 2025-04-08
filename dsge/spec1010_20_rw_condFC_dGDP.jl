@@ -35,7 +35,7 @@ m <= Setting(:n_mh_blocks, 10) # Do 10 blocks
 
 # m <= Setting(:use_population_forecast, false) # Population forecast not available as data to turn off
 m <= Setting(:forecast_block_size, 5) # adjust block size to run on small number of estimations
-do_not_run_estimation = true
+do_not_run_estimation = false
 #############
 # Estimation
 #############
@@ -60,6 +60,12 @@ if do_not_run_estimation
 
 else
     df = load_data(m, try_disk = false, check_empty_columns = false, summary_statistics = :none)
+        # Define the COVID19 date range
+        start_date = Date(2020, 3, 31)
+        end_date = Date(2020, 9, 30) 
+        # Replace rows within the date range with missing values
+        allowmissing!(df)
+        df[(df.date .>= start_date) .& (df.date .<= end_date), 2:end] .= missing
     data = df_to_matrix(m, df)
     DSGE.estimate(m, data)
 
