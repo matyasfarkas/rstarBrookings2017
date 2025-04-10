@@ -171,7 +171,7 @@ finshocks = [:γ_sh, :σ_ω_sh,:μ_e_sh, :b_liqtil_sh, :b_liqp_sh,:b_safetil_sh,
 
     
 k =1
-for i_year in 2022:2024
+for i_year in 2001:2024
     for i_quarter in 1:4
 
         #  Construct model used for forecasting based on full sample estimated DSGE
@@ -255,8 +255,12 @@ for i_year in 2022:2024
                     t1_delta = out[:forecastobs][:,temp_indices,1:5] -  PermutedDimsArray(reshape(repeat(convert(Matrix,df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t1_cond), finvars[2:end]])', 1, 1,size( out[:forecastobs][:,temp_indices,1:5],1)), size( out[:forecastobs][:,temp_indices,1:5],2), size( out[:forecastobs][:,temp_indices,1:5],3), size( out[:forecastobs][:,temp_indices,1:5],1)),(3, 1, 2)) # This results in ndraws x ntargets x horizon matrix!
                 end
                 
-                nc_delta = out[:forecastobs][:,temp_indices,1] - repeat(convert(Matrix,  df_final[(df_final.date .==date_nc_cond), finvars[2:end]]),size(out[:forecastobs][:,temp_indices,1],1),1)
-                
+                if date_nc_cond > df_final.date[end]
+                    nc_delta =  zeros(size( out[:forecastobs][:,temp_indices,1:maxhoriz],1),size(temp_indices,1),1)                    
+                else
+
+                    nc_delta = out[:forecastobs][:,temp_indices,1] - repeat(convert(Matrix,  df_final[(df_final.date .==date_nc_cond), finvars[2:end]]),size(out[:forecastobs][:,temp_indices,1],1),1)
+                end
                     # df_f= DataFrame(out[:forecastobs]',names(df[:,2:end]))
             
                 # df_target_nc=insertcols!(DataFrame(df_f[1,finvars[2:end]]), 1, :date => date_nc_cond)  .- filter!(row -> row.date == date_nc_cond, df_final[:,finvars[1:end]])
