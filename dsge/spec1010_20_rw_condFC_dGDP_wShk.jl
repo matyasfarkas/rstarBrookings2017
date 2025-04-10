@@ -165,7 +165,7 @@ finvars = [:date, :obs_nominalrate,:obs_BBBspread, :obs_AAAspread ]
         #       1987-1993. Therefore, we use the LTGOVTBD series until 2000, then splice in the GS20 series.
 #  We condition them on the following shocks:  
 
-finshocks = [:γ_sh, :σ_ω_sh,:μ_e_sh, :b_liqtil_sh ,:b_safetil_sh, :b_safep_sh,:rm_sh]
+finshocks = [:γ_sh, :σ_ω_sh,:μ_e_sh, :b_liqtil_sh, :b_liqp_sh,:b_safetil_sh, :b_safep_sh,:rm_sh] #:b_liqtil_sh, :b_liqp_sh
 
 
 
@@ -241,11 +241,23 @@ for i_year in 2022:2024
                 # fc = read_forecast_output(mnc,:full,:none,:forecastobs,:obs_gdp)
 
                 temp_indices = [mnc.observables[k] for k in finvars[2:end]]
+                if date_t2_cond > df_final.date[end]
+                    maxhoriz =size(df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t2_cond),: ],1)
+                    t2_delta = cat(out[:forecastobs][:,temp_indices,1:maxhoriz] -  PermutedDimsArray(reshape(repeat(convert(Matrix,df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= df_final.date[end]), finvars[2:end]])', 1, 1,size( out[:forecastobs][:,temp_indices,1:maxhoriz],1)), size( out[:forecastobs][:,temp_indices,1:maxhoriz],2), size( out[:forecastobs][:,temp_indices,1:maxhoriz],3), size( out[:forecastobs][:,temp_indices,1:maxhoriz],1)),(3, 1, 2)), zeros(size( out[:forecastobs][:,temp_indices,1:maxhoriz],1),size(temp_indices,1),9-maxhoriz),dims=3)                    
+                else
+                    t2_delta = out[:forecastobs][:,temp_indices,1:9] -  PermutedDimsArray(reshape(repeat(convert(Matrix,df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t2_cond), finvars[2:end]])', 1, 1,size( out[:forecastobs][:,temp_indices,1:9],1)), size( out[:forecastobs][:,temp_indices,1:9],2), size( out[:forecastobs][:,temp_indices,1:9],3), size( out[:forecastobs][:,temp_indices,1:9],1)),(3, 1, 2)) # This results in ndraws x ntargets x horizon matrix!
+                end
+                
+                if date_t1_cond > df_final.date[end]
+                        maxhoriz =size(df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t1_cond),: ],1)
+                        t1_delta = cat(out[:forecastobs][:,temp_indices,1:maxhoriz] -  PermutedDimsArray(reshape(repeat(convert(Matrix,df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= df_final.date[end]), finvars[2:end]])', 1, 1,size( out[:forecastobs][:,temp_indices,1:maxhoriz],1)), size( out[:forecastobs][:,temp_indices,1:maxhoriz],2), size( out[:forecastobs][:,temp_indices,1:maxhoriz],3), size( out[:forecastobs][:,temp_indices,1:maxhoriz],1)),(3, 1, 2)), zeros(size( out[:forecastobs][:,temp_indices,1:maxhoriz],1),size(temp_indices,1),5-maxhoriz),dims=3)                    
+                else
+                    t1_delta = out[:forecastobs][:,temp_indices,1:5] -  PermutedDimsArray(reshape(repeat(convert(Matrix,df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t1_cond), finvars[2:end]])', 1, 1,size( out[:forecastobs][:,temp_indices,1:5],1)), size( out[:forecastobs][:,temp_indices,1:5],2), size( out[:forecastobs][:,temp_indices,1:5],3), size( out[:forecastobs][:,temp_indices,1:5],1)),(3, 1, 2)) # This results in ndraws x ntargets x horizon matrix!
+                end
+                
                 nc_delta = out[:forecastobs][:,temp_indices,1] - repeat(convert(Matrix,  df_final[(df_final.date .==date_nc_cond), finvars[2:end]]),size(out[:forecastobs][:,temp_indices,1],1),1)
-                t1_delta = out[:forecastobs][:,temp_indices,1:5] -  PermutedDimsArray(reshape(repeat(convert(Matrix,df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t1_cond), finvars[2:end]])', 1, 1,size( out[:forecastobs][:,temp_indices,1:5],1)), size( out[:forecastobs][:,temp_indices,1:5],2), size( out[:forecastobs][:,temp_indices,1:5],3), size( out[:forecastobs][:,temp_indices,1:5],1)),(3, 1, 2)) # This results in ndraws x ntargets x horizon matrix!
-                t2_delta = out[:forecastobs][:,temp_indices,1:9] -  PermutedDimsArray(reshape(repeat(convert(Matrix,df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t2_cond), finvars[2:end]])', 1, 1,size( out[:forecastobs][:,temp_indices,1:9],1)), size( out[:forecastobs][:,temp_indices,1:9],2), size( out[:forecastobs][:,temp_indices,1:9],3), size( out[:forecastobs][:,temp_indices,1:9],1)),(3, 1, 2)) # This results in ndraws x ntargets x horizon matrix!
-
-                # df_f= DataFrame(out[:forecastobs]',names(df[:,2:end]))
+                
+                    # df_f= DataFrame(out[:forecastobs]',names(df[:,2:end]))
             
                 # df_target_nc=insertcols!(DataFrame(df_f[1,finvars[2:end]]), 1, :date => date_nc_cond)  .- filter!(row -> row.date == date_nc_cond, df_final[:,finvars[1:end]])
                 # df_target_t1=insertcols!(DataFrame(df_f[1:5,finvars[2:end]]), 1, :date => df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t1_cond), 1])  .-  df_final[(df_final.date .>=date_nc_cond) .& (df_final.date .<= date_t1_cond), finvars]
