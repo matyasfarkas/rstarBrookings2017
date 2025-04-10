@@ -3,8 +3,8 @@ using Nullables, DataFrames, OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO, 
 
 #############################
 # Written by: Matyas Farkas, IMF
-# Based on the run_default.jl script of DSGE.jl
-# 31 March 2025
+# Based on the run_default.jl script of DSGE.jl amd the test forecast driver file
+# 09 April 2025
 #############################
 
 #############################
@@ -35,7 +35,7 @@ m <= Setting(:n_mh_blocks, 10) # Do 10 blocks
 
 # m <= Setting(:use_population_forecast, false) # Population forecast not available as data to turn off
 m <= Setting(:forecast_block_size, 5) # adjust block size to run on small number of estimations
-do_not_run_estimation = false
+do_not_run_estimation = true
 #############
 # Estimation
 #############
@@ -104,9 +104,9 @@ compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
 # Optionally add 10 processes to run the forecast in parallel (uncomment the 3 lines below).
 # Alternatively, you can load the ClusterManagers package and add processes
 # using one of the schedulers such as SGE or Slurm.
-addprocs(4)
-@everywhere using DSGE
-m <= Setting(:use_parallel_workers, true)
+# addprocs(4)
+# @everywhere using DSGE
+# m <= Setting(:use_parallel_workers, true)
 
 # Comment out the line below if you did not run the forecast in parallel.
 # rmprocs(procs())
@@ -171,7 +171,7 @@ finshocks = [:γ_sh, :σ_ω_sh,:μ_e_sh, :b_liqtil_sh ,:b_safetil_sh, :b_safep_s
 
     
 k =1
-for i_year in 2001:2024
+for i_year in 2022:2024
     for i_quarter in 1:4
 
         #  Construct model used for forecasting based on full sample estimated DSGE
