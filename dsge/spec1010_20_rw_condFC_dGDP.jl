@@ -130,7 +130,7 @@ m <= Setting(:use_parallel_workers, true)
                                                        
 ## Run the rolling window estimation with pseudo real time out of sample forecasts
 
-finvars = [:date, :obs_nominalrate, :obs_BBBspread, :obs_AAAspread]
+finvars = [:date, :obs_nominalrate, :obs_longrate, :obs_BBBspread, :obs_AAAspread]
 k =1
 for i_year in 2001:2024
     for i_quarter in 1:4
