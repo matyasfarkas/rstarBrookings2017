@@ -35,7 +35,7 @@ m <= Setting(:n_mh_blocks, 10) # Do 10 blocks
 
 # m <= Setting(:use_population_forecast, false) # Population forecast not available as data to turn off
 m <= Setting(:forecast_block_size, 5) # adjust block size to run on small number of estimations
-do_not_run_estimation = true
+do_not_run_estimation = false
 #############
 # Estimation
 #############
@@ -130,7 +130,7 @@ compute_meansbands(m, :mode, :none, output_vars; check_empty_columns = false)
                                                        
 ## Run the rolling window estimation with pseudo real time out of sample forecasts
 
-finvars = [:date, :obs_nominalrate,:obs_BBBspread, :obs_AAAspread ]
+finvars = [:date, :obs_nominalrate,:obs_BBBspread, :obs_AAAspread,:obs_longrate ]
 
 #  We define the following financial variables - Based on the m1010 observables in DSGE.jl
 
@@ -165,7 +165,7 @@ finvars = [:date, :obs_nominalrate,:obs_BBBspread, :obs_AAAspread ]
         #       1987-1993. Therefore, we use the LTGOVTBD series until 2000, then splice in the GS20 series.
 #  We condition them on the following shocks:  
 
-finshocks = [:γ_sh, :σ_ω_sh,:μ_e_sh, :b_liqtil_sh, :b_liqp_sh,:b_safetil_sh, :b_safep_sh,:rm_sh] #:b_liqtil_sh, :b_liqp_sh
+finshocks = [:b_liqtil_sh, :b_liqp_sh,:b_safetil_sh, :b_safep_sh,:rm_sh] #:γ_sh, :σ_ω_sh,:μ_e_sh, :b_liqtil_sh, :b_liqp_sh,:b_safetil_sh, :b_safep_sh,:rm_sh
 
 
 
