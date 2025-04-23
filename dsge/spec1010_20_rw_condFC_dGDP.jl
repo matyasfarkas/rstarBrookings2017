@@ -126,7 +126,7 @@ m <= Setting(:use_parallel_workers, true)
 #                               end_date = DSGE.iterate_quarters(date_forecast_start(m), 10),
 #                               verbose = :none)
 
-                          
+reetimate = true                      
                                                        
 ## Run the rolling window estimation with pseudo real time out of sample forecasts
 
@@ -175,7 +175,7 @@ for i_year in 2001:2024
                 conditional_path =  joinpath(get_setting(mnc, :dataroot), "cond")
                 dfnc[end,Not(finvars)] .= missing
         try
-        if reetimate 
+            if reetimate 
                 data = df_to_matrix(mnc, dfnc)
                 DSGE.estimate(mnc, data)
             end
