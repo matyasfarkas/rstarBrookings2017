@@ -173,6 +173,7 @@ for i_year in 2001:2024
                 dfnc = load_data(mnc, try_disk = false, check_empty_columns = false, summary_statistics = :none)
                 conditional_data_path = joinpath(get_setting(mnc, :dataroot),"data")
                 conditional_path =  joinpath(get_setting(mnc, :dataroot), "cond")
+                allowmissing!(dfnc)
                 dfnc[end,Not(finvars)] .= missing
         try
             if reetimate 
