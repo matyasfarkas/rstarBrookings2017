@@ -85,7 +85,7 @@ end
 # to annualized quarterly aggregate percent change.
 
 # The variables we want to forecast. In this case, all of the model observables
-output_vars = [ :histobs, :forecastobs ]
+output_vars = [ :histobs, :forecastobs]
 
 # Modal forecast (point forecast)
 forecast_one(m, :mode, :none, output_vars; check_empty_columns = false)
@@ -226,13 +226,30 @@ for i_year in 2001:2024
                 mv(figurespath(mnc,"forecast" ) *"\\forecast_obs_gdp_cond=semi_para=full_vint=250331.pdf", figurespath(mnc,"forecast" ) *"\\obs_gdp_forecast_density_semi_nowcast_cond="* vint_last_obs *".pdf",force=true)
 
                 table_vars = [:obs_gdp;  :obs_hours;       :obs_wages        ;       :obs_gdpdeflator  ;       :obs_corepce      ;       :obs_nominalrate  ;       :obs_consumption  ;       :obs_investment   ;       :obs_BBBspread    ;       :obs_longinflation;        :obs_longrate     ;        :obs_tfp          ;        :obs_gdi          ;        :obs_AAAspread    ;        :obs_nominalrate1 ;        :obs_nominalrate2 ;        :obs_nominalrate3 ;        :obs_nominalrate4 ;        :obs_nominalrate5 ;        :obs_nominalrate6]
+                # :ExAnteRealRate; :Forward5YearRealRate; :Forward10YearRealRate;
+                # :RealNaturalRate; :Forward5YearRealNaturalRate;
+                # :Forward10YearRealNaturalRate; :Forward20YearRealNaturalRate;
+                # :Forward30YearRealNaturalRate]
                 write_meansbands_tables_all(mnc, :full, :semi,output_vars, forecast_string ="" , vars = table_vars)
                 for i_var in 1:size(table_vars,1)
                     cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* string(k)  *".csv",force=true)
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* vint_last_obs  *".csv",force=true)
                 
                 end            
+                forecast_one(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false, verbose = :high)
+                compute_meansbands(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false)
+                table_vars=[:ExAnteRealRate; :Forward5YearRealRate; :Forward10YearRealRate;
+                :RealNaturalRate; :Forward5YearRealNaturalRate;
+                :Forward10YearRealNaturalRate; :Forward20YearRealNaturalRate;
+                :Forward30YearRealNaturalRate]
+                write_meansbands_tables_all(mnc, :full, :semi,[:histpseudo, :forecastpseudo], forecast_string ="" , vars = table_vars)
+                for i_var in 1:size(table_vars,1)
+                    cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* string(k)  *".csv",force=true)
+                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_nowcast_cond="* vint_last_obs  *".csv",force=true)
+                    cp(tablespath(mnc,"forecast" ) *"\\hist_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_hist_density_semi_nowcast_cond="* string(k)  *".csv",force=true)
+                    mv(tablespath(mnc,"forecast" ) *"\\hist_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_hist_density_semi_nowcast_cond="* vint_last_obs  *".csv",force=true)
                 
+                end   
 
         #  1 YEAR AHEAD
               
@@ -289,9 +306,21 @@ for i_year in 2001:2024
                 for i_var in 1:size(table_vars,1)
                     cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* string(k) * ".csv",force=true) 
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* vint_last_obs * ".csv",force=true) 
-
                 end    
-                    
+                forecast_one(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false, verbose = :high)
+                compute_meansbands(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false)
+                table_vars=[:ExAnteRealRate; :Forward5YearRealRate; :Forward10YearRealRate;
+                :RealNaturalRate; :Forward5YearRealNaturalRate;
+                :Forward10YearRealNaturalRate; :Forward20YearRealNaturalRate;
+                :Forward30YearRealNaturalRate]
+                write_meansbands_tables_all(mnc, :full, :semi,[:histpseudo, :forecastpseudo], forecast_string ="" , vars = table_vars)
+                for i_var in 1:size(table_vars,1)
+                    cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* string(k) * ".csv",force=true) 
+                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* vint_last_obs * ".csv",force=true)                 
+                    cp(tablespath(mnc,"forecast" ) *"\\hist_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_hist_density_semi_1year_cond="* string(k) * ".csv",force=true) 
+                    mv(tablespath(mnc,"forecast" ) *"\\hist_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_hist_density_semi_1year_cond="* vint_last_obs * ".csv",force=true)                 
+
+                end   
                 
         # 2 YEARS AHEAD 
         if i_quarter ==4
@@ -348,6 +377,20 @@ for i_year in 2001:2024
                    cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* string(k) *".csv",force=true)
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* vint_last_obs *".csv",force=true)
                 end
+                forecast_one(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false, verbose = :high)
+                compute_meansbands(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false)
+                table_vars=[:ExAnteRealRate; :Forward5YearRealRate; :Forward10YearRealRate;
+                :RealNaturalRate; :Forward5YearRealNaturalRate;
+                :Forward10YearRealNaturalRate; :Forward20YearRealNaturalRate;
+                :Forward30YearRealNaturalRate]
+                write_meansbands_tables_all(mnc, :full, :semi,[:histpseudo, :forecastpseudo], forecast_string ="" , vars = table_vars)
+                for i_var in 1:size(table_vars,1)
+                    cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* string(k) *".csv",force=true)
+                    mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* vint_last_obs *".csv",force=true)
+                    cp(tablespath(mnc,"forecast" ) *"\\hist_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_hist_density_semi_2years_cond="* string(k) *".csv",force=true)
+                    mv(tablespath(mnc,"forecast" ) *"\\hist_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_hist_density_semi_2years_cond="* vint_last_obs *".csv",force=true)
+
+                end   
                 
                 k=k+1;
             end
