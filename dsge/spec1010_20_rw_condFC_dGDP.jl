@@ -35,7 +35,7 @@ m <= Setting(:n_mh_blocks, 10) # Do 10 blocks
 
 # m <= Setting(:use_population_forecast, false) # Population forecast not available as data to turn off
 m <= Setting(:forecast_block_size, 5) # adjust block size to run on small number of estimations
-do_not_run_estimation = false
+do_not_run_estimation = true
 #############
 # Estimation
 #############
@@ -174,7 +174,19 @@ for i_year in 2001:2024
                 conditional_data_path = joinpath(get_setting(mnc, :dataroot),"data")
                 conditional_path =  joinpath(get_setting(mnc, :dataroot), "cond")
                 dfnc[end,Not(finvars)] .= missing
-                df_to_write = DataFrame(dfnc[end,:])
+        try
+        if reetimate 
+                data = df_to_matrix(mnc, dfnc)
+                DSGE.estimate(mnc, data)
+            end
+        catch
+            mode_file = rawpath(m, "estimate", "paramsmode.h5")
+            #mode_file = replace(mode_file, "ss20", "ss18")
+            DSGE.update!(mnc, h5read(mode_file, "params"))
+            hessian_file = rawpath(mnc, "estimate", "hessian.h5")
+            DSGE.specify_hessian!(mnc, hessian_file)
+        end
+               df_to_write = DataFrame(dfnc[end,:])
                 file_path = joinpath(conditional_path, "cond_cdid=02_cdvt="* vint_nc_cond *".csv")
                 CSV.write(file_path, df_to_write; missingstring="")
         # #  Create population forecasts
