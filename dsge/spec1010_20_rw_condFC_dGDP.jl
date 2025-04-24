@@ -273,6 +273,7 @@ for i_year in 2001:2024
                 mnc <= Setting(:cond_cdid,"03")
 
                 dft1 = load_data(mnc, try_disk = false, check_empty_columns = false, summary_statistics = :none)
+                allowmissing!(dft1)
                 dft1[end-4:end,Not(finvars)] .= missing
                 df_to_write = DataFrame(dft1[end-4:end,:])
                 file_path = joinpath(conditional_path, "cond_cdid=03_cdvt="* vint_nc_cond *".csv")
@@ -342,6 +343,7 @@ for i_year in 2001:2024
                 mnc <= Setting(:cond_cdid,"04")
 
                 dft2 = load_data(mnc, try_disk = false, check_empty_columns = false, summary_statistics = :none)
+                allowmissing!(dft2)
                 dft2[end-8:end,Not(finvars)] .= missing
                 df_to_write = DataFrame(dft1[end-8:end,:])
                 file_path = joinpath(conditional_path, "cond_cdid=04_cdvt="* vint_nc_cond *".csv")
