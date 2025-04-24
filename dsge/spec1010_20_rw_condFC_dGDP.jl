@@ -309,8 +309,8 @@ for i_year in 2001:2024
                     cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* string(k) * ".csv",force=true) 
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_1year_cond="* vint_last_obs * ".csv",force=true) 
                 end    
-                forecast_one(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false, verbose = :high)
-                compute_meansbands(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false)
+                forecast_one(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dft1, check_empty_columns = false, verbose = :high)
+                compute_meansbands(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dft1, check_empty_columns = false)
                 table_vars=[:ExAnteRealRate; :Forward5YearRealRate; :Forward10YearRealRate;
                 :RealNaturalRate; :Forward5YearRealNaturalRate;
                 :Forward10YearRealNaturalRate; :Forward20YearRealNaturalRate;
@@ -380,8 +380,8 @@ for i_year in 2001:2024
                    cp(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* string(k) *".csv",force=true)
                     mv(tablespath(mnc,"forecast" ) *"\\forecast_" * string(table_vars[i_var]) * "_cond=semi_para=full_vint=250331.csv", tablespath(mnc,"forecast") * "\\" * string(table_vars[i_var]) * "_forecast_density_semi_2years_cond="* vint_last_obs *".csv",force=true)
                 end
-                forecast_one(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false, verbose = :high)
-                compute_meansbands(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dfnc, check_empty_columns = false)
+                forecast_one(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dft2, check_empty_columns = false, verbose = :high)
+                compute_meansbands(mnc, :full, :semi, [:histpseudo, :forecastpseudo]; df= dft2, check_empty_columns = false)
                 table_vars=[:ExAnteRealRate; :Forward5YearRealRate; :Forward10YearRealRate;
                 :RealNaturalRate; :Forward5YearRealNaturalRate;
                 :Forward10YearRealNaturalRate; :Forward20YearRealNaturalRate;
