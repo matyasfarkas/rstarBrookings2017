@@ -71,12 +71,60 @@ else
 
 end
 end
+
+system = compute_system(m, tvis = false)
+    # Unpack system
+    TTT    = system[:TTT]
+    RRR    = system[:RRR]
+    CCC    = system[:CCC]
+    QQ     = system[:QQ]
+    ZZ     = system[:ZZ]
+    DD     = system[:DD]
+    EE     = system[:EE]
+
+ shock_labels = [key for (key, _) in sort(collect(m.exogenous_shocks), by = x -> x[2])]
+
+ obs_labels = [key for (key, _) in sort(collect(m.observables), by = x -> x[2])]
+
+ combined = OrderedDict{Symbol, Int64}()
+ state_labels = [key for (key, _) in sort(collect(combined), by = x -> x[2])]
+
+# First insert all entries from endogenous_states
+for (k, v) in m.endogenous_states
+    combined[k] = v
+end
+
+# Then insert entries from endogenous_states_augmented
+for (k, v) in m.endogenous_states_augmented
+    combined[k] = v
+end
+
+ 
+ CSV.write("TTT.csv",DataFrame(TTT,state_labels))
+ CSV.write("RRR.csv",DataFrame(RRR,shock_labels))
+ CSV.write("CCC.csv",DataFrame(CCC',state_labels))
+ CSV.write("QQ.csv",DataFrame(QQ,shock_labels))
+ CSV.write("ZZ.csv",DataFrame(ZZ',obs_labels))
+ CSV.write("DD.csv",DataFrame(DD',obs_labels))
+ CSV.write("EE.csv",DataFrame(EE,obs_labels))
+ 
+#  @inline Φ(s_t1::Vector{S}, ϵ_t::Vector{S}) = TTT*s_t1 + RRR*ϵ_t + CCC
+#  @inline Ψ(s_t::Vector{S}) = ZZ*s_t + DD
+
+#  # Define shock and measurement error distributions
+#  nshocks = size(QQ, 1)
+#  nobs    = size(EE, 1)
+#  F_ϵ = Distributions.MvNormal(zeros(nshocks), QQ)
+#  F_u = Distributions.MvNormal(zeros(nobs),    EE)
+
+#  return Φ, Ψ, F_ϵ, F_u
+
 # produce LaTeX tables of parameter moments
 # moment_tables(m)
 
 ############
 # Forecasts
-############
+############keys(combined)
 # (1) forecast_one produces forecasts of the variables specified in output_vars
 # and stores the forecasts in model units (log deviations from steady state).
 # (2) compute_meansbands stores the forecast in a MeansBands type, defined in DSGE.jl,
