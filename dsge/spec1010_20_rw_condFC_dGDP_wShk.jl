@@ -71,6 +71,96 @@ else
 
 end
 end
+# Load posterior draws
+params_draws = load_draws(m, :full)
+params_mode = load_draws(m, :mode)
+shock_labels = [key for (key, _) in sort(collect(m.exogenous_shocks), by = x -> x[2])]
+
+obs_labels = [key for (key, _) in sort(collect(m.observables), by = x -> x[2])]
+
+combined = OrderedDict{Symbol, Int64}()
+# First insert all entries from endogenous_states
+for (k, v) in m.endogenous_states
+combined[k] = v
+end
+
+# Then insert entries from endogenous_states_augmented
+for (k, v) in m.endogenous_states_augmented
+combined[k] = v
+end
+state_labels = [key for (key, _) in sort(collect(combined), by = x -> x[2])]
+kkk=1
+for i in 1:4:4000
+    params = params_draws[kkk,:]
+
+    DSGE.update!(m, params)
+
+    system = compute_system(m, tvis = false)
+    # Unpack system
+    TTT    = system[:TTT]
+    RRR    = system[:RRR]
+    CCC    = system[:CCC]
+    QQ     = system[:QQ]
+    ZZ     = system[:ZZ]
+    DD     = system[:DD]
+    EE     = system[:EE]
+
+ CSV.write("statespace/" * string(kkk) * "_TTT.csv",DataFrame(TTT,state_labels))
+ CSV.write("statespace/" * string(kkk) *"_RRR.csv",DataFrame(RRR,shock_labels))
+ CSV.write("statespace/" * string(kkk) *"_CCC.csv",DataFrame(CCC',state_labels))
+ CSV.write("statespace/" * string(kkk) *"_QQ.csv",DataFrame(QQ,shock_labels))
+ CSV.write("statespace/" * string(kkk) *"_ZZ.csv",DataFrame(ZZ',obs_labels))
+ CSV.write("statespace/" * string(kkk) *"_DD.csv",DataFrame(DD',obs_labels))
+ CSV.write("statespace/" * string(kkk) *"_EE.csv",DataFrame(EE,obs_labels))
+kkk = kkk+1
+ 
+#  @inline Φ(s_t1::Vector{S}, ϵ_t::Vector{S}) = TTT*s_t1 + RRR*ϵ_t + CCC
+#  @inline Ψ(s_t::Vector{S}) = ZZ*s_t + DD
+
+#  # Define shock and measurement error distributions
+#  nshocks = size(QQ, 1)
+#  nobs    = size(EE, 1)
+#  F_ϵ = Distributions.MvNormal(zeros(nshocks), QQ)
+#  F_u = Distributions.MvNormal(zeros(nobs),    EE)
+
+#  return Φ, Ψ, F_ϵ, F_u
+end
+
+DSGE.update!(m, params_mode)
+shock_labels = [key for (key, _) in sort(collect(m.exogenous_shocks), by = x -> x[2])]
+
+obs_labels = [key for (key, _) in sort(collect(m.observables), by = x -> x[2])]
+
+combined = OrderedDict{Symbol, Int64}()
+# First insert all entries from endogenous_states
+for (k, v) in m.endogenous_states
+combined[k] = v
+end
+
+# Then insert entries from endogenous_states_augmented
+for (k, v) in m.endogenous_states_augmented
+combined[k] = v
+end
+state_labels = [key for (key, _) in sort(collect(combined), by = x -> x[2])]
+system = compute_system(m, tvis = false)
+# Unpack system
+TTT    = system[:TTT]
+RRR    = system[:RRR]
+CCC    = system[:CCC]
+QQ     = system[:QQ]
+ZZ     = system[:ZZ]
+DD     = system[:DD]
+EE     = system[:EE]
+
+
+CSV.write("statespace/TTT.csv",DataFrame(TTT,state_labels))
+CSV.write("statespace/RRR.csv",DataFrame(RRR,shock_labels))
+CSV.write("statespace/CCC.csv",DataFrame(CCC',state_labels))
+CSV.write("statespace/QQ.csv",DataFrame(QQ,shock_labels))
+CSV.write("statespace/ZZ.csv",DataFrame(ZZ',obs_labels))
+CSV.write("statespace/DD.csv",DataFrame(DD',obs_labels))
+CSV.write("statespace/EE.csv",DataFrame(EE,obs_labels))
+
 # produce LaTeX tables of parameter moments
 # moment_tables(m)
 
