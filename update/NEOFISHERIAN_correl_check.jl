@@ -143,6 +143,11 @@ for drawloop in 1:40:4000
     drawi= drawi + 1;
 
 end
+
+using Plots
+plot(1:262,[rstar_sim[:,100,100] ,  robs_sim[:,100,100]],title="NY-FED simulations", label=["r*: 5-Year Forward Real Natural Rate" "R: Policy rate"])
+savefig( "obsnominalrate_vs_5yforwardrealrate.pdf")   # saves the plot from p as a .pdf vector graphic
+
 CSV.write("update/simulated_correlation.csv",DataFrame(reshape(cor_sim,10000)',:auto))
 
 
