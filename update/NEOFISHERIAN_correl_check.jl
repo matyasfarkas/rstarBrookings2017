@@ -206,5 +206,19 @@ for shocki =1:29
     end
 end
 
-
 CSV.write("update/simulated_HVD_corr_allshocks.csv",(corr_summary))
+
+system = compute_system(m)
+horizon = 40
+
+states_irf, obs_irf, pseudo_irf = impulse_responses(system, horizon)
+
+
+plot(1:40,[ pseudo_irf[ m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh]], obs_irf[ m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh]]  ],title="IRF to permanent liquidity shock", label=["r*: 5-Year Forward Real Natural Rate" "R: Policy rate"])
+savefig( "IRF_to_permanet_liquidity_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+
+
+plot(1:40,[ pseudo_irf[ m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_shl6]], obs_irf[ m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_shl6]]  ],title="IRF to 6 period-ahead forward guidance shock", label=["r*: 5-Year Forward Real Natural Rate" "R: Policy rate"])
+savefig( "IRF_to_FG6_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+
+obs_irf
