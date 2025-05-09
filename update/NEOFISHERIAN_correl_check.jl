@@ -195,9 +195,11 @@ corr_summary = describe(DataFrame(collect(keys(m.exogenous_shocks))[1] => vec(hv
 for shocki =1:29
     try
     CSV.write("update/simulated_HVD_corr_"* string(collect(keys(m.exogenous_shocks))[shocki]) *".csv",describe(DataFrame(collect(keys(m.exogenous_shocks))[shocki] => vec(hvdcorr[:,shocki]))))
+    if shocki ==1
+    else
     newrow = describe(DataFrame(collect(keys(m.exogenous_shocks))[shocki] => vec(hvdcorr[:,shocki])))
     corr_summary = vcat(corr_summary, newrow)
-
+    end
     catch
 
         println("Structural shock " * string(collect(keys(m.exogenous_shocks))[shocki]) * " skipped as it had been switched off...")
