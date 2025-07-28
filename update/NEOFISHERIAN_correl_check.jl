@@ -221,4 +221,3 @@ savefig( "IRF_to_permanet_liquidity_shock.pdf")   # saves the plot from p as a .
 plot(1:40,[ pseudo_irf[ m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_shl6]], obs_irf[ m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_shl6]]  ],title="IRF to 6 period-ahead forward guidance shock", label=["r*: 5-Year Forward Real Natural Rate" "R: Policy rate"])
 savefig( "IRF_to_FG6_shock.pdf")   # saves the plot from p as a .pdf vector graphic
 
-obs_irf

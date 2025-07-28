@@ -91,7 +91,7 @@ if run_modal_forecast || run_full_forecast
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
-  
+
                 write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string = forecast_string,
                               vars = table_vars)
 
@@ -108,7 +108,7 @@ if run_modal_forecast || run_full_forecast
                            forecast_string = forecast_string)
         #rmprocs(my_procs)
 
-        DSGE.meansbands_to_matrix(m, :full, cond_type, output_vars; forecast_string = forecast_string)
+        DSGE.meansbands_to_m  atrix(m, :full, cond_type, output_vars; forecast_string = forecast_string)
 
         # print history means and bands tables to csv
         table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,

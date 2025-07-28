@@ -141,3 +141,62 @@ kkk = kkk+1
 #  return Φ, Ψ, F_ϵ, F_u
 end
 end
+
+output_vars = [ :histobs, :forecastobs ]
+
+forecast_one(m,:mode, :none, output_vars; df=df, check_empty_columns = false, verbose = :high)
+output_files = get_forecast_output_files(m, :mode, :none, output_vars)
+
+cond_type = :none
+write_meansbands_tables_all(m, :mode, cond_type, output_vars,vars = [:obs_gdp])
+
+
+# Load posterior draws
+params_mode = load_draws(m, :mode)
+
+DSGE.update!(m, params_mode)
+shock_labels = [key for (key, _) in sort(collect(m.exogenous_shocks), by = x -> x[2])]
+
+obs_labels = [key for (key, _) in sort(collect(m.observables), by = x -> x[2])]
+
+combined = OrderedDict{Symbol, Int64}()
+# First insert all entries from endogenous_states
+for (k, v) in m.endogenous_states
+combined[k] = v
+end
+
+# Then insert entries from endogenous_states_augmented
+for (k, v) in m.endogenous_states_augmented
+combined[k] = v
+end
+state_labels = [key for (key, _) in sort(collect(combined), by = x -> x[2])]
+system = compute_system(m, tvis = false)
+# Unpack system
+TTT    = system[:TTT]
+RRR    = system[:RRR]
+CCC    = system[:CCC]
+QQ     = system[:QQ]
+ZZ     = system[:ZZ]
+DD     = system[:DD]
+EE     = system[:EE]
+
+
+CSV.write("statespace/mode_TTT.csv",DataFrame(TTT,state_labels))
+CSV.write("statespace/mode_RRR.csv",DataFrame(RRR,shock_labels))
+CSV.write("statespace/mode_CCC.csv",DataFrame(CCC',state_labels))
+CSV.write("statespace/mode_QQ.csv",DataFrame(QQ,shock_labels))
+CSV.write("statespace/mode_ZZ.csv",DataFrame(ZZ',obs_labels))
+CSV.write("statespace/mode_DD.csv",DataFrame(DD',obs_labels))
+CSV.write("statespace/mode_EE.csv",DataFrame(EE,obs_labels))
+
+
+
+## DSGE VAR
+dsgevar_λ         = 0.5    # What λ do you want to use?
+lags = 1
+
+dsgevar= DSGEVAR(m) 
+DSGE.update!(dsgevar;observables = collect(keys(m.observables))[1:14], lags = lags, λ = dsgevar_λ)
+data = df_to_matrix(m, df)
+estimate(dsgevar, data[1:14,130:end]; run_csminwel = true)
+ss
