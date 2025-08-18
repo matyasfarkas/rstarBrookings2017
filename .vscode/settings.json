@@ -1,2 +1,4 @@
 {
+    "MATLAB.telemetry": false,
+    "matlab-in-vscode.matlabCMD": "/Applications/MATLAB_R2024a.app/bin/matlab -nodesktop -nosplash"
 }

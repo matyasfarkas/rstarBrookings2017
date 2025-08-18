@@ -21,6 +21,7 @@ end
 
 
 
+%%
 if RunEstimation
     Ndraws  =  100000;
     p = 4; %NUmber of lags in the VAR for the cycle;
@@ -44,7 +45,7 @@ if RunEstimation
     disp(mean(Y(T0pre:T1pre,:)))
     disp(std(Y(T0pre:T1pre,:)))
     
-    
+    %%
     FirstY = 1960;
     LastY  = 2016;
     
