@@ -19,7 +19,7 @@ if ~exist(FigSubFolder,'dir')
     mkdir(FigSubFolder);
 end
 
-%%
+
 
 if RunEstimation
     Ndraws  =  100000;
@@ -43,7 +43,7 @@ if RunEstimation
     disp(['' ,Mnem])
     disp(mean(Y(T0pre:T1pre,:)))
     disp(std(Y(T0pre:T1pre,:)))
-    %%
+    
     
     FirstY = 1960;
     LastY  = 2016;
@@ -63,7 +63,6 @@ if RunEstimation
     Tzlb = max(find(year(Time)==2008));
     y(Tzlb:end,ismember(Mnem,'BILL'))=NaN;
     y(1:T70,2)=NaN;
-    %%
     %       1       2        3
     %      pi       r       ts
     Ctr =[
@@ -134,7 +133,7 @@ if RunEstimation
     
     notrend = find((SC0tr<1e-6));
     
-    %%
+    
     for jm = 1:Ndraws
         
         kf = KF(y,C,R,A,Q,S0,P0);
