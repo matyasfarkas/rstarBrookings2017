@@ -3,13 +3,7 @@ using Plots # no need for `using Plots` as that is reexported here
 
 path = dirname(@__FILE__)
 horizon  = 80
-m = Model1010("ss20");
-system = compute_system(m)
-var_value = -1.0 # Desired value for the state variable
-peg_horizon =6;
-var_name = :obs_nominalrate # The state variable to target
-s_0 = zeros(size(system[:TTT], 1)) # Initial state Vector
-
+peg_horizon = 6 # Length of the peg in periods
 
 """
     obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, state_ind::Int, shock_inds::Vector{Int},
@@ -73,7 +67,7 @@ end
 #####################
 # Standard MP shock #
 #####################
-desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
+desired_path = vec(-1.0 * ones(peg_horizon)) # Desired path for the state variable
 
 shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
 shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
@@ -99,6 +93,7 @@ savefig( "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the
 ########################################################################
 # An ever changing shock for the end of the peg that implements the FG path #
 ########################################################################
+desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
 var_name =:obs_nominalrate
 mp_ind = m.exogenous_shocks[:rm_sh]
 fg_inds = [m.exogenous_shocks[:rm_shl6],
@@ -251,7 +246,6 @@ for t in 3:horizon
     x_targets[:, t] .= missing
     shock_inds[t] = shock_inds_1
 end
-
 # Compute shocks
 shocks = obtain_shocks_from_desired_multi_state_path_iterative(x_targets, m, var_names, shock_inds, system)
 
@@ -311,7 +305,7 @@ savefig("irf/FTPL_Equilibrium_IRF_Policy_Expectations.pdf")
 # shock_name = :rm_sh # Select MP to implement the specific path in state variable 
 # var_name = :obs_nominalrate # Select the targeted state variable
 # var_value = -1.0  # Select the depth of the path
-# 
+# peg_horizon =6;
 
 # # Setup - copied from impulse_responses.jl
 #     var_names, var_class =
