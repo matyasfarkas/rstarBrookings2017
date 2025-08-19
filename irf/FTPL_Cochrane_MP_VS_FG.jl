@@ -3,6 +3,13 @@ using Plots # no need for `using Plots` as that is reexported here
 
 path = dirname(@__FILE__)
 horizon  = 80
+m = Model1010("ss20");
+system = compute_system(m)
+var_value = -1.0 # Desired value for the state variable
+peg_horizon =6;
+var_name = :obs_nominalrate # The state variable to target
+s_0 = zeros(size(system[:TTT], 1)) # Initial state Vector
+
 
 """
     obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, state_ind::Int, shock_inds::Vector{Int},
@@ -66,6 +73,8 @@ end
 #####################
 # Standard MP shock #
 #####################
+desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
+
 shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
 shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
 states, obs, pseudo, _ = forecast(system, s_0, hcat(shocks_path, zeros(size(collect(m.exogenous_shocks),1), horizon-peg_horizon)))
@@ -90,7 +99,6 @@ savefig( "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the
 ########################################################################
 # An ever changing shock for the end of the peg that implements the FG path #
 ########################################################################
-desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
 var_name =:obs_nominalrate
 mp_ind = m.exogenous_shocks[:rm_sh]
 fg_inds = [m.exogenous_shocks[:rm_shl6],
@@ -139,7 +147,7 @@ back out the necessary values of shocks for each period such that each target is
 
 Returns a matrix of required shocks of size (nshocks, horizon).
 """
-function obtain_shocks_from_desired_multi_state_path_iterative(x::Matrix{Float64}, m::AbstractDSGEModel, var_names::Vector{Symbol},
+function obtain_shocks_from_desired_multi_state_path_iterative(x::Matrix{Union{Float64,Missing}}, m::AbstractDSGEModel, var_names::Vector{Symbol},
                                                                shock_inds::Vector{Vector{Int}}, system::System{Float64})
     horizon = size(x, 2)
     k = size(x, 1)
@@ -159,38 +167,46 @@ function obtain_shocks_from_desired_multi_state_path_iterative(x::Matrix{Float64
     end
 
     for t in 1:horizon
-        # Build IRF matrix for this period (k targets × k shocks)
-        IRFmat = zeros(k, k)
-        for i in 1:k
-            for j in 1:k
+        # Find non-missing targets for this period
+        target_inds = findall(!ismissing, x[:, t])
+        n_targets = length(target_inds)
+        if n_targets == 0
+            continue
+        end
+
+        # Build IRF matrix for this period (n_targets × n_targets shocks)
+        IRFmat = zeros(n_targets, n_targets)
+        for i in 1:n_targets
+            for j in 1:n_targets
                 test_shocks = zeros(nshocks, horizon)
-                test_shocks[shock_inds[t][j], t] = 1.0
+                test_shocks[shock_inds[t][target_inds[j]], t] = 1.0
                 states, obs, _ = forecast(system, s_0, test_shocks)
-                idx, cls = var_info[i]
+                idx, cls = var_info[target_inds[i]]
                 IRFmat[i, j] = cls == :states ? states[idx, t] : obs[idx, t]
             end
         end
 
         # Compute effect of previous shocks
-        prev_effect = zeros(k)
+        prev_effect = zeros(n_targets)
         if t > 1
             prev_shocks = shocks[:, 1:t-1]
             prev_states, prev_obs, _ = forecast(system, s_0, hcat(prev_shocks, zeros(nshocks, horizon-t+1)))
-            for i in 1:k
-                idx, cls = var_info[i]
+            for i in 1:n_targets
+                idx, cls = var_info[target_inds[i]]
                 prev_effect[i] = cls == :states ? prev_states[idx, t] : prev_obs[idx, t]
             end
         end
 
         # Solve for required shocks at time t
-        shocks_t = IRFmat \ (x[:, t] - prev_effect)
-        for j in 1:k
-            shocks[shock_inds[t][j], t] = shocks_t[j]
+        shocks_t = IRFmat \ (collect(skipmissing(x[:, t])) - prev_effect)
+        for j in 1:n_targets
+            shocks[shock_inds[t][target_inds[j]], t] = shocks_t[j]
         end
     end
 
     return shocks
 end
+
 
 # Setup
 horizon_topeg = 7 # Enough to show extension
@@ -217,21 +233,22 @@ shock_inds_1 = [m.exogenous_shocks[:rm_sh], m.exogenous_shocks[:rm_shl1], m.exog
                 m.exogenous_shocks[:rm_shl6]]
 
 # Build target matrix and shock index vector for each period
-x_targets = zeros(7, horizon)
+x_targets = Matrix{Union{Float64,Missing}}(missing, 7, horizon)
 shock_inds = Vector{Vector{Int}}(undef, horizon)
 var_names = rate_syms_ext
 
-# Period 0: target first 6 rates
+# Period 0: target first 6 rates, last entry is missing
 x_targets[1:6, 1] .= -1.0
+x_targets[7, 1] = missing
 shock_inds[1] = shock_inds_0
 
 # Period 1: target all 7 rates
 x_targets[:, 2] .= -1.0
 shock_inds[2] = shock_inds_1
 
-# Periods 3+: keep previous targets (or set to zero if you want)
+# Periods 3+: set all entries to missing (or set some to -1.0 if you want to target)
 for t in 3:horizon
-    x_targets[:, t] .= 0.0
+    x_targets[:, t] .= missing
     shock_inds[t] = shock_inds_1
 end
 
@@ -268,6 +285,21 @@ plot!(size=(960,540))
 savefig("irf/FTPL_Equilibrium_IRF_Extended_Expectations.pdf")
 
 
+
+
+rate_syms_ext = [:rm_t, :rm_tl1, :rm_tl2, :rm_tl3, :rm_tl4, :rm_tl5, :rm_tl6,:R_t1 ]
+
+plots = []
+for sym in rate_syms_ext
+    idx = m.endogenous_states[sym]
+    p = plot(1:horizon, states[idx, :], title="Expectation: $(string(sym))", lw=2)
+    plot!(p, zeros(horizon), lc=:black, lw=1, label="")
+    push!(plots, p)
+end
+
+plot(plots..., layout=(4,2), legend=false, size=(960,540))
+savefig("irf/FTPL_Equilibrium_IRF_Policy_Expectations.pdf")
+
 #  OLD CODE
 
 #####################
@@ -279,7 +311,7 @@ savefig("irf/FTPL_Equilibrium_IRF_Extended_Expectations.pdf")
 # shock_name = :rm_sh # Select MP to implement the specific path in state variable 
 # var_name = :obs_nominalrate # Select the targeted state variable
 # var_value = -1.0  # Select the depth of the path
-# peg_horizon =6;
+# 
 
 # # Setup - copied from impulse_responses.jl
 #     var_names, var_class =
