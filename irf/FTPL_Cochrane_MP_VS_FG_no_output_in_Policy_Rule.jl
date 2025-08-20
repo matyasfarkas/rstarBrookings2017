@@ -6,15 +6,13 @@ horizon  = 40
 peg_horizon = 6 # Length of the peg in periods
 m = Model1010("ss20");
 var_name = :obs_nominalrate # Select the targeted state variable
+
+set_output_in_PR_to_zero = true
+if set_output_in_PR_to_zero
+    m <= DSGE.Setting(:ψ3, 0.)
+    m <= DSGE.Setting(:ψ2, 0.)
+end
 system = compute_system(m)
-
-
-# set_output_in_PR_to_zero = true
-# if set_output_in_PR_to_zero
-#     m <= DSGE.Setting(:ψ3, 0.)
-#     m <= DSGE.Setting(:ψ2, 0.)
-# end
-# system = compute_system(m)
 
 """
     obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, state_ind::Int, shock_inds::Vector{Int},
@@ -79,8 +77,6 @@ end
 # Standard MP shock #
 #####################
 
-m = Model1010("ss20");
-system = compute_system(m)
 shock_name = :rm_sh # Select MP to implement the specific path in state variable 
 var_name = :obs_nominalrate # Select the targeted state variable
 var_value = -1.0  # Select the depth of the path
@@ -147,7 +143,7 @@ plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
 plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
-savefig( "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( "irf/NeoFisherian_FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
 
 
 shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
@@ -203,7 +199,7 @@ plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
-savefig( "irf/FTPL_Equilibrium_IRF_Policy_rate_with_promise_for_period.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( "irf/NeoFisherian_FTPL_Equilibrium_IRF_Policy_rate_with_promise_for_period.pdf")   # saves the plot from p as a .pdf vector graphic
 
 
 # ########################################################################
@@ -278,14 +274,14 @@ for i = 1:nvars
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/FG_6horizon_policy_rate_output_inflation.pdf")
+savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation.pdf")
 
 # Optional: plot weights for each horizon
 pw = plot(1:PlotT, shk_weights_store[:, peg_horizon-1], lw=2, label="Shock weights")
 xlabel!("Quarter ahead shocks")
 ylabel!("Weight")
 title!("Shock Weights for FG horizon $peg_horizon")
-savefig("irf/FG_6horizon_shock_weights.pdf")
+savefig("irf/NeoFisherian_FG_6horizon_shock_weights.pdf")
 
 #########################################################################
 # Adding the other variables to plot
@@ -365,7 +361,7 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/FG_6horizon_policy_rate_output_inflation_and_rstar.pdf")
+savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar.pdf")
 
 
 #########################################################################
@@ -446,7 +442,7 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf")
+savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf")
 
 
 
@@ -625,8 +621,7 @@ savefig("irf/FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf")
 # Standard MP shock #
 #####################
 
-m = Model1010("ss20");
-system = compute_system(m)
+
 shock_name = :rm_sh # Select MP to implement the specific path in state variable 
 var_name = :obs_nominalrate # Select the targeted state variable
 var_value = -1.0  # Select the depth of the path
