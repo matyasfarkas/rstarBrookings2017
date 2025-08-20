@@ -198,14 +198,14 @@ for i = 1:nvars
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/FG_5horizon_policy_rate_output_inflation.pdf")
+savefig("irf/FG_6horizon_policy_rate_output_inflation.pdf")
 
 # Optional: plot weights for each horizon
 pw = plot(1:PlotT, shk_weights_store[:, peg_horizon-1], lw=2, label="Shock weights")
 xlabel!("Quarter ahead shocks")
 ylabel!("Weight")
 title!("Shock Weights for FG horizon $peg_horizon")
-savefig("irf/FG_5horizon_shock_weights.pdf")
+savefig("irf/FG_6horizon_shock_weights.pdf")
 
 #########################################################################
 
