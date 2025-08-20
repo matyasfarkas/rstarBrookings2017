@@ -4,6 +4,13 @@ using Plots # no need for `using Plots` as that is reexported here
 path = dirname(@__FILE__)
 horizon  = 40
 peg_horizon = 6 # Length of the peg in periods
+m = Model1010("ss20");
+set_output_in_PR_to_zero = true
+if set_output_in_PR_to_zero
+    m <= DSGE.Setting(:ψ3, 0.)
+    m <= DSGE.Setting(:ψ2, 0.)
+end
+system = compute_system(m)
 
 """
     obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, state_ind::Int, shock_inds::Vector{Int},
