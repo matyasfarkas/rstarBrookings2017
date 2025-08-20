@@ -2,7 +2,7 @@ using DSGE;
 using Plots # no need for `using Plots` as that is reexported here
 
 path = dirname(@__FILE__)
-horizon  = 20
+horizon  = 40
 peg_horizon = 6 # Length of the peg in periods
 
 """
@@ -271,12 +271,12 @@ TT = 1:PlotT
 p = plot(layout=(3,2), size=(1200,800))
 for i = 1:nvars+1
     if i ==1 
-        plot!(p[i], TT, shk_weights_store[:, peg_horizon-1], lw=2, label="FG IRF (horizon=$peg_horizon)")
+        plot!(p[i], TT, shk_weights_store[:, peg_horizon-1], lw=2, label="")
     else
     if plotvars[i-1] in keys(m.observables)
-        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="FG IRF (horizon=$peg_horizon)")
+        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
     elseif plotvars[i-1] in keys(m.pseudo_observables)
-        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="FG IRF (horizon=$peg_horizon)")
+        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
     end
     end
     plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
@@ -286,6 +286,87 @@ for i = 1:nvars+1
 end
 plot!(p)
 savefig("irf/FG_6horizon_policy_rate_output_inflation_and_rstar.pdf")
+
+
+#########################################################################
+# Adding the other variables to plot
+#########################################################################
+
+plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :RealNaturalRate] 
+
+titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output", "r* (Forward 5-year real natural rate)", "Real natural rate"]
+nvars = length(plotvars)
+
+
+shock_syms = [:rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6] # MP + 1-6 FG shocks
+
+nvars = length(plotvars)
+nshocks = length(shock_syms)
+
+# Store IRFs: irfmat[t, var, shock]
+irfmat = zeros(PlotT, nvars, nshocks)
+for (j, shock_sym) in enumerate(shock_syms)
+    shocks = zeros(size(system[:RRR], 2), PlotT)
+    shocks[m.exogenous_shocks[shock_sym], 1] = 1.0
+    states, obs, pseudo, _ = forecast(system, s_0, shocks)
+    for (i, var_sym) in enumerate(plotvars)
+        if var_sym in keys(m.observables)
+            irfmat[:, i, j] .= obs[m.observables[var_sym], 1:PlotT]
+        elseif var_sym in keys(m.endogenous_states)
+            irfmat[:, i, j] .= states[m.endogenous_states[var_sym], 1:PlotT]
+        elseif var_sym in keys(m.pseudo_observables)
+            irfmat[:, i, j] .= pseudo[m.pseudo_observables[var_sym], 1:PlotT]
+        end
+    end
+end
+
+
+# --- Step 2: Loop over FG horizons and compute weights and IRFs ---
+FGhorz = 1:(peg_horizon-1) # Try 1 to 5 horizon pegs
+FGplotmat = zeros(PlotT, nvars, length(FGhorz))
+shk_weights_store = zeros(PlotT, length(FGhorz))
+
+for (hidx, horz) in enumerate(FGhorz)
+    FGdur = horz + 1 # Duration of FG in periods (Matlab uses +1)
+    FG_vec = fill(-1.0, FGdur) # Desired policy rate path
+
+    # Build IRF matrix for policy rate
+    R_mp_mat = zeros(FGdur, FGdur)
+    for s = 1:FGdur
+        R_mp_mat[:, s] .= irfmat[1:FGdur, 1, s] # 3rd var is policy rate
+    end
+
+    # Solve for shock weights
+    shk_weights = R_mp_mat \ FG_vec
+    shk_weights_store[1:FGdur, hidx] .= shk_weights
+
+    # Construct total IRFs for each variable
+    for s = 1:FGdur
+        FGplotmat[:, :, hidx] .+= shk_weights[s] .* irfmat[:, :, s]
+    end
+end
+
+# --- Step 3: Plot results ---
+TT = 1:PlotT
+
+p = plot(layout=(3,2), size=(1200,800))
+for i = 1:nvars+1
+    if i ==1 
+        plot!(p[i], TT, shk_weights_store[:, peg_horizon-1], lw=2, label="")
+    else
+    if plotvars[i-1] in keys(m.observables)
+        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+    elseif plotvars[i-1] in keys(m.pseudo_observables)
+        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+    end
+    end
+    plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
+    title!(p[i], titles[i])
+    ylabel!(p[i], "Percent")
+    xlabel!(p[i], "Quarter")
+end
+plot!(p)
+savefig("irf/FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf")
 
 
 
