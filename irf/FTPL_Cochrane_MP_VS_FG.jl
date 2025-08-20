@@ -5,12 +5,16 @@ path = dirname(@__FILE__)
 horizon  = 40
 peg_horizon = 6 # Length of the peg in periods
 m = Model1010("ss20");
-set_output_in_PR_to_zero = true
-if set_output_in_PR_to_zero
-    m <= DSGE.Setting(:ψ3, 0.)
-    m <= DSGE.Setting(:ψ2, 0.)
-end
+var_name = :obs_nominalrate # Select the targeted state variable
 system = compute_system(m)
+
+
+# set_output_in_PR_to_zero = true
+# if set_output_in_PR_to_zero
+#     m <= DSGE.Setting(:ψ3, 0.)
+#     m <= DSGE.Setting(:ψ2, 0.)
+# end
+# system = compute_system(m)
 
 """
     obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, state_ind::Int, shock_inds::Vector{Int},
@@ -47,9 +51,9 @@ function obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, m::
         test_shocks[shock_inds[t], t] = 1.0
         states, obs, _ = forecast(system, s_0, test_shocks)
                 if var_class == :states
-                    irf = states[peg_ind, t] # Impact of a unit shock at t on state at t
+                    irftemp = states[peg_ind, t] # Impact of a unit shock at t on state at t
                 else 
-                    irf = obs[peg_ind,t] # Impact of a unit shock at t on obs at t
+                    irftemp = obs[peg_ind,t] # Impact of a unit shock at t on obs at t
                 end
         # Compute effect of previous shocks
         prev_effect = 0.0
@@ -64,35 +68,85 @@ function obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, m::
         end
 
         # Required shock at time t to achieve desired value
-        shocks[shock_inds[t], t] = (x[t] - prev_effect) / irf
+        shocks[shock_inds[t], t] = (x[t] - prev_effect) / irftemp
     end
 
     return shocks
 end
 
 
+
 #####################
 # Standard MP shock #
 #####################
-desired_path = vec(-1.0 * ones(peg_horizon)) # Desired path for the state variable
 
-shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
-shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
-states, obs, pseudo, _ = forecast(system, s_0, hcat(shocks_path, zeros(size(collect(m.exogenous_shocks),1), horizon-peg_horizon)))
+m = Model1010("ss20");
+system = compute_system(m)
+shock_name = :rm_sh # Select MP to implement the specific path in state variable 
+var_name = :obs_nominalrate # Select the targeted state variable
+var_value = -1.0  # Select the depth of the path
+peg_horizon =6;
+
+# Setup - copied from impulse_responses.jl
+    var_names, var_class =
+    if var_name in keys(m.endogenous_states)
+        m.endogenous_states, :states
+    else
+        m.observables, :obs
+    end
+    exo          = m.exogenous_shocks
+    nshocks      = size(system[:RRR], 2)
+    nstates      = size(system[:TTT], 1)
+    nobs         = size(system[:ZZ], 1)
+    npseudo      = size(system[:ZZ_pseudo], 1)
+
+    states = zeros(nstates, horizon, nshocks)
+    obs    = zeros(nobs,    horizon, nshocks)
+    pseudo = zeros(npseudo, horizon, nshocks)
+
+    # Set constant system matrices to 0
+    system = DSGE.zero_system_constants(system)
+
+    s_0 = zeros(nstates)
+
+    # Isolate single shock
+    shocks = zeros(nshocks, horizon)
+    for t = 1:peg_horizon
+        if var_class == :states
+            var_value_att = var_value - obs[m.endogenous_states[var_name],t, m.exogenous_shocks[shock_name]]
+            shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_state_value(var_value_att,
+                                                                        var_names[var_name],
+                                                                        exo[shock_name],
+                                                                        system[:RRR])
+        else # == :obs
+            var_value_att = var_value - obs[m.observables[var_name],t, m.exogenous_shocks[shock_name]]
+            shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_obs_value(var_value_att,
+                                                                        var_names[var_name],
+                                                                        exo[shock_name],
+                                                                        system[:ZZ],
+                                                                        system[:RRR])
+        end
+    
+    # Iterate state space forward
+    states[:, :, exo[shock_name]], obs[:, :, exo[shock_name]], pseudo[:, :, exo[shock_name]], _ = forecast(system, s_0, shocks)
+    end
+
+
 using Plots
-p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:],title="Combined monetary policy shocks")
+p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]],title="Monetary policy shock")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
+p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]],title="Policy rate")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
+p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]],title="Inflation")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:],title="Output")#
+p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]],title="Output")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,obs[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate)")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,obs[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
+p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
+
+plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
 savefig( "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
 
@@ -552,68 +606,73 @@ savefig("irf/FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf")
 # Standard MP shock #
 #####################
 
-# m = Model1010("ss20");
-# system = compute_system(m)
-# shock_name = :rm_sh # Select MP to implement the specific path in state variable 
-# var_name = :obs_nominalrate # Select the targeted state variable
-# var_value = -1.0  # Select the depth of the path
-# peg_horizon =6;
+m = Model1010("ss20");
+system = compute_system(m)
+shock_name = :rm_sh # Select MP to implement the specific path in state variable 
+var_name = :obs_nominalrate # Select the targeted state variable
+var_value = -1.0  # Select the depth of the path
+peg_horizon =6;
 
-# # Setup - copied from impulse_responses.jl
-#     var_names, var_class =
-#     if var_name in keys(m.endogenous_states)
-#         m.endogenous_states, :states
-#     else
-#         m.observables, :obs
-#     end
-#     exo          = m.exogenous_shocks
-#     nshocks      = size(system[:RRR], 2)
-#     nstates      = size(system[:TTT], 1)
-#     nobs         = size(system[:ZZ], 1)
-#     npseudo      = size(system[:ZZ_pseudo], 1)
+# Setup - copied from impulse_responses.jl
+    var_names, var_class =
+    if var_name in keys(m.endogenous_states)
+        m.endogenous_states, :states
+    else
+        m.observables, :obs
+    end
+    exo          = m.exogenous_shocks
+    nshocks      = size(system[:RRR], 2)
+    nstates      = size(system[:TTT], 1)
+    nobs         = size(system[:ZZ], 1)
+    npseudo      = size(system[:ZZ_pseudo], 1)
 
-#     states = zeros(nstates, horizon, nshocks)
-#     obs    = zeros(nobs,    horizon, nshocks)
-#     pseudo = zeros(npseudo, horizon, nshocks)
+    states = zeros(nstates, horizon, nshocks)
+    obs    = zeros(nobs,    horizon, nshocks)
+    pseudo = zeros(npseudo, horizon, nshocks)
 
-#     # Set constant system matrices to 0
-#     system = DSGE.zero_system_constants(system)
+    # Set constant system matrices to 0
+    system = DSGE.zero_system_constants(system)
 
-#     s_0 = zeros(nstates)
+    s_0 = zeros(nstates)
 
-#     # Isolate single shock
-#     shocks = zeros(nshocks, horizon)
-#     for t = 1:peg_horizon
-#         if var_class == :states
-#             var_value_att = var_value - obs[m.endogenous_states[var_name],t, m.exogenous_shocks[shock_name]]
-#             shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_state_value(var_value_att,
-#                                                                         var_names[var_name],
-#                                                                         exo[shock_name],
-#                                                                         system[:RRR])
-#         else # == :obs
-#             var_value_att = var_value - obs[m.observables[var_name],t, m.exogenous_shocks[shock_name]]
-#             shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_obs_value(var_value_att,
-#                                                                         var_names[var_name],
-#                                                                         exo[shock_name],
-#                                                                         system[:ZZ],
-#                                                                         system[:RRR])
-#         end
+    # Isolate single shock
+    shocks = zeros(nshocks, horizon)
+    for t = 1:peg_horizon
+        if var_class == :states
+            var_value_att = var_value - obs[m.endogenous_states[var_name],t, m.exogenous_shocks[shock_name]]
+            shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_state_value(var_value_att,
+                                                                        var_names[var_name],
+                                                                        exo[shock_name],
+                                                                        system[:RRR])
+        else # == :obs
+            var_value_att = var_value - obs[m.observables[var_name],t, m.exogenous_shocks[shock_name]]
+            shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_obs_value(var_value_att,
+                                                                        var_names[var_name],
+                                                                        exo[shock_name],
+                                                                        system[:ZZ],
+                                                                        system[:RRR])
+        end
     
-#     # Iterate state space forward
-#     states[:, :, exo[shock_name]], obs[:, :, exo[shock_name]], pseudo[:, :, exo[shock_name]], _ = forecast(system, s_0, shocks)
-#     end
+    # Iterate state space forward
+    states[:, :, exo[shock_name]], obs[:, :, exo[shock_name]], pseudo[:, :, exo[shock_name]], _ = forecast(system, s_0, shocks)
+    end
 
 
-# using Plots
-# p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]],title="Monetary policy shock")
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-# p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]],title="Policy rate")
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-# p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]],title="Inflation")
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-# p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]],title="Output")#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-# plot(p1, p2, p3, p4, layout=(2,2), legend=false)
-# plot!(size=(960,540))
+using Plots
+p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]],title="Monetary policy shock")
+plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]],title="Policy rate")
+plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]],title="Inflation")
+plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]],title="Output")#
+plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate)")#
+plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate")#
+plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+
+plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
+plot!(size=(960,540))
 
 # savefig( "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
