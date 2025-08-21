@@ -305,8 +305,8 @@ if set_output_in_PR_to_zero
 end
 
 system = compute_system(m)
-horizon = 3000
-PlotT = horizon # Total IRF horizon to plot
+# horizon = 3000
+# PlotT = horizon # Total IRF horizon to plot
 
 plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :RealNaturalRate] 
 titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output", "r* (Forward 5-year real natural rate)", "Real natural rate"]
@@ -386,9 +386,9 @@ savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar.pdf
 
 #########################################################################
 # Adding the other variables to plot
-#########################################################################
-horizon = 3000
-PlotT = horizon # Total IRF horizon to plot
+# #########################################################################
+# horizon = 3000
+# PlotT = horizon # Total IRF horizon to plot
 plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :RealNaturalRate] 
 
 titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output", "r* (Forward 5-year real natural rate)", "Real natural rate"]

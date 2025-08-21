@@ -76,7 +76,7 @@ system = compute_system(m)
 shock_name = :rm_sh # Select MP to implement the specific path in state variable 
 var_name = :obs_nominalrate # Select the targeted state variable
 var_value = -1.0  # Select the depth of the path
-peg_horizon =6;
+peg_horizon = 6;
 
 # Setup - copied from impulse_responses.jl
     var_names, var_class =
@@ -141,7 +141,7 @@ plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
 savefig( "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
 
-
+desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
 shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
 shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
 states, obs, pseudo, _ = forecast(system, s_0, hcat(shocks_path, zeros(size(collect(m.exogenous_shocks),1), horizon-peg_horizon)))

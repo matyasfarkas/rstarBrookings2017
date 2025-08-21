@@ -4,15 +4,16 @@ using Plots # no need for `using Plots` as that is reexported here
 path = dirname(@__FILE__)
 horizon  = 40
 peg_horizon = 6 # Length of the peg in periods
-m = SmetsWoutersOrig();
+custom_settings = Dict{Symbol, DSGE.Setting}(:n_mon_anticipated_shocks =>
+                                        DSGE.Setting(:n_mon_anticipated_shocks, 20, "Number of anticipated policy shocks"))
+
+m = SmetsWoutersOrig(;custom_settings = custom_settings);
 var_name = :obs_nominalrate # Select the targeted state variable
 
 set_output_in_PR_to_zero = true
 if set_output_in_PR_to_zero
     m <= DSGE.Setting(:ψ3, 0.)
     m <= DSGE.Setting(:ψ2, 0.)
-    m <= DSGE.Setting(:n_anticipated_shocks, 20, true, "nant", "Number of ant. pol. shocks")
-
 end
 system = compute_system(m)
 
@@ -138,16 +139,16 @@ p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:r
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]],title="Output")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-# p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate)")#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(1:horizon,states[m.endogenous_states[:r_f_t],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate")#
+plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 # p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate")#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(zeros(horizon,1),lc=:black,lw=2,label="")
 
-plot(p1, p2, p3, p4,layout=(2,2), legend=false)
+plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
 savefig( "irf/SW_NeoFisherian_FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
 
-
+desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
 shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
 shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
 states, obs, pseudo, _ = forecast(system, s_0, hcat(shocks_path, zeros(size(collect(m.exogenous_shocks),1), horizon-peg_horizon)))
@@ -160,66 +161,31 @@ p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:],title="Output")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(1:horizon,states[m.endogenous_states[:r_f_t],:],title="Real natural rate")#
+p6 = plot(zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
-
-########################################################################
-# An ever changing shock for the end of the peg that implements the FG path #
-########################################################################
-desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
-var_name =:obs_nominalrate
-mp_ind = m.exogenous_shocks[:rm_sh]
-fg_inds = [m.exogenous_shocks[:rm_shl6],
-           m.exogenous_shocks[:rm_shl5],
-           m.exogenous_shocks[:rm_shl4],
-           m.exogenous_shocks[:rm_shl3],
-           m.exogenous_shocks[:rm_shl2],
-           m.exogenous_shocks[:rm_shl1]] # This uses FG1-FG6 shocks
-shock_inds = vcat(fg_inds,mp_ind) # Using mp and 1-6 horizon FG shocks       
-shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
-print("Shocks path: ",shocks_path)
-states, obs, pseudo, _ = forecast(system, s_0, hcat(shocks_path, zeros(size(collect(m.exogenous_shocks),1), horizon-peg_horizon)))
-
-using Plots
-p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:],title="Combined monetary policy shocks")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:],title="Output")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
-plot!(size=(960,540))
-
-savefig( "irf/NeoFisherian_FTPL_Equilibrium_IRF_Policy_rate_with_promise_for_period.pdf")   # saves the plot from p as a .pdf vector graphic
 
 
 # ########################################################################
 # Proper forward guidance implementation by Matyas Farkas, IMF 19/08/2025 based on the Matlab code from Jesper Linde and Zoltan Jakab
 # ########################################################################
-m = Model1010("ss20");
-var_name = :obs_nominalrate # Select the targeted state variable
-
-set_output_in_PR_to_zero = true
-if set_output_in_PR_to_zero
-    m <= DSGE.Setting(:ψ3, 0.)
-    m <= DSGE.Setting(:ψ2, 0.)
-end
-system = compute_system(m)
-
 using LinearAlgebra
 using Plots
 
+custom_settings = Dict{Symbol, DSGE.Setting}(:n_mon_anticipated_shocks =>
+                                        DSGE.Setting(:n_mon_anticipated_shocks, 20, "Number of anticipated policy shocks"))
+
+m = SmetsWoutersOrig(;custom_settings = custom_settings);
+var_name = :obs_nominalrate # Select the targeted state variable
+
+set_output_in_PR_to_zero = true
+# if set_output_in_PR_to_zero
+#     m <= DSGE.Setting(:ψ3, 0.)
+#     m <= DSGE.Setting(:ψ2, 0.)
+# end
+system = compute_system(m)
 # --- Step 1: Compute IRFs for each shock ---
 PlotT = horizon # Total IRF horizon to plot
 plotvars = [:obs_gdp, :obs_gdpdeflator, :obs_nominalrate] # Output, Inflation, Policy Rate
@@ -227,7 +193,8 @@ shock_syms = [:rm_sh, :rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6
 
 nvars = length(plotvars)
 nshocks = length(shock_syms)
-
+nstates = size(system[:TTT], 1)
+s_0 = zeros(nstates)
 # Store IRFs: irfmat[t, var, shock]
 irfmat = zeros(PlotT, nvars, nshocks)
 for (j, shock_sym) in enumerate(shock_syms)
@@ -285,29 +252,18 @@ for i = 1:nvars
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation.pdf")
+savefig("irf/SW_NeoFisherian_FG_6horizon_policy_rate_output_inflation.pdf")
 
 # Optional: plot weights for each horizon
 pw = plot(1:PlotT, shk_weights_store[:, peg_horizon-1], lw=2, label="Shock weights")
 xlabel!("Quarter ahead shocks")
 ylabel!("Weight")
 title!("Shock Weights for FG horizon $peg_horizon")
-savefig("irf/NeoFisherian_FG_6horizon_shock_weights.pdf")
+savefig("irf/SW_NeoFisherian_FG_6horizon_shock_weights.pdf")
 
 #########################################################################
 # Adding the other variables to plot
 #########################################################################
-m = SmetsWoutersOrig();
-var_name = :obs_nominalrate # Select the targeted state variable
-
-    m <= DSGE.Setting(:ψ3, 0.)
-    m <= DSGE.Setting(:ψ2, 0.)
-    m <= DSGE.Setting(:n_anticipated_shocks, 20, true, "nant", "Number of ant. pol. shocks")
-
-system = compute_system(m)
-
-# horizon = 3000
-# PlotT = horizon # Total IRF horizon to plot
 
 plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp]#, :Forward5YearRealNaturalRate, :RealNaturalRate] 
 titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output"]#, "r* (Forward 5-year real natural rate)", "Real natural rate"]
@@ -390,7 +346,20 @@ savefig("irf/SW_NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar.
 #########################################################################
 horizon = 3000
 PlotT = horizon # Total IRF horizon to plot
-plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :RealNaturalRate] 
+custom_settings = Dict{Symbol, DSGE.Setting}(:n_mon_anticipated_shocks =>
+                                        DSGE.Setting(:n_mon_anticipated_shocks, 20, "Number of anticipated policy shocks"))
+
+m = SmetsWoutersOrig(;custom_settings = custom_settings);
+var_name = :obs_nominalrate # Select the targeted state variable
+
+set_output_in_PR_to_zero = true
+if set_output_in_PR_to_zero
+    m <= DSGE.Setting(:ψ3, 0.125)
+    m <= DSGE.Setting(:ψ2, 0.125)
+end
+system = compute_system(m)
+
+plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :r_f_t] 
 
 titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output", "r* (Forward 5-year real natural rate)", "Real natural rate"]
 nvars = length(plotvars)
@@ -464,7 +433,7 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf")
+savefig("irf/SW_NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf")
 
 
 
