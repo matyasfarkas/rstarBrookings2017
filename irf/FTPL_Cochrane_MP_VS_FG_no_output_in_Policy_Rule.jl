@@ -9,8 +9,13 @@ var_name = :obs_nominalrate # Select the targeted state variable
 
 set_output_in_PR_to_zero = true
 if set_output_in_PR_to_zero
-    m <= DSGE.Setting(:ψ3, 0.)
-    m <= DSGE.Setting(:ψ2, 0.)
+     m <= DSGE.parameter(:ψ2, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
+                   description="ψ₂: Weight on output gap in monetary policy rule.",
+                   tex_label="\\psi_2")
+
+    m <= DSGE.parameter(:ψ3, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
+                   description="ψ₃: Weight on rate of change of output gap in the monetary policy rule.",
+                   tex_label="\\psi_3")
 end
 system = compute_system(m)
 
@@ -205,16 +210,6 @@ savefig( "irf/NeoFisherian_FTPL_Equilibrium_IRF_Policy_rate_with_promise_for_per
 # ########################################################################
 # Proper forward guidance implementation by Matyas Farkas, IMF 19/08/2025 based on the Matlab code from Jesper Linde and Zoltan Jakab
 # ########################################################################
-m = Model1010("ss20");
-var_name = :obs_nominalrate # Select the targeted state variable
-
-set_output_in_PR_to_zero = true
-if set_output_in_PR_to_zero
-    m <= DSGE.Setting(:ψ3, 0.)
-    m <= DSGE.Setting(:ψ2, 0.)
-end
-system = compute_system(m)
-
 using LinearAlgebra
 using Plots
 
@@ -295,18 +290,6 @@ savefig("irf/NeoFisherian_FG_6horizon_shock_weights.pdf")
 #########################################################################
 # Adding the other variables to plot
 #########################################################################
-m = Model1010("ss20");
-var_name = :obs_nominalrate # Select the targeted state variable
-
-set_output_in_PR_to_zero = true
-if set_output_in_PR_to_zero
-    m <= DSGE.Setting(:ψ3, 0.)
-    m <= DSGE.Setting(:ψ2, 0.)
-end
-
-system = compute_system(m)
-# horizon = 3000
-# PlotT = horizon # Total IRF horizon to plot
 
 plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :RealNaturalRate] 
 titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output", "r* (Forward 5-year real natural rate)", "Real natural rate"]
