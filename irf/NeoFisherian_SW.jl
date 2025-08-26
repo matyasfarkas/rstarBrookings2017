@@ -35,8 +35,6 @@ Returns a matrix of required shocks of size (nshocks, horizon).
 """
 function obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, m::AbstractDSGEModel,var_name::Symbol, shock_inds::Vector{Int},
                                                          system::System{Float64})
-
-
     horizon = length(x)
     nshocks = size(system[:RRR], 2)
     nstates = size(system[:TTT], 1)
