@@ -10,17 +10,17 @@ custom_settings = Dict{Symbol, DSGE.Setting}(:n_mon_anticipated_shocks =>
 m = SmetsWoutersOrig(;custom_settings = custom_settings);
 var_name = :obs_nominalrate # Select the targeted state variable
 
-set_output_in_PR_to_zero = true
+# set_output_in_PR_to_zero = true
 
-if set_output_in_PR_to_zero
-    m <= DSGE.parameter(:ψ2, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
-                   description="ψ₂: Weight on output gap in monetary policy rule.",
-                   tex_label="\\psi_2")
+# if set_output_in_PR_to_zero
+#     m <= DSGE.parameter(:ψ2, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
+#                    description="ψ₂: Weight on output gap in monetary policy rule.",
+#                    tex_label="\\psi_2")
 
-    m <= DSGE.parameter(:ψ3, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
-                   description="ψ₃: Weight on rate of change of output gap in the monetary policy rule.",
-                   tex_label="\\psi_3")
-end
+#     m <= DSGE.parameter(:ψ3, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
+#                    description="ψ₃: Weight on rate of change of output gap in the monetary policy rule.",
+#                    tex_label="\\psi_3")
+# end
 system = compute_system(m)
 
 """
@@ -150,7 +150,7 @@ p6 = plot(zeros(horizon,1),lc=:black,lw=2,label="")
 
 plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
-savefig( "irf/SW_NeoFisherian_FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( "irf/SW_IRF_FG6_only_with_MP_shocks.pdf")   # saves the plot from p as a .pdf vector graphic
 
 desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
 shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
@@ -247,14 +247,14 @@ for i = 1:nvars
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/SW_NeoFisherian_FG_6horizon_policy_rate_output_inflation.pdf")
+savefig("irf/SW_All_MP_shocks_FG6_output_inflation.pdf")
 
 # Optional: plot weights for each horizon
 pw = plot(1:PlotT, shk_weights_store[:, peg_horizon-1], lw=2, label="Shock weights")
 xlabel!("Quarter ahead shocks")
 ylabel!("Weight")
 title!("Shock Weights for FG horizon $peg_horizon")
-savefig("irf/SW_NeoFisherian_FG_6horizon_shock_weights.pdf")
+savefig("irf/SW_All_MP_shocks_weights.pdf")
 
 #########################################################################
 # Adding the other variables to plot
@@ -330,13 +330,13 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/SW_NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar.pdf")
+savefig("irf/SW_All_MP_shocks_FG6_output_inflation_and_rstar.pdf")
 
 
 #########################################################################
 # Adding the other variables to plot
 #########################################################################
-horizon = 3000
+# horizon = 3000
 PlotT = horizon # Total IRF horizon to plot
 custom_settings = Dict{Symbol, DSGE.Setting}(:n_mon_anticipated_shocks =>
                                         DSGE.Setting(:n_mon_anticipated_shocks, 20, "Number of anticipated policy shocks"))

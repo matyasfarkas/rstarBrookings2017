@@ -148,8 +148,9 @@ plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
 plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
-savefig( "irf/NeoFisherian_FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( "irf/NYFED_FG6_IRF_Policy_rate_withyyy_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
 
+desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
 
 shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
 shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
@@ -278,14 +279,14 @@ for i = 1:nvars
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation.pdf")
+savefig("irf/All_MP_shocks_FG6_output_inflation.pdf")
 
 # Optional: plot weights for each horizon
 pw = plot(1:PlotT, shk_weights_store[:, peg_horizon-1], lw=2, label="Shock weights")
 xlabel!("Quarter ahead shocks")
 ylabel!("Weight")
 title!("Shock Weights for FG horizon $peg_horizon")
-savefig("irf/NeoFisherian_FG_6horizon_shock_weights.pdf")
+savefig("irf/All_MP_shocks_weights.pdf")
 
 #########################################################################
 # Adding the other variables to plot
@@ -364,7 +365,7 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar.pdf")
+savefig("irf/All_MP_shocks_FG6_output_inflation_and_rstar.pdf")
 
 
 #########################################################################
@@ -446,7 +447,7 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf")
+savefig("irf/Only_FG_shocks_FG6_output_inflation_and_rstar_FISHERIAN.pdf")
 
 
 ## Waggoner and Zha (2003) approach
@@ -525,7 +526,7 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/NeoFisherian_FG_6horizon_policy_rate_output_inflation_and_rstar.pdf")
+savefig("irf/Waggoner_Zha_FG6_test.pdf")
 
 # ########################################################################
 # # Expectation errors on a length of a MP peg - Agents anticipate peg to be implemented  and are suprized consequtively that it gets extended                          #
