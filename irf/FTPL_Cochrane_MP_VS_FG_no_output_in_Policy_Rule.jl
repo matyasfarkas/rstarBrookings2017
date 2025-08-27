@@ -5,18 +5,24 @@ path = dirname(@__FILE__)
 horizon  = 40
 peg_horizon = 6 # Length of the peg in periods
 m = Model1010("ss20");
+m <= DSGE.Setting(:data_vintage, "161223")
+
+params_mode = load_draws(m, :mode)
+DSGE.update!(m, params_mode)
+
 var_name = :obs_nominalrate # Select the targeted state variable
 
-set_output_in_PR_to_zero = true
-if set_output_in_PR_to_zero
-     m <= DSGE.parameter(:ψ2, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
-                   description="ψ₂: Weight on output gap in monetary policy rule.",
-                   tex_label="\\psi_2")
+# set_output_in_PR_to_zero = true
+# if set_output_in_PR_to_zero
+#      m <= DSGE.parameter(:ψ2, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
+#                    description="ψ₂: Weight on output gap in monetary policy rule.",
+#                    tex_label="\\psi_2")
 
-    m <= DSGE.parameter(:ψ3, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
-                   description="ψ₃: Weight on rate of change of output gap in the monetary policy rule.",
-                   tex_label="\\psi_3")
-end
+#     m <= DSGE.parameter(:ψ3, 0.0, (-0.5, 0.5), (-0.5, 0.5), DSGE.Untransformed(), DSGE.Normal(0.0, 0.05), fixed=false,
+#                    description="ψ₃: Weight on rate of change of output gap in the monetary policy rule.",
+#                    tex_label="\\psi_3")
+# end
+
 system = compute_system(m)
 
 """

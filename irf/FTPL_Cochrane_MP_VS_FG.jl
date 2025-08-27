@@ -5,6 +5,7 @@ path = dirname(@__FILE__)
 horizon  = 40
 peg_horizon = 6 # Length of the peg in periods
 m = Model1010("ss20");
+
 var_name = :obs_nominalrate # Select the targeted state variable
 system = compute_system(m)
 

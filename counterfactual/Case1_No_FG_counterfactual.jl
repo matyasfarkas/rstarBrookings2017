@@ -30,7 +30,7 @@ m = Model1011("ss20")
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
 # estimate as of 2015-Q3 using the default data vintage from 2015 Nov 27
-m <= DSGE.Setting(:data_vintage, "250324")
+m <= DSGE.Setting(:data_vintage, "161223")
 m <= DSGE.Setting(:date_forecast_start, quartertodate("2025-Q1"))
 
 # The following settings ensure that this script runs in
