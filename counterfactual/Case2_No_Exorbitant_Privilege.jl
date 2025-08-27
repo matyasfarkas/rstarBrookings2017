@@ -22,6 +22,7 @@ basepath = mypath[1:idx]
 dataroot = joinpath(basepath, "dsge", "input_data")
 saveroot = joinpath(basepath, "dsge")
 
+
 ##############
 # Model Setup
 ##############
@@ -30,7 +31,13 @@ m = Model1012("ss20")
 
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= Setting(:data_vintage, "161223")
+m <= DSGE.Setting(:data_vintage, "250324")
+    df = DSGE.load_data(m)
+    data = df_to_matrix(m, df)
+    estimate(m, data; verbose=:low)
+
+df = load_data(m, try_disk = false, check_empty_columns = false, summary_statistics = :none)
+
 do_not_run_estimation = true
 #############
 # Estimation

@@ -453,7 +453,7 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-savefig("irf/Only_FG_shocks_FG6_output_inflation_and_rstar_FISHERIAN.pdf")
+savefig("irf/NeoFisherian_FTPL_Equilibrium_IRF_FG_with_only_FG_shocks.pdf")
 
 
 ## Waggoner and Zha (2003) approach
