@@ -8,14 +8,13 @@ using DSGE, ClusterManagers, HDF5
 
 # What do you want to do?
 run_estimation     = false 
-run_modal_forecast = false 
-run_full_forecast  = true   
+run_modal_forecast = true 
+run_full_forecast  = false   
 
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
 m = Model1010("ss20")
 
-# Settings for data, paths, etc.
 dataroot = joinpath(dirname(@__FILE__()), "input_data")
 saveroot = dirname(@__FILE__())
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
@@ -32,9 +31,6 @@ m <= DSGE.Setting(:calculate_hessian, true)
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2025-Q3"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2025-Q3"))
 
-m <= DSGE.Setting(:forecast_block_size,  50)
-nworkers = 20
-addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
 
 ##########################################################################################
 ## RUN
@@ -59,7 +55,7 @@ if run_estimation
         hessian_file = joinpath(dataroot, "user", "hessian_vint=240324.h5")
         specify_hessian(m, hessian_file)
     end
-    df = DSGE.load_data(m)
+    df = DSGE.load_data(m,try_disk = false, check_empty_columns = false, summary_statistics = :none)
     data = df_to_matrix(m, df)
     estimate(m, data; verbose=:low)
 
@@ -72,7 +68,7 @@ end
 if run_modal_forecast || run_full_forecast
 
     # what do we want to produce?
-    output_vars = [:histpseudo, :forecastpseudo]#, :shockdecpseudo]
+    output_vars = [:histpseudo, :forecastpseudo,:histobs]#, :shockdecpseudo]
 
     # conditional type
     cond_type = :none
@@ -87,7 +83,6 @@ if run_modal_forecast || run_full_forecast
 
         # compute means and bands
         compute_meansbands(m, :mode, cond_type, output_vars)
-
                 # print history means and bands tables to csv
                 table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
