@@ -167,3 +167,14 @@ plot(1:horizon,[ pseudo_irf[ m.pseudo_observables[:Forward5YearRealNaturalRate],
 plot!(legend=:bottomright)
 savefig( "irf/m1012/IRF_to_wage_markup_shock.pdf")   # saves the plot from p as a .pdf vector graphic
 
+
+horizon =80
+states_irf, obs_irf, pseudo_irf = impulse_responses(system, horizon)
+
+plot(1:horizon,[ pseudo_irf[ m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:π_star_sh]], obs_irf[ m.observables[:obs_nominalrate],:, m.exogenous_shocks[:π_star_sh]],obs_irf[ m.observables[:obs_gdp],:, m.exogenous_shocks[:π_star_sh]],obs_irf[ m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:π_star_sh]]  ],title="IRFs to inflation target shock", label=["r*: 5-Year Forward Real Natural Rate" "R: Policy rate" "Y:GDP per capita" "pi:GDP Deflator"])
+plot!(legend=:bottomright)
+savefig( "irf/m1010/IRF_to_inflation_target_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+plot(1:horizon,[ pseudo_irf[ m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_shl6]], obs_irf[ m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_shl6]],obs_irf[ m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_shl6]],obs_irf[ m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_shl6]]  ],title="IRFs to FG6 shock", label=["r*: 5-Year Forward Real Natural Rate" "R: Policy rate" "Y:GDP per capita" "pi:GDP Deflator"])
+plot!(legend=:bottomright)
+
+
