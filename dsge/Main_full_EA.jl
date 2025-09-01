@@ -42,7 +42,7 @@ m <= DSGE.Setting(:use_population_forecast, false)
 
 m <= DSGE.Setting(:reoptimize, false)
 m <= DSGE.Setting(:calculate_hessian, false)
-m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1970-Q2"))
+m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1970-Q3"))
 m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
 
 # Settings for forecast dates
@@ -51,9 +51,9 @@ m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
 
 
 df = load_data(m; check_empty_columns = false)
-    output_vars = Vector{Symbol}(undef,0)
-    do_histforecast= true
-    do_shockdecs   = true
+output_vars = Vector{Symbol}(undef,0)
+do_histforecast= true
+do_shockdecs   = true
     if do_histforecast
         # Write data to create historical and forecast output
         output_vars = vcat(output_vars, [:histpseudo, :histobs, :histstdshocks,
@@ -68,19 +68,18 @@ df = load_data(m; check_empty_columns = false)
                                          :trendpseudo, :shockdecpseudo, :shockdecobs])
     end
         usual_model_forecast(m, :mode, :none, output_vars,     forecast_string = "",                         density_bands = [.5, .6, .68, .7, .8, .9],                         check_empty_columns = false)
-    sections = [:estimation, :forecast]
+sections = [:estimation, :forecast]
 output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
-
-
-
-    plot_standard_model_packet(m, :mode, :none, output_vars,
+plot_standard_model_packet(m, :mode, :none, output_vars,
                                forecast_string = "",
                                sections = sections)
 
-                                   write_standard_model_packet(m, :mode, :none, output_vars,
-                                sections = sections, forecast_string = "")
-    moment_tables(m)
+                                #    write_standard_model_packet(m, :mode, :none, output_vars,
+                                # sections = sections, forecast_string = "")
+    # moment_tables(m)
 using CSV
+system = DSGE.compute_system(m)
+smooth(m, df, system; cond_type = cond_type, draw_states = false)
 
 function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; forecast_string = "", groups = shock_groupings(m), file_path = "shock_decomposition.csv")
     # Read in MeansBands
@@ -138,66 +137,66 @@ write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string 
 #     moment_tables(m, groupings = groupings)
 # end
 
-# # Forecast step: produces smoothed histories and shock decompositions
-# if run_modal_forecast || run_full_forecast
+# Forecast step: produces smoothed histories and shock decompositions
+if run_modal_forecast || run_full_forecast
 
-#     # what do we want to produce?
-#     output_vars = [:histpseudo, :forecastpseudo,:histobs]#, :shockdecpseudo]
+    # what do we want to produce?
+    output_vars = [:histpseudo, :forecastpseudo,:histobs]#, :shockdecpseudo]
 
-#     # conditional type
-#     cond_type = :none
+    # conditional type
+    cond_type = :none
 
-#     # Forecast label: all forecast output filenames will contain this string
-#     forecast_string = ""
+    # Forecast label: all forecast output filenames will contain this string
+    forecast_string = ""
 
-#     # Modal forecast
-#     if run_modal_forecast
-#         # run modal forecasts and save all draws
-#         forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
+    # Modal forecast
+    if run_modal_forecast
+        # run modal forecasts and save all draws
+        forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
 
-#         # compute means and bands
-#         compute_meansbands(m, :mode, cond_type, output_vars)
+        # compute means and bands
+        compute_meansbands(m, :mode, cond_type, output_vars)
 
 
-#                 # print history means and bands tables to csv
-#                 table_vars = [:obs_nominalrate,:obs_gdp,:obs_longrate]
+                # print history means and bands tables to csv
+                table_vars = [:obs_nominalrate,:obs_gdp,:obs_longrate]
   
-#                 write_meansbands_tables_all(m, :mode, cond_type, [:histobs], forecast_string = forecast_string,
-#                               vars = table_vars)
+                write_meansbands_tables_all(m, :mode, cond_type, [:histobs], forecast_string = forecast_string,
+                              vars = table_vars)
 
-#     end
+    end
 
-#     # Full-distribution forecast
-#     if run_full_forecast
-#         #my_procs = DSGE.addprocsfcn(nworkers)
-#         ClusterManagers.@everywhere using DSGE
+    # Full-distribution forecast
+    if run_full_forecast
+        #my_procs = DSGE.addprocsfcn(nworkers)
+        ClusterManagers.@everywhere using DSGE
 
-#         DSGE.forecast_one(m, :full, cond_type, output_vars; verbose = :high, forecast_string = forecast_string)
-#         rstar_bands = [0.68, 0.95]
-#         DSGE.compute_meansbands(m, :full, cond_type, output_vars; verbose = :high, density_bands = rstar_bands,
-#                            forecast_string = forecast_string)
-#         #rmprocs(my_procs)
+        DSGE.forecast_one(m, :full, cond_type, output_vars; verbose = :high, forecast_string = forecast_string)
+        rstar_bands = [0.68, 0.95]
+        DSGE.compute_meansbands(m, :full, cond_type, output_vars; verbose = :high, density_bands = rstar_bands,
+                           forecast_string = forecast_string)
+        #rmprocs(my_procs)
 
-#         DSGE.meansbands_to_matrix(m, :full, cond_type, output_vars; forecast_string = forecast_string)
+        DSGE.meansbands_to_matrix(m, :full, cond_type, output_vars; forecast_string = forecast_string)
 
-#         # print history means and bands tables to csv
-#         table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
-#                       :RealNaturalRate, :Forward5YearRealNaturalRate,
-#                       :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
-#                       :Forward30YearRealNaturalRate]
-#         DSGE.write_meansbands_tables_all(m, :full, cond_type, [:histpseudo], forecast_string = forecast_string,
-#                                     vars = table_vars)
+        # print history means and bands tables to csv
+        table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                      :RealNaturalRate, :Forward5YearRealNaturalRate,
+                      :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
+                      :Forward30YearRealNaturalRate]
+        DSGE.write_meansbands_tables_all(m, :full, cond_type, [:histpseudo], forecast_string = forecast_string,
+                                    vars = table_vars)
 
-#         # print shockdec means and bands tables to csv
-#         if any(x->contains(string(x), "shockdec"), output_vars)
-#             shockdec_vars = [:RealNaturalRate, :Forward30YearRealNaturalRate]
+        # print shockdec means and bands tables to csv
+        if any(x->contains(string(x), "shockdec"), output_vars)
+            shockdec_vars = [:RealNaturalRate, :Forward30YearRealNaturalRate]
 
-#             DSGE.write_meansbands_tables_all(m, :full, cond_type, [:shockdecpseudo, :trendpseudo, :dettrendpseudo],
-#                                         vars = shockdec_vars,
-#                                         forecast_string = forecast_string)
+            DSGE.write_meansbands_tables_all(m, :full, cond_type, [:shockdecpseudo, :trendpseudo, :dettrendpseudo],
+                                        vars = shockdec_vars,
+                                        forecast_string = forecast_string)
 
-#         end
-#     end
-# end
+        end
+    end
+end
 
-# nothing
+nothing
