@@ -7,110 +7,160 @@ using DSGE, Dates, DataFrames,OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO,
 # 25 August 2025
 #############################
 
-#############################
-# To use:
-# Just run in the Julia REPL
-# include("run_default.jl")
-# Note that the estimation
-# step will take 2-3 hours.
-#############################
+
+
+##############
+# Function Setup
+##############
+
+
+function obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, m::AbstractDSGEModel, var_name::Symbol, shock_inds::Matrix{Int}, system::System{Float64})
+    # shock_inds: matrix of size (nshocks, horizon), each column is the set of shock indices for that period
+    horizon = length(x)
+    nshocks = size(system[:RRR], 2)
+    nstates = size(system[:TTT], 1)
+    s_0 = zeros(nstates)
+    shocks = zeros(nshocks, horizon)
+    var_names, var_class, peg_ind =
+        if var_name in keys(m.endogenous_states)
+            m.endogenous_states, :states, m.endogenous_states[var_name]
+        elseif var_name in keys(m.observables)
+            m.observables, :obs,  m.observables[var_name]
+        elseif var_name in keys(m.pseudo_observables)
+            m.pseudo_observables, :pseudo,  m.pseudo_observables[var_name]
+        else
+            error("Variable $var_name not found in endogenous states, observables, or pseudo-observables.")
+            return
+        end
+
+    for t in 1:horizon
+        # Build IRF vector for all shocks at time t
+        n_shocks_t = size(shock_inds, 1)
+        IRFvec = zeros(n_shocks_t)
+        for j in 1:n_shocks_t
+            test_shocks = zeros(nshocks, horizon)
+            test_shocks[shock_inds[j, t], t] = 1.0
+            states, obs, pseudo = forecast(system, s_0, test_shocks)
+            if var_class == :states
+                IRFvec[j] = states[peg_ind, t]
+            elseif var_class == :obs
+                IRFvec[j] = obs[peg_ind, t]
+            elseif var_class == :pseudo
+                IRFvec[j] = pseudo[peg_ind, t]
+            end
+        end
+        # Compute effect of previous shocks
+        prev_effect = 0.0
+        if t > 1
+            prev_shocks = shocks[:, 1:t-1]
+            prev_states, prev_obs, prev_pseudo = forecast(system, s_0, hcat(prev_shocks, zeros(nshocks, horizon-t+1)))
+            if var_class == :states
+                prev_effect = prev_states[peg_ind, t]
+            elseif var_class == :obs
+                prev_effect = prev_obs[peg_ind, t]
+            elseif var_class == :pseudo
+                prev_effect = prev_pseudo[peg_ind, t]
+            end
+        end
+        # Solve for required shocks: IRFvec * shocks_t = x[t] - prev_effect
+        # If underdetermined, use least squares
+        shocks_t = pinv(IRFvec') * (x[t] - prev_effect)
+        for j in 1:n_shocks_t
+            shocks[shock_inds[j, t], t] = shocks_t[j]
+        end
+    end
+    return shocks
+end
+
+# Example test (assuming you have a model m and system):
+# x = [1.0, 2.0]
+# shock_inds = [m.exogenous_shocks[:shock1] m.exogenous_shocks[:shock1];
+#               m.exogenous_shocks[:shock2] m.exogenous_shocks[:shock2]]
+# shocks = obtain_shocks_from_desired_state_path_iterative(x, m, :obs_nominalrate, shock_inds, system)
+
 
 # DSGE.Settings for data, paths, etc.
 mypath = @__DIR__
-idx = findlast(c -> c == '/', mypath)
+idx = findlast(c -> c == '\\', mypath)
 basepath = mypath[1:idx]
 dataroot = joinpath(basepath, "dsge", "input_data")
 saveroot = joinpath(basepath, "dsge")
 
 ## Load in HLW real time estiamtes of R*
-hlw_rstar = CSV.read(joinpath(basepath, "Main results/DSGE_vs_HLW.csv"), DataFrame)
+csv_path = joinpath(basepath, "Main results", "DSGE_vs_HLW.csv")
+hlw_rstar = DataFrame(CSV.File(csv_path))
 
 valid_idx = findall(row -> !ismissing(row[:date]) && !ismissing(row[:HLW]) && !ismissing(row[:mean]), eachrow(hlw_rstar))
 
-diff = hlw_rstar.mean[valid_idx] .- hlw_rstar.HLW[valid_idx]
-#print(diff)
+rstar_diff = hlw_rstar.HLW[valid_idx] .- hlw_rstar.mean[valid_idx]
+dates= hlw_rstar.date[valid_idx]
 
-##############
-# Model Setup
-##############
-# Instantiate the FRBNY DSGE model object
-m = Model1010("ss20")
-m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
-m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= DSGE.Setting(:data_vintage, "250826")
-do_not_run_estimation = true
+desired_path = rstar_diff#rstar_diff[end-16:end] # Desired path for the state variable
+var_name =:Forward5YearRealNaturalRate
 
+shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
 
-shock_name = :rm_sh # Select MP to implement the specific path in state variable 
-var_name = :obs_nominalrate # Select the targeted state variable
-var_value = -1.0  # Select the depth of the path
-peg_horizon =6;
+shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
+shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
+states, obs, pseudo = forecast(system, s_0, shocks_path)
+# --- Step 1: Compute IRFs for each shock ---
+plotvars = [:obs_gdp, :obs_gdpdeflator, :obs_nominalrate , :Forward5YearRealNaturalRate] # Output, Inflation, Policy Rate, R*
+horizon = size(shocks_path, 2)
+plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
 
-system = DSGE.compute_system(m)
-
-function obtain_shock_from_desired_pseudo_obs_value(obs_value::Float64, pseudo_ind::Int,
-                                             shock_ind::Int, ZZ::Matrix{Float64},
-                                             RRR::Matrix{Float64})
-    return obs_value/dot(ZZ[pseudo_ind, :], RRR[:, shock_ind])
-end
-
-
-# Setup - copied from impulse_responses.jl
-    var_names, var_class =
-    if var_name in keys(m.endogenous_states)
-        m.endogenous_states, :states
-    else
-        m.observables, :obs
-    end
-    exo          = m.exogenous_shocks
-    nshocks      = size(system[:RRR], 2)
-    nstates      = size(system[:TTT], 1)
-    nobs         = size(system[:ZZ], 1)
-    npseudo      = size(system[:ZZ_pseudo], 1)
-
-    states = zeros(nstates, horizon, nshocks)
-    obs    = zeros(nobs,    horizon, nshocks)
-    pseudo = zeros(npseudo, horizon, nshocks)
-
-    # Set constant system matrices to 0
-    system = DSGE.zero_system_constants(system)
-
-    s_0 = zeros(nstates)
-
-    # Isolate single shock
-    shocks = zeros(nshocks, horizon)
-    for t = 1:peg_horizon
-            var_value_att = var_value - pseudo[m.pseudo_observables[var_name],t, m.exogenous_shocks[shock_name]]
-            shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_obs_value(var_value_att,
-                                                                        var_names[var_name],
-                                                                        exo[shock_name],
-                                                                        system[:ZZ],
-                                                                        system[:RRR])
-        end
-    
-    # Iterate state space forward
-    states[:, :, exo[shock_name]], obs[:, :, exo[shock_name]], pseudo[:, :, exo[shock_name]], _ = forecast(system, s_0, shocks)
-    end
-
-
+horizon = size(shocks_path, 2)
 using Plots
-p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]],title="Monetary policy shock")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]],title="Policy rate")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]],title="Inflation")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]],title="Output")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate)")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-
-plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
+p1 = plot(plotdates,desired_path,title="Targeted rstar change")
+#p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p4 = plot(plotdates,obs[m.observables[:obs_gdp],:],title="Output")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(plotdates,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
-savefig( "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+
+
+
+
+# Alternative shocks with FG
+
+shock_syms = [   :b_liqp_sh,   :b_safep_sh] # Convenience yield shocks causing the difference
+
+shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
+
+shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
+states, obs, pseudo = forecast(system, s_0, shocks_path)
+# --- Step 1: Compute IRFs for each shock ---
+plotvars = [:obs_gdp, :obs_gdpdeflator, :obs_nominalrate , :Forward5YearRealNaturalRate] # Output, Inflation, Policy Rate, R*
+horizon = size(shocks_path, 2)
+plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
+
+horizon = size(shocks_path, 2)
+using Plots
+p1 = plot(plotdates,desired_path,title="Targeted r* difference")
+#p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p4 = plot(plotdates,obs[m.observables[:obs_gdp],:],title="Output")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(plotdates,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
+plot!(size=(960,540))
+
 
 
 # df = load_data(m; check_empty_columns = false)
