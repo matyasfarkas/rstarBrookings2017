@@ -9,35 +9,34 @@ run_estimation     = false
 run_modal_forecast = true 
 run_full_forecast  = false
 
-# What do you want to do?
-run_estimation     = true 
-run_modal_forecast = true 
-run_full_forecast  = false
-
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
-m = Model1010("ss23")
+m = Model1010("ss20")
+# params_mode = load_draws(m, :mode)
+# # Switch off the pi_target shock
+# params_mode[m.param_index[:σ_π_target_sh]] = 0.0
+# DSGE.update!(m, params_mode)
 
 # Settings for data, paths, etc.
 dataroot = joinpath(dirname(@__FILE__()), "input_data")
 saveroot = dirname(@__FILE__())
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= DSGE.Setting(:data_vintage, "250113")
+m <= DSGE.Setting(:data_vintage, "250826")
 m <= DSGE.Setting(:use_population_forecast, false)
 
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
-
-m <= DSGE.Setting(:reoptimize, false)
-m <= DSGE.Setting(:calculate_hessian, false)
-m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1970-Q2"))
-m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
+m <= DSGE.Setting(:reoptimize, true)
+m <= DSGE.Setting(:calculate_hessian, true)
 
 # Settings for forecast dates
-m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q3"))
-m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
+m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
+m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
 
+m <= DSGE.Setting(:forecast_block_size,  50)
+nworkers = 20
+addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
 
 df = load_data(m; check_empty_columns = false)
     output_vars = Vector{Symbol}(undef,0)

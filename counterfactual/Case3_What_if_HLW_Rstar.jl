@@ -17,137 +17,96 @@ using DSGE, Dates, DataFrames,OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO,
 
 # DSGE.Settings for data, paths, etc.
 mypath = @__DIR__
-idx = findlast(c -> c == '\\', mypath)
+idx = findlast(c -> c == '/', mypath)
 basepath = mypath[1:idx]
 dataroot = joinpath(basepath, "dsge", "input_data")
 saveroot = joinpath(basepath, "dsge")
+
+## Load in HLW real time estiamtes of R*
+hlw_rstar = CSV.read(joinpath(dataroot, "raw/Laubach_Williams_real_time_estimates.csv"), DataFrame)
+
 
 ##############
 # Model Setup
 ##############
 # Instantiate the FRBNY DSGE model object
-m = Model1013("ss20")
-
+m = Model1010("ss20")
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= Setting(:data_vintage, "161223")
+m <= DSGE.Setting(:data_vintage, "250826")
 do_not_run_estimation = true
-#############
-# Estimation
-#############
-# Reoptimize parameter vector, compute Hessian at mode, and full posterior
-# parameter sampling.
-#
-# Note some columns will have missing data because not all our data
-# is publicly available. By default, `load_data` will error
-# if any of the columns in the loaded DataFrame is empty,
-# but we turn this feature off by setting the keyword `check_empty_columns = false`.
-# Warnings will be still thrown after calling load_data indicating which columns
-# are empty. However, estimate will still run when data is missing.
-@time begin
-# Run estimation
-if do_not_run_estimation
-    # Start from full sample mode
-   mode_file = rawpath(m, "estimate", "paramsmode.h5")
-   #mode_file = replace(mode_file, "ss20", "ss18")
-   DSGE.update!(m, h5read(mode_file, "params"))
-   hessian_file = rawpath(m, "estimate", "hessian.h5")
-   DSGE.specify_hessian!(m, hessian_file)
 
-else
-    df = load_data(m, try_disk = false, check_empty_columns = false, summary_statistics = :none)
-        # Define the COVID19 date range
-        start_date = Date(2020, 3, 31)
-        end_date = Date(2020, 9, 30) 
-        # Replace rows within the date range with missing values
-        allowmissing!(df)
-        df[(df.date .>= start_date) .& (df.date .<= end_date), 2:end] .= missing
-    data = df_to_matrix(m, df)
-    DSGE.estimate(m, data)
+system = DSGE.compute_system(m)
+df = load_data(m; check_empty_columns = false)
 
-end
-end
+## Smooth for R* and structural shocks
+states = Dict{Symbol, Matrix{Float64}}()
+shocks = Dict{Symbol, Matrix{Float64}}()
+pseudo = Dict{Symbol, Matrix{Float64}}()
 
-@time begin
-# Run estimation
-if do_not_run_estimation
-    # Start from full sample mode
-   mode_file = rawpath(m, "estimate", "paramsmode.h5")
-   #mode_file = replace(mode_file, "ss20", "ss18")
-   DSGE.update!(m, h5read(mode_file, "params"))
-   hessian_file = rawpath(m, "estimate", "hessian.h5")
-   DSGE.specify_hessian!(m, hessian_file)
-
-else
-    df = load_data(m, try_disk = false, check_empty_columns = false, summary_statistics = :none)
-        # Define the COVID19 date range
-        start_date = Date(2020, 3, 31)
-        end_date = Date(2020, 9, 30) 
-        # Replace rows within the date range with missing values
-        allowmissing!(df)
-        df[(df.date .>= start_date) .& (df.date .<= end_date), 2:end] .= missing
-    data = df_to_matrix(m, df)
-    DSGE.estimate(m, data)
-
-end
-end
-params_mode = load_draws(m, :mode)
-
-DSGE.update!(m, params_mode)
 shock_labels = [key for (key, _) in sort(collect(m.exogenous_shocks), by = x -> x[2])]
-
-obs_labels = [key for (key, _) in sort(collect(m.observables), by = x -> x[2])]
-
-combined = OrderedDict{Symbol, Int64}()
+combined = DSGE.OrderedDict{Symbol, Int64}()
 # First insert all entries from endogenous_states
 for (k, v) in m.endogenous_states
 combined[k] = v
 end
-
 # Then insert entries from endogenous_states_augmented
 for (k, v) in m.endogenous_states_augmented
 combined[k] = v
 end
 state_labels = [key for (key, _) in sort(collect(combined), by = x -> x[2])]
+pseudo_labels = [key for (key, _) in sort(collect(m.pseudo_observables), by = x -> x[2])]
+states_df = Dict{Symbol, DataFrame}()
+shocks_df = Dict{Symbol, DataFrame}()
+pseudo_df = Dict{Symbol, DataFrame}()
+smoother = :durbin_koopman #:hamilton, :koopman, :carter_kohn, 
+m <= DSGE.Setting(:forecast_smoother, smoother)
+states[smoother], shocks[smoother], pseudo[smoother] =
+        DSGE.smooth(m, df, system; draw_states = false)
+dates = df.date[end-size(states[smoother],2)+1:end]
+mat = states[smoother]'  # transpose to 259×91
+states_df[smoother] = DataFrame(hcat(dates, mat), [:date; state_labels])
+mat = shocks[smoother]'  # transpose to 259×29
+shocks_df[smoother] = DataFrame(hcat(dates, mat), [:date; shock_labels])
+mat = pseudo[smoother]'  #
+pseudo_df[smoother] = DataFrame(hcat(dates, mat), [:date; pseudo_labels])
 
- 
-#  @inline Φ(s_t1::Vector{S}, ϵ_t::Vector{S}) = TTT*s_t1 + RRR*ϵ_t + CCC
-#  @inline Ψ(s_t::Vector{S}) = ZZ*s_t + DD
+## Compute the delta to get HLW R* = :ExpectedAvg5YearRealNaturalRate
+rstar_smoothed_obs  = pseudo_df[smoother][:, [:date, :Forward5YearRealNaturalRate]].+system.pseudo_measurement.DD_pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate]]
 
-#  # Define shock and measurement error distributions
-#  nshocks = size(QQ, 1)
-#  nobs    = size(EE, 1)
-#  F_ϵ = Distributions.MvNormal(zeros(nshocks), QQ)
-#  F_u = Distributions.MvNormal(zeros(nobs),    EE)
+using Dates
 
-#  return Φ, Ψ, F_ϵ, F_u
+# 1. Extract and clean HLW R* data
+hlw_dates = hlw_rstar[6:end, 1]
+hlw_rstar_vals = hlw_rstar[6:end, 3]
 
-system = compute_system(m)
-# Unpack system
-TTT    = system[:TTT]
-RRR    = system[:RRR]
-CCC    = system[:CCC]
-QQ     = system[:QQ]
-ZZ     = system[:ZZ]
-DD     = system[:DD]
-EE     = system[:EE]
+valid_idx = findall(!ismissing, hlw_dates)
+hlw_dates_clean = hlw_dates[valid_idx]
+hlw_rstar_vals_clean = hlw_rstar_vals[valid_idx]
 
+# Convert HLW dates to Date type
+hlw_dates_parsed = Date.(hlw_dates_clean, dateformat"m/d/y")
 
-folder_path = joinpath(basepath, "counterfactual", "rstarobs_plus_fg")
+# Convert HLW R* values to Float64
+hlw_rstar_vals_num = parse.(Float64, hlw_rstar_vals_clean)
 
-# Create the folder if it doesn't exist
-if !isdir(folder_path)
-    mkdir(folder_path)
-end
-# Save matrices as CSV files
-CSV.write("counterfactual/rstarobs_plus_fg/TTT.csv",DataFrame(TTT,state_labels))
-CSV.write("counterfactual/rstarobs_plus_fg/RRR.csv",DataFrame(RRR,shock_labels))
-CSV.write("counterfactual/rstarobs_plus_fg/CCC.csv",DataFrame(CCC',state_labels))
-CSV.write("counterfactual/rstarobs_plus_fg/QQ.csv",DataFrame(QQ,shock_labels))
-CSV.write("counterfactual/rstarobs_plus_fg/ZZ.csv",DataFrame(ZZ',obs_labels))
-CSV.write("counterfactual/rstarobs_plus_fg/DD.csv",DataFrame(DD',obs_labels))
-CSV.write("counterfactual/rstarobs_plus_fg/EE.csv",DataFrame(EE,obs_labels))
+# Convert HLW dates to quarter string, e.g., "1960Q1"
+hlw_quarters = string.(year.(hlw_dates_parsed)) .* "Q" .* string.(ceil.(Int, month.(hlw_dates_parsed) ./ 3))
 
-# produce LaTeX tables of parameter moments
-# moment_tables(m)
+hlw_df = DataFrame(quarter = hlw_quarters, hlw_rstar = hlw_rstar_vals_num)
+
+# 2. Extract and clean model R* data
+model_dates = rstar_smoothed_obs[:, :date]
+model_rstar = rstar_smoothed_obs[:, :Forward5YearRealNaturalRate]
+
+# Convert model dates to quarter string, e.g., "1960Q1"
+model_quarters = string.(year.(model_dates)) .* "Q" .* string.(ceil.(Int, month.(model_dates) ./ 3))
+
+model_df = DataFrame(quarter = model_quarters, model_rstar = model_rstar)
+
+# 3. Inner join on quarter
+joined = innerjoin(hlw_df, model_df, on = :quarter)
+
+# 4. Compute difference
+joined.diff = joined.model_rstar .- joined.hlw_rstar
 
