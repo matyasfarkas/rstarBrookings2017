@@ -117,7 +117,7 @@ end
                
 
 using Plots
-p1 = plot(dates,obs_privilege[m.observables[:obs_nominalrate],:],title="Policy rate")
+p1 = plot(dates,obs_privilege[m.observables[:obs_nominalrate],:],title="output")
 plot!(dates,zeros(horizon,1),lc=:black,lw=2,label="")
 p2 = plot(dates,obs_privilege[m.observables[:obs_gdpdeflator],:],title="Inflation")
 plot!(dates,zeros(horizon,1),lc=:black,lw=2,label="")
@@ -136,3 +136,20 @@ if use_FG_in_EA
 else
     savefig( "Main results/Exorbitant privilege without FG shocks in EA.pdf")   # saves the plot from p as a .pdf vector graphic
 end
+
+
+system10 = compute_system(m)
+horzion = 40
+states_irf10, obs_irf10, pseudo_irf10 = impulse_responses(system10, horizon)
+
+# output
+plot(1:horizon,[obs_irf10[m.observables[:obs_gdp],:, m.exogenous_shocks[:b_liqp_sh]]],title="IRFs of the `output` to permanent liquidity shock", label=["Basline model"])
+plot!(legend=:bottomright)
+
+plot(1:horizon,[obs_irf10[m.observables[:obs_gdp],:, m.exogenous_shocks[:b_safep_sh]]] ,title="IRFs of  the output to permanent safety shock", label=["Basline model"])
+plot!(legend=:bottomright)
+
+plot(1:horizon,[ obs_irf10[m.observables[:obs_gdp],:, m.exogenous_shocks[:zp_sh ]] ] ,title="IRFs of  the output to permanent technology shock", label=["Basline model" ])
+plot!(legend=:bottomright)
+
+

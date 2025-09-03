@@ -118,7 +118,7 @@ p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(plotdates,obs[m.observables[:obs_gdp],:],title="Output")#
+p4 = plot(plotdates,states[m.endogenous_states[:y_t],:],title="Output")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p5 = plot(plotdates,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
@@ -130,9 +130,11 @@ plot!(size=(960,540))
 
 
 
-# Alternative shocks with FG
+# Alternative if r* did not increase
+desired_path =hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20]  #rstar_diff[end-16:end] # Desired path for the state variable
+var_name =:Forward5YearRealNaturalRate
 
-shock_syms = [   :b_liqp_sh,   :b_safep_sh] # Convenience yield shocks causing the difference
+shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
 
 shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
@@ -152,7 +154,7 @@ p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(plotdates,obs[m.observables[:obs_gdp],:],title="Output")#
+p4 = plot(plotdates,states[m.endogenous_states[:y_t],:],title="Output")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p5 = plot(plotdates,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
