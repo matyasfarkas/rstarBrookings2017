@@ -16,7 +16,7 @@ m = Model1010("ss20")
 
 # DSGE.Settings for data, paths, etc.
 mypath = @__DIR__
-idx = findlast(c -> c == '/', mypath)
+idx = findlast(c -> c == '\\', mypath)
 basepath = mypath[1:idx]
 dataroot = joinpath(basepath, "dsge", "input_data")
 saveroot = joinpath(basepath, "dsge")
@@ -115,16 +115,17 @@ end
 # Compute IRF for a unit shock at time t for the specified shock
         states_privilege, obs_privilege, pseudo_privilege = forecast(system, s_0, shocks)
                
-
+plotstart = 114 # 1999-Q1
+horizon = size(privilege_shock_vals,1) - plotstart + 1
 using Plots
-p1 = plot(dates,obs_privilege[m.observables[:obs_nominalrate],:],title="output")
-plot!(dates,zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(dates,obs_privilege[m.observables[:obs_gdpdeflator],:],title="Inflation")
-plot!(dates,zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(dates,obs_privilege[m.observables[:obs_gdp],:],title="Output")#
-plot!(dates,zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(dates,pseudo_privilege[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
-plot!(dates,zeros(horizon,1),lc=:black,lw=2,label="")
+p1 = plot(dates[plotstart:end],obs_privilege[m.observables[:obs_nominalrate],plotstart:end],title="Policy rate")
+plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
+p2 = plot(dates[plotstart:end],obs_privilege[m.observables[:obs_gdpdeflator],plotstart:end],title="Inflation")
+plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
+p3 = plot(dates[plotstart:end],states_privilege[m.endogenous_states[:y_t],plotstart:end],title="Output")#
+plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
+p4 = plot(dates[plotstart:end],pseudo_privilege[m.pseudo_observables[:Forward5YearRealNaturalRate],plotstart:end],title="r* (Forward 5-year real natural rate)")#
+plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
 # p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate")#
 # plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
@@ -143,13 +144,29 @@ horzion = 40
 states_irf10, obs_irf10, pseudo_irf10 = impulse_responses(system10, horizon)
 
 # output
-plot(1:horizon,[obs_irf10[m.observables[:obs_gdp],:, m.exogenous_shocks[:b_liqp_sh]]],title="IRFs of the `output` to permanent liquidity shock", label=["Basline model"])
+p1 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]]],title="Permanent liquidity shock", label=["Basline model"])
 plot!(legend=:bottomright)
 
-plot(1:horizon,[obs_irf10[m.observables[:obs_gdp],:, m.exogenous_shocks[:b_safep_sh]]] ,title="IRFs of  the output to permanent safety shock", label=["Basline model"])
+p2 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_safep_sh]]] ,title="Permanent safety shock", label=["Basline model"])
 plot!(legend=:bottomright)
 
-plot(1:horizon,[ obs_irf10[m.observables[:obs_gdp],:, m.exogenous_shocks[:zp_sh ]] ] ,title="IRFs of  the output to permanent technology shock", label=["Basline model" ])
+p3 = plot(1:horizon,[ states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:zp_sh ]] ] ,title="Permanent technology shock", label=["Basline model" ])
+plot!(legend=:bottomright)
+p4=  plot(1:horizon,[ states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:rm_shl6 ]] ] ,title="FG6 shock", label=["Basline model" ])
+
+plot(p1, p2, p3, p4, layout=(2,2), legend=false)
+
+
+# 
+p1 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]]],title="Output", label=["Basline model"])
 plot!(legend=:bottomright)
 
+p2 = plot(1:horizon,[obs_irf10[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_liqp_sh]]] ,title="Inflation", label=["Basline model"])
+plot!(legend=:bottomright)
+
+p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]] ] ,title="Policy rate", label=["Basline model" ])
+plot!(legend=:bottomright)
+p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh ]] ] ,title="R* (Forward 5 year real natural rate)", label=["Basline model" ])
+
+plot(p1, p2, p3, p4, layout=(2,2), legend=false)
 

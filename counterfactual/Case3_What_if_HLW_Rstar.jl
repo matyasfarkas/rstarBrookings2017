@@ -126,6 +126,8 @@ p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
+    savefig( "Main results/HLW_rstar_what_if.pdf")   # saves the plot from p as a .pdf vector graphic
+
 
 
 

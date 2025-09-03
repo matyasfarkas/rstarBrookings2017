@@ -7,13 +7,7 @@ using DSGE, Dates, DataFrames,OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO,
 # 25 August 2025
 #############################
 
-#############################
-# To use:
-# Just run in the Julia REPL
-# include("run_default.jl")
-# Note that the estimation
-# step will take 2-3 hours.
-#############################
+
 
 # DSGE.Settings for data, paths, etc.
 mypath = @__DIR__
@@ -22,144 +16,140 @@ basepath = mypath[1:idx]
 dataroot = joinpath(basepath, "dsge", "input_data")
 saveroot = joinpath(basepath, "dsge")
 
-##############
-# Model Setup
-##############
-# Instantiate the FRBNY DSGE model object
-m = Model1011("ss20")
+## Load in HLW real time estiamtes of R*
+csv_path = joinpath(basepath, "Main results", "DSGE_vs_HLW.csv")
+hlw_rstar = DataFrame(CSV.File(csv_path))
+valid_idx = findall(row -> !ismissing(row[:date]) && !ismissing(row[:HLW]) && !ismissing(row[:mean]), eachrow(hlw_rstar))
+rstar_diff = hlw_rstar.HLW[valid_idx] .- hlw_rstar.mean[valid_idx]
+dates= hlw_rstar.date[valid_idx]
+desired_path = rstar_diff#rstar_diff[end-16:end] # Desired path for the state variable
+
+# SET UP MODEL SYSTEM FOR SMOOTHING
+m1 = Model1010("ss20")
+mode_file = joinpath("dsge/output_data/m1010/ss20/estimate/raw" ,  "paramsmode_vint=161223.h5")
+specify_mode!(m1, mode_file)
+system = DSGE.compute_system(m1)
+
+## Initialize model object
+m = Model1010("ss20")
+
+# Settings for data, paths, etc.
+dataroot = joinpath(dirname(@__FILE__()),"dsge", "input_data")
+saveroot = dirname(@__FILE__())
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-# estimate as of 2015-Q3 using the default data vintage from 2015 Nov 27
-m <= DSGE.Setting(:data_vintage, "161223")
-m <= DSGE.Setting(:date_forecast_start, quartertodate("2025-Q1"))
+m <= DSGE.Setting(:data_vintage, "250825")
+m <= DSGE.Setting(:use_population_forecast, false)
 
-# The following settings ensure that this script runs in
-# a short amount of time. To properly estimate and
-# forecast, we recommend either using the default settings
-# (i.e. comment out the settings below) or
-# changing the settings yourself.
-m <= DSGE.Setting(:n_mh_simulations, 500) # Do 500 MH steps during estimation
-m <= DSGE.Setting(:n_mh_blocks, 10) # Do 10 blocks
+# Settings for forecast dates
+m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
+m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
 
-# m <= DSGE.Setting(:use_population_forecast, false) # Population forecast not available as data to turn off
-m <= DSGE.Setting(:forecast_block_size, 5) # adjust block size to run on small number of estimations
-do_not_run_estimation = true
-#############
-# Estimation
-#############
-# Reoptimize parameter vector, compute Hessian at mode, and full posterior
-# parameter sampling.
-#
-# Note some columns will have missing data because not all our data
-# is publicly available. By default, `load_data` will error
-# if any of the columns in the loaded DataFrame is empty,
-# but we turn this feature off by setting the keyword `check_empty_columns = false`.
-# Warnings will be still thrown after calling load_data indicating which columns
-# are empty. However, estimate will still run when data is missing.
-@time begin
-# Run estimation
-if do_not_run_estimation
-    # Start from full sample mode
-   mode_file = rawpath(m, "estimate", "paramsmode.h5")
-   #mode_file = replace(mode_file, "ss20", "ss18")
-   DSGE.update!(m, h5read(mode_file, "params"))
-   hessian_file = rawpath(m, "estimate", "hessian.h5")
-   DSGE.specify_hessian!(m, hessian_file)
-
-else
-    df = load_data(m, try_disk = false, check_empty_columns = false, summary_statistics = :none)
-        # Define the COVID19 date range
-        start_date = Date(2020, 3, 31)
-        end_date = Date(2020, 9, 30) 
-        # Replace rows within the date range with missing values
-        allowmissing!(df)
-        df[(df.date .>= start_date) .& (df.date .<= end_date), 2:end] .= missing
-    data = df_to_matrix(m, df)
-    DSGE.estimate(m, data)
-
-end
-end
-
-@time begin
-# Run estimation
-if do_not_run_estimation
-    # Start from full sample mode
-   mode_file = rawpath(m, "estimate", "paramsmode.h5")
-   #mode_file = replace(mode_file, "ss20", "ss18")
-   DSGE.update!(m, h5read(mode_file, "params"))
-   hessian_file = rawpath(m, "estimate", "hessian.h5")
-   DSGE.specify_hessian!(m, hessian_file)
-
-else
-    df = load_data(m, try_disk = false, check_empty_columns = false, summary_statistics = :none)
-        # Define the COVID19 date range
-        start_date = Date(2020, 3, 31)
-        end_date = Date(2020, 9, 30) 
-        # Replace rows within the date range with missing values
-        allowmissing!(df)
-        df[(df.date .>= start_date) .& (df.date .<= end_date), 2:end] .= missing
-    data = df_to_matrix(m, df)
-    DSGE.estimate(m, data)
-
-end
-end
-params_mode = load_draws(m, :mode)
-
-DSGE.update!(m, params_mode)
-shock_labels = [key for (key, _) in sort(collect(m.exogenous_shocks), by = x -> x[2])]
-
-obs_labels = [key for (key, _) in sort(collect(m.observables), by = x -> x[2])]
-
-combined = OrderedDict{Symbol, Int64}()
-# First insert all entries from endogenous_states
-for (k, v) in m.endogenous_states
-combined[k] = v
-end
-
-# Then insert entries from endogenous_states_augmented
-for (k, v) in m.endogenous_states_augmented
-combined[k] = v
-end
-state_labels = [key for (key, _) in sort(collect(combined), by = x -> x[2])]
-
- 
-#  @inline Φ(s_t1::Vector{S}, ϵ_t::Vector{S}) = TTT*s_t1 + RRR*ϵ_t + CCC
-#  @inline Ψ(s_t::Vector{S}) = ZZ*s_t + DD
-
-#  # Define shock and measurement error distributions
-#  nshocks = size(QQ, 1)
-#  nobs    = size(EE, 1)
-#  F_ϵ = Distributions.MvNormal(zeros(nshocks), QQ)
-#  F_u = Distributions.MvNormal(zeros(nobs),    EE)
-
-#  return Φ, Ψ, F_ϵ, F_u
-
-system = compute_system(m)
-# Unpack system
-TTT    = system[:TTT]
-RRR    = system[:RRR]
-CCC    = system[:CCC]
-QQ     = system[:QQ]
-ZZ     = system[:ZZ]
-DD     = system[:DD]
-EE     = system[:EE]
+df = load_data(m; check_empty_columns = false)
 
 
-folder_path = joinpath(basepath, "counterfactual", "rstarobs_mode")
 
-# Create the folder if it doesn't exist
-if !isdir(folder_path)
-    mkdir(folder_path)
-end
-# Save matrices as CSV files
-CSV.write("counterfactual/rstarobs_mode/TTT.csv",DataFrame(TTT,state_labels))
-CSV.write("counterfactual/rstarobs_mode/RRR.csv",DataFrame(RRR,shock_labels))
-CSV.write("counterfactual/rstarobs_mode/CCC.csv",DataFrame(CCC',state_labels))
-CSV.write("counterfactual/rstarobs_mode/QQ.csv",DataFrame(QQ,shock_labels))
-CSV.write("counterfactual/rstarobs_mode/ZZ.csv",DataFrame(ZZ',obs_labels))
-CSV.write("counterfactual/rstarobs_mode/DD.csv",DataFrame(DD',obs_labels))
-CSV.write("counterfactual/rstarobs_mode/EE.csv",DataFrame(EE,obs_labels))
+var_name =:Forward5YearRealNaturalRate
+shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
 
-# produce LaTeX tables of parameter moments
-# moment_tables(m)
+shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
+shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
+states, obs, pseudo = forecast(system, s_0, shocks_path)
+# --- Step 1: Compute IRFs for each shock ---
+plotvars = [:obs_gdp, :obs_gdpdeflator, :obs_nominalrate , :Forward5YearRealNaturalRate] # Output, Inflation, Policy Rate, R*
+horizon = size(shocks_path, 2)
+plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
+
+horizon = size(shocks_path, 2)
+using Plots
+p1 = plot(plotdates,desired_path,title="Targeted rstar change")
+#p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p4 = plot(plotdates,states[m.endogenous_states[:y_t],:],title="Output")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(plotdates,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
+plot!(size=(960,540))
+
+
+
+
+# Alternative if r* did not increase
+desired_path =hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20]  #rstar_diff[end-16:end] # Desired path for the state variable
+var_name =:Forward5YearRealNaturalRate
+
+shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
+
+shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
+
+shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
+states, obs, pseudo = forecast(system, s_0, shocks_path)
+# --- Step 1: Compute IRFs for each shock ---
+plotvars = [:obs_gdp, :obs_gdpdeflator, :obs_nominalrate , :Forward5YearRealNaturalRate] # Output, Inflation, Policy Rate, R*
+horizon = size(shocks_path, 2)
+plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
+
+horizon = size(shocks_path, 2)
+using Plots
+p1 = plot(plotdates,desired_path,title="Targeted r* difference")
+#p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p4 = plot(plotdates,states[m.endogenous_states[:y_t],:],title="Output")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(plotdates,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
+plot!(size=(960,540))
+
+
+
+# df = load_data(m; check_empty_columns = false)
+
+# ## Smooth for R* and structural shocks
+# states = Dict{Symbol, Matrix{Float64}}()
+# shocks = Dict{Symbol, Matrix{Float64}}()
+# pseudo = Dict{Symbol, Matrix{Float64}}()
+
+# shock_labels = [key for (key, _) in sort(collect(m.exogenous_shocks), by = x -> x[2])]
+# combined = DSGE.OrderedDict{Symbol, Int64}()
+# # First insert all entries from endogenous_states
+# for (k, v) in m.endogenous_states
+# combined[k] = v
+# end
+# # Then insert entries from endogenous_states_augmented
+# for (k, v) in m.endogenous_states_augmented
+# combined[k] = v
+# end
+# state_labels = [key for (key, _) in sort(collect(combined), by = x -> x[2])]
+# pseudo_labels = [key for (key, _) in sort(collect(m.pseudo_observables), by = x -> x[2])]
+# states_df = Dict{Symbol, DataFrame}()
+# shocks_df = Dict{Symbol, DataFrame}()
+# pseudo_df = Dict{Symbol, DataFrame}()
+# smoother = :durbin_koopman #:hamilton, :koopman, :carter_kohn, 
+# m <= DSGE.Setting(:forecast_smoother, smoother)
+# states[smoother], shocks[smoother], pseudo[smoother] =
+#         DSGE.smooth(m, df, system; draw_states = false)
+# dates = df.date[end-size(states[smoother],2)+1:end]
+# mat = states[smoother]'  # transpose to 259×91
+# states_df[smoother] = DataFrame(hcat(dates, mat), [:date; state_labels])
+# mat = shocks[smoother]'  # transpose to 259×29
+# shocks_df[smoother] = DataFrame(hcat(dates, mat), [:date; shock_labels])
+# mat = pseudo[smoother]'  #
+# pseudo_df[smoother] = DataFrame(hcat(dates, mat), [:date; pseudo_labels])
+
+# ## Compute the delta to get HLW R* = :ExpectedAvg5YearRealNaturalRate
+# rstar_smoothed_obs  = pseudo_df[smoother][:, [:date, :Forward5YearRealNaturalRate]]

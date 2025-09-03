@@ -22,7 +22,7 @@ dataroot = joinpath(dirname(@__FILE__()), "input_data")
 saveroot = dirname(@__FILE__())
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= DSGE.Setting(:data_vintage, "250826")
+m <= DSGE.Setting(:data_vintage, "250825")
 m <= DSGE.Setting(:use_population_forecast, false)
 
 # Settings for estimation
