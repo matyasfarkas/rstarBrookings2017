@@ -1,4 +1,4 @@
-using DSGE, Dates, DataFrames,OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO, Statistics, ModelConstructors
+using DSGE, Dates, DataFrames,OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO, Statistics, ModelConstructors, LinearAlgebra
 # using Nullables, DataFrames, OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO, Statistics
 
 #############################
@@ -98,7 +98,7 @@ dates= hlw_rstar.date[valid_idx]
 desired_path = rstar_diff#rstar_diff[end-16:end] # Desired path for the state variable
 var_name =:Forward5YearRealNaturalRate
 
-shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
+shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh, :zp_sh ] # Convenience yield shocks causing the difference
 
 shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
@@ -111,7 +111,7 @@ plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
 
 horizon = size(shocks_path, 2)
 using Plots
-p1 = plot(plotdates,desired_path,title="Targeted rstar change")
+p1 = plot(plotdates,desired_path,title="HLW r* minus DSGE r*")
 #p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
@@ -126,17 +126,19 @@ p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
-    savefig( "Main results/HLW_rstar_what_if.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( "Main results/rstar_what_if_HLW.pdf")   # saves the plot from p as a .pdf vector graphic
 
 
 
 
 
-# Alternative if r* did not increase
+# Alternative if r* did not increase post COVID19
 desired_path =hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20]  #rstar_diff[end-16:end] # Desired path for the state variable
+# desired_path = -desired_path
 var_name =:Forward5YearRealNaturalRate
 
-shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
+# shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
+shock_syms = [  :zp_sh ] # Convenience yield shocks causing the difference
 
 shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
@@ -149,7 +151,7 @@ plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
 
 horizon = size(shocks_path, 2)
 using Plots
-p1 = plot(plotdates,desired_path,title="Targeted r* difference")
+p1 = plot(plotdates,desired_path,title="Change in r* since end of COVID19")
 #p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
@@ -165,6 +167,7 @@ plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
+savefig( "Main results/rstar_had_not_increased.pdf")   # saves the plot from p as a .pdf vector graphic
 
 
 # df = load_data(m; check_empty_columns = false)

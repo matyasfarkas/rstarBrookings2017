@@ -7,7 +7,7 @@ using DataFrames, CSV
 ##############
 # Load the EA model with FG 
 ##############
-use_FG_in_EA  = true  # set to false to load the EA model without FG shocks
+use_FG_in_EA  = false  # set to false to load the EA model without FG shocks
 
 
 # Initialize model object
@@ -77,8 +77,7 @@ pseudo_df = Dict{Symbol, DataFrame}()
 smoother = :durbin_koopman #:hamilton, :koopman, :carter_kohn, 
 m <= DSGE.Setting(:forecast_smoother, smoother)
 
-states[smoother], shocks[smoother], pseudo[smoother] =
-        DSGE.smooth(m, df, system; draw_states = false)
+states[smoother], shocks[smoother], pseudo[smoother] = DSGE.smooth(m, df, system; draw_states = false)
 
 dates = df.date[end-size(states[smoother],2)+1:end]
 mat = states[smoother]'  # transpose to 259×91
