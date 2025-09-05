@@ -68,6 +68,24 @@ output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
                                    write_standard_model_packet(m, :mode, :none, output_vars,
                                 sections = sections, forecast_string = "")
     moment_tables(m)
+
+cond_type = :none
+forecast_string =""
+
+forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
+
+# compute means and bands
+compute_meansbands(m, :mode, cond_type, output_vars)
+
+                # print history means and bands tables to csv
+table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                :RealNaturalRate, :Forward5YearRealNaturalRate,
+                :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
+                :Forward30YearRealNaturalRate]
+write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo,:shockdecpseudo], forecast_string = forecast_string,
+                              vars = table_vars)
+
+
 using CSV
 
 function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; forecast_string = "", groups = shock_groupings(m), file_path = "shock_decomposition.csv")
