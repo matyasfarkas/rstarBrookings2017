@@ -95,13 +95,20 @@ function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; f
     # Save to CSV
     CSV.write(file_path, df)
 end
-m <= DSGE.Setting(:date_forecast_start,  quartertodate("2010-Q1"))
-m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
-save_shock_decomposition_to_csv(m, :obs_gdpdeflator, :obs, :mode, :none; file_path = "inflation_shock_decomposition.csv")
-save_shock_decomposition_to_csv(m, :obs_nominalrate, :obs, :mode, :none; file_path = "FFR_shock_decomposition.csv")
-save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "gdp_shock_decomposition.csv")
 
-save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "rstar_shock_decomposition.csv")
+shockdec_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                :RealNaturalRate, :Forward5YearRealNaturalRate,
+                :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
+                :Forward30YearRealNaturalRate]
+
+DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecpseudo, :trendpseudo, :dettrendpseudo],
+                                        vars = shockdec_vars,
+                                        forecast_string = forecast_string)
+
+save_shock_decomposition_to_csv(m, :obs_gdpdeflator, :obs, :mode, :none; file_path = "wFG_inflation_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :obs_nominalrate, :obs, :mode, :none; file_path = "wFG_FFR_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "wFG_gdp_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "wFG_rstar_shock_decomposition.csv")
 forecast_string =""
 cond_type = :none
                 table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
