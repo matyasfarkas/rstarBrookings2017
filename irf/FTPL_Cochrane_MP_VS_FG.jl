@@ -155,10 +155,10 @@ p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:],title="Output")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)", ylims = (-0.1, 0.1))#
+# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate", ylims = (-0.1, 0.1))#
+# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
@@ -189,10 +189,10 @@ p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:],title="Output")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)", ylims = (-0.1, 0.1))#
+# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate", ylims = (-0.1, 0.1))#
+# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
@@ -343,14 +343,18 @@ TT = 1:PlotT
 
 p = plot(layout=(3,2), size=(1200,800))
 for i = 1:nvars+1
-    if i ==1 
+    if i == 1
         plot!(p[i], TT, shk_weights_store[:, peg_horizon-1], lw=2, label="")
     else
-    if plotvars[i-1] in keys(m.observables)
-        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
-    elseif plotvars[i-1] in keys(m.pseudo_observables)
-        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
-    end
+        if plotvars[i-1] in keys(m.observables)
+            plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+        elseif plotvars[i-1] in keys(m.pseudo_observables)
+            if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
+            else
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            end
+        end
     end
     plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
     title!(p[i], titles[i])
@@ -424,14 +428,18 @@ TT = 1:PlotT
 
 p = plot(layout=(3,2), size=(1200,800))
 for i = 1:nvars+1
-    if i ==1 
+    if i == 1
         plot!(p[i], TT, shk_weights_store[:, peg_horizon-1], lw=2, label="")
     else
-    if plotvars[i-1] in keys(m.observables)
-        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
-    elseif plotvars[i-1] in keys(m.pseudo_observables)
-        plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
-    end
+        if plotvars[i-1] in keys(m.observables)
+            plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+        elseif plotvars[i-1] in keys(m.pseudo_observables)
+            if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
+            else
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            end
+        end
     end
     plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
     title!(p[i], titles[i])
