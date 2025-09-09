@@ -37,12 +37,15 @@ m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
 m <= DSGE.Setting(:data_vintage, "250113")
 m <= DSGE.Setting(:use_population_forecast, false)
 
+# mode_file = joinpath(dirname(@__FILE__()), "output_data", "m1010","ss20", "estimate","raw", "paramsmode_vint=250113.h5") #250113
+# specify_mode!(m, mode_file)
+
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
 
 m <= DSGE.Setting(:reoptimize, false)
 m <= DSGE.Setting(:calculate_hessian, false)
-m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1970-Q3"))
+m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1972-Q2"))
 m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
 
 # Settings for forecast dates
@@ -68,31 +71,31 @@ df = load_data(m; check_empty_columns = false)
         output_vars = vcat(output_vars, [:dettrendobs, :dettrendpseudo, :trendobs,
                                          :trendpseudo, :shockdecpseudo, :shockdecobs])
     end
-usual_model_forecast(m, :mode, :none, output_vars,     forecast_string = "",                         density_bands = [.5, .6, .68, .7, .8, .9],                         check_empty_columns = false)
-sections = [:estimation, :forecast]
-output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
-plot_standard_model_packet(m, :mode, :none, output_vars,
-                               forecast_string = "",
-                               sections = sections)
-write_standard_model_packet(m, :mode, :none, output_vars,
-                                sections = sections, forecast_string = "")                                
-moment_tables(m)
+# usual_model_forecast(m, :mode, :none, output_vars,     forecast_string = "",                         density_bands = [.5, .6, .68, .7, .8, .9],                         check_empty_columns = false)
+# sections = [:estimation, :forecast]
+# output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
+# plot_standard_model_packet(m, :mode, :none, output_vars,
+#                                forecast_string = "",
+#                                sections = sections)
+# write_standard_model_packet(m, :mode, :none, output_vars,
+#                                 sections = sections, forecast_string = "")                                
+# moment_tables(m)
 
 cond_type = :none
 forecast_string =""
 
-forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
+forecast_one(m, :mode, cond_type, output_vars; verbose = :low)
 
-# compute means and bands
-compute_meansbands(m, :mode, cond_type, output_vars)
+# # compute means and bands
+# compute_meansbands(m, :mode, cond_type, output_vars)
 
-                # print history means and bands tables to csv
-table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
-                :RealNaturalRate, :Forward5YearRealNaturalRate,
-                :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
-                :Forward30YearRealNaturalRate]
-write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo,:shockdecpseudo], forecast_string = forecast_string,
-                              vars = table_vars)
+#                 # print history means and bands tables to csv
+# table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+#                 :RealNaturalRate, :Forward5YearRealNaturalRate,
+#                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
+#                 :Forward30YearRealNaturalRate]
+# write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo,:shockdecpseudo], forecast_string = forecast_string,
+#                               vars = table_vars)
 
 using CSV
 
