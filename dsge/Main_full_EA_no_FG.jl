@@ -77,8 +77,8 @@ output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
 plot_standard_model_packet(m, :mode, :none, output_vars,
                                forecast_string = "",
                                sections = sections)
-write_standard_model_packet(m, :mode, :none, output_vars,
-                                sections = sections, forecast_string = "")                                
+# write_standard_model_packet(m, :mode, :none, output_vars,
+#                                 sections = sections, forecast_string = "")                                
 moment_tables(m)
 cond_type = :none
 forecast_string =""
