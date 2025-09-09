@@ -37,6 +37,9 @@ m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
 m <= DSGE.Setting(:data_vintage, "250114")
 m <= DSGE.Setting(:use_population_forecast, false)
 
+# mode_file = joinpath(dirname(@__FILE__()), "output_data", "m1010","ss20", "estimate","raw", "paramsmode_vint=250114.h5") #250114
+# specify_mode!(m, mode_file)
+
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
 
@@ -50,10 +53,11 @@ m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q3"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
 
 
+
 df = load_data(m; check_empty_columns = false)
-output_vars = Vector{Symbol}(undef,0)
-do_histforecast= true
-do_shockdecs   = true
+    output_vars = Vector{Symbol}(undef,0)
+    do_histforecast= true
+    do_shockdecs   = true
     if do_histforecast
         # Write data to create historical and forecast output
         output_vars = vcat(output_vars, [:histpseudo, :histobs, :histstdshocks,
@@ -67,45 +71,44 @@ do_shockdecs   = true
         output_vars = vcat(output_vars, [:dettrendobs, :dettrendpseudo, :trendobs,
                                          :trendpseudo, :shockdecpseudo, :shockdecobs])
     end
-    
-# usual_model_forecast(m, :mode, :none, output_vars,     forecast_string = "",                         density_bands = [.5, .6, .68, .7, .8, .9],                         check_empty_columns = false)
-# sections = [:estimation, :forecast]
-# output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
-# plot_standard_model_packet(m, :mode, :none, output_vars,
-#                                forecast_string = "",
-#                                sections = sections)
-#    write_standard_model_packet(m, :mode, :none, output_vars,
-                                # sections = sections, forecast_string = "")
-# moment_tables(m)
-
-
-# using CSV
-
-# function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; forecast_string = "", groups = shock_groupings(m), file_path = "shock_decomposition.csv")
-#     # Read in MeansBands
-#     output_vars = [Symbol(prod, class) for prod in [:shockdec, :trend, :dettrend, :hist, :forecast]]
-#     mbs = map(output_var -> read_mb(m, input_type, cond_type, output_var, forecast_string = forecast_string), output_vars)
-
-#     # Prepare the shock decomposition table
-#     df = DSGE.prepare_means_table_shockdec(mbs[1], mbs[2], mbs[3], var, mb_hist = mbs[4], mb_forecast = mbs[5], detexify_shocks = false, groups = groups)
-
-#     # Save to CSV
-#     CSV.write(file_path, df)
-# end
-# save_shock_decomposition_to_csv(m, :obs_gdpdeflator, :obs, :mode, :none; file_path = "woFG_inflation_shock_decomposition.csv")
-# save_shock_decomposition_to_csv(m, :obs_nominalrate, :obs, :mode, :none; file_path = "woFG_FFR_shock_decomposition.csv")
-# save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "woFG_gdp_shock_decomposition.csv")
-# save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "woFG_rstar_shock_decomposition.csv")
-
-forecast_one(m, :mode, :none, output_vars; verbose = :high , check_empty_columns = false)
-
-forecast_string =""
+usual_model_forecast(m, :mode, :none, output_vars,     forecast_string = "",                         density_bands = [.5, .6, .68, .7, .8, .9],                         check_empty_columns = false)
+sections = [:estimation, :forecast]
+output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
+plot_standard_model_packet(m, :mode, :none, output_vars,
+                               forecast_string = "",
+                               sections = sections)
+write_standard_model_packet(m, :mode, :none, output_vars,
+                                sections = sections, forecast_string = "")                                
+moment_tables(m)
 cond_type = :none
-                table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+forecast_string =""
+
+forecast_one(m, :mode, cond_type, output_vars; verbose = :low, check_empty_columns = false)
+
+# compute means and bands
+compute_meansbands(m, :mode, cond_type, output_vars,check_empty_columns = false)
+
+                # print history means and bands tables to csv
+table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
-write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string = forecast_string,vars = table_vars)
+write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo,:shockdecpseudo], forecast_string = forecast_string,
+                              vars = table_vars)
+
+using CSV
+
+function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; forecast_string = "", groups = shock_groupings(m), file_path = "shock_decomposition.csv")
+    # Read in MeansBands
+    output_vars = [Symbol(prod, class) for prod in [:shockdec, :trend, :dettrend, :hist, :forecast]]
+    mbs = map(output_var -> read_mb(m, input_type, cond_type, output_var, forecast_string = forecast_string), output_vars)
+
+    # Prepare the shock decomposition table
+    df = DSGE.prepare_means_table_shockdec(mbs[1], mbs[2], mbs[3], var, mb_hist = mbs[4], mb_forecast = mbs[5], detexify_shocks = false, groups = groups)
+
+    # Save to CSV
+    CSV.write(file_path, df)
+end
 
 shockdec_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
@@ -115,6 +118,20 @@ shockdec_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
 DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecpseudo, :trendpseudo, :dettrendpseudo],
                                         vars = shockdec_vars,
                                         forecast_string = forecast_string)
+
+save_shock_decomposition_to_csv(m, :obs_gdpdeflator, :obs, :mode, :none; file_path = "EA_woFG_inflation_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :obs_nominalrate, :obs, :mode, :none; file_path = "EA_woFG_FFR_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "EA_woFG_gdp_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "EA_woFG_rstar_shock_decomposition.csv")
+forecast_string =""
+cond_type = :none
+                table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                :RealNaturalRate, :Forward5YearRealNaturalRate,
+                :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
+                :Forward30YearRealNaturalRate]
+write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string = forecast_string,vars = table_vars)
+
+
 
 # ##########################################################################################
 # ## RUN
