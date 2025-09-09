@@ -169,3 +169,41 @@ plot!(size=(960,540))
 
 savefig( "Main results/rstar_had_not_increased.pdf")   # saves the plot from p as a .pdf vector graphic
 
+
+# Alternative if r* did not increase post COVID19
+desired_path =hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20]  #rstar_diff[end-16:end] # Desired path for the state variable
+# desired_path = -desired_path
+var_name =:Forward5YearRealNaturalRate
+
+# shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
+shock_syms = keys(m.exogenous_shocks) # All shocks causing the difference
+
+shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
+
+shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
+states, obs, pseudo = forecast(system, s_0, shocks_path)
+# --- Step 1: Compute IRFs for each shock ---
+plotvars = [:obs_gdp, :obs_gdpdeflator, :obs_nominalrate , :Forward5YearRealNaturalRate] # Output, Inflation, Policy Rate, R*
+horizon = size(shocks_path, 2)
+plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
+
+horizon = size(shocks_path, 2)
+using Plots
+p1 = plot(plotdates,desired_path,title="Change in r* since end of COVID19")
+#p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p4 = plot(plotdates,states[m.endogenous_states[:y_t],:],title="Output")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p5 = plot(plotdates,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
+plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
+plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
+plot!(size=(960,540))
+
+savefig( "Main results/rstar_had_not_increased_WaggonerZha.pdf")   # saves the plot from p as a .pdf vector graphic
+

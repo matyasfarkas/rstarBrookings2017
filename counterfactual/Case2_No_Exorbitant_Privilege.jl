@@ -7,7 +7,7 @@ using DataFrames, CSV
 ##############
 # Load the EA model with FG 
 ##############
-use_FG_in_EA  = true  # set to false to load the EA model without FG shocks
+use_FG_in_EA  = false  # set to false to load the EA model without FG shocks
 
 
 # Initialize model object
