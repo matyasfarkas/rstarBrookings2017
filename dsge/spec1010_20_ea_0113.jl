@@ -20,6 +20,7 @@ using Distributed
 # logSPweight  =zeros(1)
 # HVD_c_obs_percent_sim = zeros(simnum)
 # # df = DSGE.load_data(m)
+
 # start_year = 1959
 # start_quarter = 3
 # end_year = 2023
@@ -97,9 +98,9 @@ using Distributed
 ##########################################################################################
 
 # What do you want to do?
-run_estimation     = true 
+run_estimation     = false 
 run_modal_forecast = true 
-run_full_forecast  = false
+run_full_forecast  = true   
 
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
@@ -118,7 +119,7 @@ m <= DSGE.Setting(:use_population_forecast, false)
 
 m <= DSGE.Setting(:reoptimize, false)
 m <= DSGE.Setting(:calculate_hessian, false)
-m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1970-Q2"))
+m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1972-Q2"))
 m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
 
 # Settings for forecast dates
@@ -180,8 +181,6 @@ if run_modal_forecast || run_full_forecast
 
     # Forecast label: all forecast output filenames will contain this string
     forecast_string = ""
-    m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1985-Q1"))
-    m <= DSGE.Setting(:date_presample_start,  quartertodate("1987-Q1"))
     
     # Modal forecast
     if run_modal_forecast
