@@ -81,21 +81,24 @@ plot_standard_model_packet(m, :mode, :none, output_vars,
 #                                 sections = sections, forecast_string = "")                                
 moment_tables(m)
 
+
 cond_type = :none
 forecast_string =""
 
-forecast_one(m, :mode, cond_type, output_vars; verbose = :low)
+forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
 
 # compute means and bands
 compute_meansbands(m, :mode, cond_type, output_vars)
 
                 # print history means and bands tables to csv
-table_vars = [:y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+table_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
 write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo,:shockdecpseudo], forecast_string = forecast_string,
                               vars = table_vars)
+
+
 
 using CSV
 
@@ -111,7 +114,7 @@ function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; f
     CSV.write(file_path, df)
 end
 
-shockdec_vars = [:y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+shockdec_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
@@ -126,18 +129,19 @@ save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "wF
 save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "wFG_rstar_shock_decomposition.csv")
 forecast_string =""
 cond_type = :none
-                table_vars = [:y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                table_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
 write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string = forecast_string,vars = table_vars)
+
+
 
 shockdec_vars = [:obs_gdpdeflator, :obs_nominalrate, :obs_gdp]
 
 DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, :dettrendobs],
                                         vars = shockdec_vars,
                                         forecast_string = forecast_string)
-
 # ##########################################################################################
 # ## RUN
 # ##########################################################################################

@@ -69,21 +69,23 @@ output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
                                 sections = sections, forecast_string = "")
     moment_tables(m)
 
+
 cond_type = :none
 forecast_string =""
 
-forecast_one(m, :mode, cond_type, output_vars; verbose = :high , check_empty_columns = false)
+forecast_one(m, :mode, cond_type, output_vars; verbose = :high, check_empty_columns = false )
 
 # compute means and bands
-compute_meansbands(m, :mode, cond_type, output_vars; check_empty_columns = false)
+compute_meansbands(m, :mode, cond_type, output_vars,check_empty_columns = false)
 
                 # print history means and bands tables to csv
-table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+table_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
 write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo,:shockdecpseudo], forecast_string = forecast_string,
                               vars = table_vars)
+
 
 
 using CSV
@@ -99,19 +101,8 @@ function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; f
     # Save to CSV
     CSV.write(file_path, df)
 end
-save_shock_decomposition_to_csv(m, :obs_gdpdeflator, :obs, :mode, :none; file_path = "woFG_inflation_shock_decomposition.csv")
-save_shock_decomposition_to_csv(m, :obs_nominalrate, :obs, :mode, :none; file_path = "woFG_FFR_shock_decomposition.csv")
-save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "woFG_gdp_shock_decomposition.csv")
-save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "woFG_rstar_shock_decomposition.csv")
-forecast_string =""
-cond_type = :none
-                table_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
-                :RealNaturalRate, :Forward5YearRealNaturalRate,
-                :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
-                :Forward30YearRealNaturalRate]
-write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string = forecast_string,vars = table_vars)
 
-shockdec_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+shockdec_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
@@ -120,12 +111,25 @@ DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecpseudo, :trendps
                                         vars = shockdec_vars,
                                         forecast_string = forecast_string)
 
+save_shock_decomposition_to_csv(m, :obs_gdpdeflator, :obs, :mode, :none; file_path = "wFG_inflation_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :obs_nominalrate, :obs, :mode, :none; file_path = "wFG_FFR_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "wFG_gdp_shock_decomposition.csv")
+save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "wFG_rstar_shock_decomposition.csv")
+forecast_string =""
+cond_type = :none
+                table_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                :RealNaturalRate, :Forward5YearRealNaturalRate,
+                :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
+                :Forward30YearRealNaturalRate]
+write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string = forecast_string,vars = table_vars)
+
+
+
 shockdec_vars = [:obs_gdpdeflator, :obs_nominalrate, :obs_gdp]
 
 DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, :dettrendobs],
                                         vars = shockdec_vars,
                                         forecast_string = forecast_string)
-
 
              
 # ##########################################################################################
