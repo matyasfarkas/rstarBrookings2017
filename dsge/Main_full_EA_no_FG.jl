@@ -131,7 +131,11 @@ cond_type = :none
                 :Forward30YearRealNaturalRate]
 write_meansbands_tables_all(m, :mode, cond_type, [:histpseudo], forecast_string = forecast_string,vars = table_vars)
 
+shockdec_vars = [:obs_gdpdeflator, :obs_nominalrate, :obs_gdp]
 
+DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, :dettrendobs],
+                                        vars = shockdec_vars,
+                                        forecast_string = forecast_string)
 
 # ##########################################################################################
 # ## RUN

@@ -13,6 +13,8 @@ horizon  = 40
 
 
 # Standard model
+m = Model1010("ss20");
+
 m10 = Model1010("ss20");
 mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=161223.h5")
 specify_mode!(m10, mode_file)
@@ -108,11 +110,11 @@ savefig( "irf/all/IRF_output_inflation_FFR_to_FG6.pdf")   # saves the plot from 
 
 p1 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:rm_sh]]],title="Output", label=["US model"])
 plot!(legend=:bottomright)
-p2 = plot(1:horizon,[obs_irf10[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]]] ,title="Inflation", label=["US model"])
+p2 = plot(1:horizon,[states_irf10[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]]] ,title="Inflation", label=["US model"])
 plot!(legend=:bottomright)
 p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh ]] ] ,title="Policy rate", label=["US model" ])
 plot!(legend=:bottomright)
-p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh ]] ] ,title="r*", label=["US model" ])
+p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh ]] ] ,title="r*", label=["US model" ], ylims=(-0.1,0.1))
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
 savefig( "irf/all/IRF_output_inflation_FFR_to_MP.pdf")   # saves the plot from p as a .pdf vector graphic
 

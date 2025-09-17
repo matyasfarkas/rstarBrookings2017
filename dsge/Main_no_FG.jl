@@ -119,6 +119,14 @@ shockdec_vars = [:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
 DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecpseudo, :trendpseudo, :dettrendpseudo],
                                         vars = shockdec_vars,
                                         forecast_string = forecast_string)
+
+shockdec_vars = [:obs_gdpdeflator, :obs_nominalrate, :obs_gdp]
+
+DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, :dettrendobs],
+                                        vars = shockdec_vars,
+                                        forecast_string = forecast_string)
+
+
              
 # ##########################################################################################
 # ## RUN
