@@ -55,18 +55,18 @@ df = load_data(m; check_empty_columns = false)
         output_vars = vcat(output_vars, [:dettrendobs, :dettrendpseudo, :trendobs,
                                          :trendpseudo, :shockdecpseudo, :shockdecobs])
     end
-        usual_model_forecast(m, :mode, :none, output_vars,     forecast_string = "",                         density_bands = [.5, .6, .68, .7, .8, .9],                         check_empty_columns = false)
-    sections = [:estimation, :forecast]
+usual_model_forecast(m, :mode, :none, output_vars,     forecast_string = "",                         density_bands = [.5, .6, .68, .7, .8, .9],                         check_empty_columns = false)
+sections = [:estimation, :forecast]
 output_vars = [:forecastobs, :forecastpseudo,:shockdecobs, :shockdecpseudo]
 
 
 
-    plot_standard_model_packet(m, :mode, :none, output_vars,
-                               forecast_string = "",
-                               sections = sections)
+    # plot_standard_model_packet(m, :mode, :none, output_vars,
+    #                            forecast_string = "",
+    #                            sections = sections)
 
-                                   write_standard_model_packet(m, :mode, :none, output_vars,
-                                sections = sections, forecast_string = "")
+    #                                write_standard_model_packet(m, :mode, :none, output_vars,
+    #                             sections = sections, forecast_string = "")
     moment_tables(m)
 
 
@@ -76,7 +76,7 @@ forecast_string =""
 forecast_one(m, :mode, cond_type, output_vars; verbose = :high, check_empty_columns = false )
 
 # compute means and bands
-compute_meansbands(m, :mode, cond_type, output_vars,check_empty_columns = false)
+compute_meansbands(m, :mode, cond_type, output_vars, check_empty_columns = false)
 
                 # print history means and bands tables to csv
 table_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
@@ -102,7 +102,7 @@ function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; f
     CSV.write(file_path, df)
 end
 
-shockdec_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+shockdec_vars = [:π_t, :y_t,:rm_tl1,:rm_tl2,:rm_tl3,:rm_tl4,:rm_tl5,:rm_tl6,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
@@ -111,13 +111,13 @@ DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecpseudo, :trendps
                                         vars = shockdec_vars,
                                         forecast_string = forecast_string)
 
-save_shock_decomposition_to_csv(m, :obs_gdpdeflator, :obs, :mode, :none; file_path = "wFG_inflation_shock_decomposition.csv")
-save_shock_decomposition_to_csv(m, :obs_nominalrate, :obs, :mode, :none; file_path = "wFG_FFR_shock_decomposition.csv")
-save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "wFG_gdp_shock_decomposition.csv")
-save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "wFG_rstar_shock_decomposition.csv")
+# save_shock_decomposition_to_csv(m, :obs_gdpdeflator, :obs, :mode, :none; file_path = "wFG_inflation_shock_decomposition.csv")
+# save_shock_decomposition_to_csv(m, :obs_nominalrate, :obs, :mode, :none; file_path = "wFG_FFR_shock_decomposition.csv")
+# save_shock_decomposition_to_csv(m, :obs_gdp, :obs, :mode, :none; file_path = "wFG_gdp_shock_decomposition.csv")
+# save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "wFG_rstar_shock_decomposition.csv")
 forecast_string =""
 cond_type = :none
-                table_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                table_vars = [:π_t, :y_t,:rm_tl1,:rm_tl2,:rm_tl3,:rm_tl4,:rm_tl5,:rm_tl6,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
