@@ -133,7 +133,7 @@ p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:r
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]],title="Output")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate)")#
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate)", ylims = (-0.1, 0.1))#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:rm_sh]],title="Ex-ante real rate")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
