@@ -1,5 +1,6 @@
 using DSGE, Dates, DataFrames,OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO, Statistics, ModelConstructors, LinearAlgebra
 # using Nullables, DataFrames, OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO, Statistics
+using Measures  # for mm margins
 
 #############################
 # Written by: Matyas Farkas, IMF
@@ -159,7 +160,8 @@ desired_path =hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20]  #rstar_diff
 var_name =:Forward5YearRealNaturalRate
 
 # hock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
-shock_syms = [  :zp_sh ] # Convenience yield shocks causing the difference
+# shock_syms = [  :zp_sh ] # Convenience yield shocks causing the difference
+shock_syms = collect(Iterators.filter(k -> !startswith(String(k), "rm_sh"), keys(m.exogenous_shocks)))
 
 shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
@@ -249,11 +251,66 @@ plot!(plotdates, zeros(horizon,1), lc=:black, lw=2, label="")
 # Combine subplots and add a single legend above the first row, centered
 plt = plot(p1, p2, p3, p4, p5, p6, layout=(3,2), legend=:top, legendfontsize=10, size=(Int(960*1.5), Int(540*1.5)))
 
-# Add dummy series to the first subplot to show both legend entries
-#plot!(plt[1], plotdates, desired_path, label="Without FG", color=:blue)
-#plot!(plt[1], plotdates, desired_path_wFG, label="With FG", color=:red)
+# # Add dummy series to the first subplot to show both legend entries
+# plot!(plt[1], plotdates, desired_path, label="Without FG")
+# plot!(plt[1], plotdates, desired_path_wFG, label="With FG")
 
 savefig(plt, "Main results/rstar_had_not_increased_comparison_TFP.pdf")
+
+
+
+
+# --- build your six plots (no legends anywhere in the grid)
+zeroline = zeros(length(plotdates))
+
+p1 = plot(plotdates, desired_path,  title="Change in r* since end of COVID-19",
+          label="", legend=false)
+plot!(p1, plotdates, desired_path_wFG, lc=:red, label="")
+plot!(p1, plotdates, zeroline, lc=:black, lw=2, label="")
+
+p2 = plot(plotdates, obs[m.observables[:obs_nominalrate],:], title="Policy rate",
+          label="", legend=false)
+plot!(p2, plotdates, obsFG[m.observables[:obs_nominalrate],:], lc=:red, label="")
+plot!(p2, plotdates, zeroline, lc=:black, lw=2, label="")
+
+p3 = plot(plotdates, obs[m.observables[:obs_gdpdeflator],:], title="Inflation",
+          label="", legend=false)
+plot!(p3, plotdates, obsFG[m.observables[:obs_gdpdeflator],:], lc=:red, label="")
+plot!(p3, plotdates, zeroline, lc=:black, lw=2, label="")
+
+p4 = plot(plotdates, states[m.endogenous_states[:y_t],:], title="Output",
+          label="", legend=false)
+plot!(p4, plotdates, statesFG[m.endogenous_states[:y_t],:], lc=:red, label="")
+plot!(p4, plotdates, zeroline, lc=:black, lw=2, label="")
+
+p5 = plot(plotdates, pseudo[m.pseudo_observables[:ExAnteRealRate],:], title="Ex-ante real rate",
+          label="", legend=false)
+plot!(p5, plotdates, pseudoFG[m.pseudo_observables[:ExAnteRealRate],:], lc=:red, label="")
+plot!(p5, plotdates, zeroline, lc=:black, lw=2, label="")
+
+p6 = plot(plotdates, pseudo[m.pseudo_observables[:RealNaturalRate],:], title="Real natural rate",
+          label="", legend=false)
+plot!(p6, plotdates, pseudoFG[m.pseudo_observables[:RealNaturalRate],:], lc=:red, label="")
+plot!(p6, plotdates, zeroline, lc=:black, lw=2, label="")
+
+
+# --- legend-only subplot
+plegend = plot(legend = :top, framestyle = :none, grid = false,
+               xticks = false, yticks = false, xlabel = "", ylabel = "",
+               margin = 0mm, legendtitle = "")
+
+# add dummy series for legend entries (NaN avoids plotting, only legend appears)
+plot!(plegend, [0.0], [NaN], label = "Without FG",  foreground_color_legend = nothing)
+plot!(plegend, [0.0], [NaN], label = "With FG",    lc = :red, foreground_color_legend = nothing)
+
+# --- combine with your 3×2 grid of real plots
+plt = plot(plegend, p1, p2, p3, p4, p5, p6;
+           layout = @layout([a{0.10h}; grid(3,2)]),
+           size   = (Int(960*1.5), Int(540*1.5)),
+           top_margin = 4mm, bottom_margin = 4mm)
+
+display(plt)
+savefig(plt, "Main results/rstar_had_not_increased_comparison_TFP_legend.pdf")
 
 
 # Alternative if r* did not increase post COVID19
