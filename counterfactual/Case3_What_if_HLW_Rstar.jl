@@ -16,19 +16,21 @@ m = Model1010("ss20")
 # DSGE.update!(m, params_mode)
 
 # Settings for data, paths, etc.
-dataroot = joinpath(dirname(@__FILE__()), "input_data")
-saveroot = dirname(@__FILE__())
-m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
-m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= DSGE.Setting(:data_vintage, "250825")
+m <= DSGE.Setting(:data_vintage, "161223")
 # Settings for forecast dates
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
+ mode_file = rawpath(m, "estimate", "paramsmode.h5")
+        #mode_file = replace(mode_file, "ss20", "ss18")
+        DSGE.update!(m, h5read(mode_file, "params"))
 
 
 system = DSGE.compute_system(m)
-    nstates = size(system[:TTT], 1)
-    s_0 = zeros(nstates)
+
+
+
+nstates = size(system[:TTT], 1)
+s_0 = zeros(nstates)
 
 ##############
 # Function Setup
@@ -104,8 +106,6 @@ end
 mypath = @__DIR__
 idx = findlast(c -> c == '\\', mypath)
 basepath = mypath[1:idx]
-dataroot = joinpath(basepath, "dsge", "input_data")
-saveroot = joinpath(basepath, "dsge")
 
 ## Load in HLW real time estiamtes of R*
 csv_path = joinpath(basepath, "Main results", "DSGE_vs_HLW.csv")
@@ -261,8 +261,9 @@ desired_path =hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20]  #rstar_diff
 # desired_path = -desired_path
 var_name =:Forward5YearRealNaturalRate
 
-# shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
-shock_syms = keys(m.exogenous_shocks) # All shocks causing the difference
+
+# Exclude all shocks whose names start with :rm_sh (including :rm_sh, :rm_shl1, ...)
+shock_syms = collect(Iterators.filter(k -> !startswith(String(k), "rm_sh"), keys(m.exogenous_shocks)))
 
 shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
@@ -297,13 +298,15 @@ savefig( "Main results/rstar_had_not_increased_WaggonerZha.pdf")   # saves the 
 
 
 # Alternative if r* did not increase post COVID19
-desired_path =desired_path_wFG .- (hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20])  #rstar_diff[end-16:end] # Desired path for the state variable
+
+desired_path =(hlw_rstar[end-20:259,10] .- hlw_rstar[end-20,10]) .- (hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20])  #rstar_diff[end-16:end] # Desired path for the state variable
 # desired_path = -desired_path
 var_name =:Forward5YearRealNaturalRate
 
 # shock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
-shock_syms = keys(m.exogenous_shocks) # All shocks causing the difference
+# shock_syms = keys(m.exogenous_shocks) # All shocks causing the difference
 
+shock_syms = collect(Iterators.filter(k -> !startswith(String(k), "rm_sh"), keys(m.exogenous_shocks)))
 shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
 shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
