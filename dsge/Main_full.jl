@@ -73,7 +73,7 @@ forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
 compute_meansbands(m, :mode, cond_type, output_vars)
 
                 # print history means and bands tables to csv
-table_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+table_vars = [:rm_t, :π_star_t,:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
