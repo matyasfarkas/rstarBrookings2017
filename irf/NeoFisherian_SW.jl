@@ -1,4 +1,3 @@
-using DSGE;
 using Plots # no need for `using Plots` as that is reexported here
 
 path = dirname(@__FILE__)
