@@ -137,7 +137,7 @@ function save_shock_decomposition_to_csv(m, var, class, input_type, cond_type; f
     CSV.write(file_path, df)
 end
 
-shockdec_vars = [:π_t, :y_t,:rm_tl1,:rm_tl2,:rm_tl3,:rm_tl4,:rm_tl5,:rm_tl6,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+shockdec_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
@@ -152,7 +152,7 @@ DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecpseudo, :trendps
 # save_shock_decomposition_to_csv(m, :Forward5YearRealNaturalRate, :pseudo, :mode, :none; file_path = "wFG_rstar_shock_decomposition.csv")
 forecast_string =""
 cond_type = :none
-                table_vars = [:π_t, :y_t,:rm_tl1,:rm_tl2,:rm_tl3,:rm_tl4,:rm_tl5,:rm_tl6,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                table_vars = [:π_t, :y_t,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
                 :RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
