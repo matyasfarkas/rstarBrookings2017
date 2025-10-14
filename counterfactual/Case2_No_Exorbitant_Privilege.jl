@@ -128,15 +128,31 @@ plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
 # p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate")#
 # plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
+
 plot(p1, p2, p3, p4,layout=(2,2), legend=false)
 plot!(size=(960,540))
 if use_FG_in_EA 
     savefig( "Main results/Exorbitant privilege.pdf")   # saves the plot from p as a .pdf vector graphic
-
 else
     savefig( "Main results/Exorbitant privilege without FG shocks in EA.pdf")   # saves the plot from p as a .pdf vector graphic
 end
 
+
+
+# --- Write plotted series to CSV ---
+using CSV, DataFrames
+df_out = DataFrame(
+    Date = dates[plotstart:end],
+    PolicyRate = obs_privilege[m.observables[:obs_nominalrate], plotstart:end],
+    Inflation = obs_privilege[m.observables[:obs_gdpdeflator], plotstart:end],
+    Output = states_privilege[m.endogenous_states[:y_t], plotstart:end],
+    Forward5YearRealNaturalRate = pseudo_privilege[m.pseudo_observables[:Forward5YearRealNaturalRate], plotstart:end]
+)
+if use_FG_in_EA
+    CSV.write("Main results/Exorbitant_privilege.csv", df_out)
+else
+    CSV.write("Main results/Exorbitant_privilege_without_FG_shocks_in_EA.csv", df_out)
+end
 
 system10 = compute_system(m)
 horzion = 40
@@ -148,24 +164,21 @@ plot!(legend=:bottomright)
 
 p2 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_safep_sh]]] ,title="Permanent safety shock", label=["Basline model"])
 plot!(legend=:bottomright)
-
 p3 = plot(1:horizon,[ states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:zp_sh ]] ] ,title="Permanent technology shock", label=["Basline model" ])
 plot!(legend=:bottomright)
 p4=  plot(1:horizon,[ states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:rm_shl6 ]] ] ,title="FG6 shock", label=["Basline model" ])
-
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
 
 
 # 
-p1 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]]],title="Output", label=["Basline model"])
+p1 = plot(1:horizon,-[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]]./ minimum(obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]])],title="Output", label=["Basline model"])
 plot!(legend=:bottomright)
-
-p2 = plot(1:horizon,[obs_irf10[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_liqp_sh]]] ,title="Inflation", label=["Basline model"])
+p2 = plot(1:horizon,-[obs_irf10[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_liqp_sh]]./ minimum(obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]])] ,title="Inflation", label=["Basline model"])
 plot!(legend=:bottomright)
-
-p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]] ] ,title="Policy rate", label=["Basline model" ])
+p3 = plot(1:horizon, -[obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]] ./ minimum(obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]])], title="Policy rate", label=["Basline model"])
 plot!(legend=:bottomright)
-p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh ]] ] ,title="R* (Forward 5 year real natural rate)", label=["Basline model" ])
-
+p4=  plot(1:horizon,-[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh ]]./ minimum(obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]]) ] ,title="r* (Forward 5-year real natural rate)", label=["Basline model" ])
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
+
+    savefig( "Main results/IRF_to_permanet_liquidity_shock_scaled.pdf")   # saves the plot from p as a .pdf vector graphic
 

@@ -105,7 +105,7 @@ end
 
 # DSGE.Settings for data, paths, etc.
 mypath = @__DIR__
-idx = findlast(c -> c == '/', mypath)
+idx = findlast(c -> c == '\\', mypath)
 basepath = mypath[1:idx]
 
 ## Load in HLW real time estiamtes of R*
@@ -189,8 +189,8 @@ p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
+savefig("Main results/what_if_rstar_had_been_HLW_post_COVID.pdf")   # saves the plot from p as a .pdf vector graphic
 
-savefig( "Main results/what_if_rstar_had_been_HLW_post_COVID.pdf")   # saves the plot from p as a .pdf vector graphic
 
 
 
@@ -232,6 +232,7 @@ plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
 savefig( "Main results/rstar_had_not_increased_woFG.pdf")   # saves the plot from p as a .pdf vector graphic
+
 
 
 # Alternative if r* did not increase post COVID19
@@ -391,6 +392,21 @@ plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
 savefig( "Main results/rstar_had_not_increased_WaggonerZha.pdf")   # saves the plot from p as a .pdf vector graphic
+
+
+
+# --- Write plotted series to CSV ---
+using CSV, DataFrames
+df_out_norstarincrease_WZ = DataFrame(
+        Date = plotdates,
+        HLW_minus_DSGE = desired_path,
+        PolicyRate = obs[m.observables[:obs_nominalrate], :],
+        Inflation = obs[m.observables[:obs_gdpdeflator], :],
+        Output = states[m.endogenous_states[:y_t], :],
+        ExAnteRealRate = pseudo[m.pseudo_observables[:ExAnteRealRate], :],
+        RealNaturalRate = pseudo[m.pseudo_observables[:RealNaturalRate], :]
+)
+CSV.write("Main results/what_if_rstar_had_not_increased_WaggonerZha.csv", df_out_norstarincrease_WZ)
 
 
 
