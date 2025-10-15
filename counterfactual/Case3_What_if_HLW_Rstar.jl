@@ -295,7 +295,7 @@ savefig(plt, "Main results/compare_baseline_vs_HLW_grid.pdf")
 
 
 # Alternative if r* did not increase post COVID19
-desired_path =hlw_rstar.mean[end-20:259] .- hlw_rstar.mean[end-20]  #rstar_diff[end-16:end] # Desired path for the state variable
+desired_path =hlw_rstar.mean_1[end-20:259] .- hlw_rstar.mean_1[end-20]  #rstar_diff[end-16:end] # Desired path for the state variable
 # desired_path = -desired_path
 var_name =:Forward5YearRealNaturalRate
 
@@ -393,7 +393,9 @@ for (i, v) in enumerate(plotvars)
                         continue
                 end
         end
-
+        if v == :Forward5YearRealNaturalRate
+                cf_series = desired_path# Set first value to zero to reflect no change at the starting point
+        end
         cf_short = cf_series[end-length(plotdates)+1:end]
         # Format x-ticks to show only the year
         # Format x-ticks to show only the year (yyyy)
