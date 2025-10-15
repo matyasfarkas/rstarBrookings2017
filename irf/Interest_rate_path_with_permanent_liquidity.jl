@@ -16,7 +16,16 @@ mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint
 specify_mode!(m, mode_file)
 system = compute_system(m)
 
-# states_irf, obs_irf, pseudo_irf = impulse_responses(system, horizon)
+states_irf, obs_irf, pseudo_irf = impulse_responses(system, horizon)
+p1 = plot(1:horizon,[states_irf[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]]],title="Output", label=["US model"])
+plot!(legend=:bottomright)
+p2 = plot(1:horizon,[obs_irf[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_liqp_sh]]] ,title="Inflation", label=["US model"])
+plot!(legend=:bottomright)
+p3 = plot(1:horizon,[ obs_irf[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]] ] ,title="Policy rate", label=["US model" ])
+plot!(legend=:bottomright)
+p4=  plot(1:horizon,[ pseudo_irf[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh ]] ] ,title="r*", label=["US model" ])
+plot(p1, p2, p3, p4, layout=(2,2), legend=false)
+
 
 #     nshocks = size(system[:RRR], 2)
 #     nstates = size(system[:TTT], 1)
@@ -76,9 +85,9 @@ function obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, m::
         test_shocks[shock_inds[t], t] = 1.0
         states, obs, _ = forecast(system, s_0, test_shocks)
                 if var_class == :states
-                    irf = states[peg_ind, t] # Impact of a unit shock at t on state at t
+                    irf = states[peg_ind, 1] # Impact of a unit shock at t on state at t
                 else 
-                    irf = obs[peg_ind,t] # Impact of a unit shock at t on obs at t
+                    irf = obs[peg_ind,1] # Impact of a unit shock at t on obs at t
                 end
         # Compute effect of previous shocks
         prev_effect = 0.0
@@ -104,7 +113,7 @@ end
 # Standard MP shock #
 #####################
 
-shock_name = :b_safep_sh # Select MP to implement the specific path in state variable 
+shock_name = :b_liqp_sh # Select MP to implement the specific path in state variable 
 var_name = :obs_nominalrate # Select the targeted state variable
 var_value = -1.0  # Select the depth of the path
 peg_horizon = 6;
@@ -155,17 +164,17 @@ peg_horizon = 6;
 
 
 using Plots
-p1 = plot(1:horizon,states[m.endogenous_states[:b_safep_t],:, m.exogenous_shocks[:b_safep_sh]],title="Permanent liquidity shock")
+p1 = plot(1:horizon,states[m.endogenous_states[:b_liqp_t],:, m.exogenous_shocks[:b_liqp_sh]],title="Permanent liquidity shock")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_safep_sh]],title="Policy rate")
+p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh]],title="Policy rate")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_safep_sh]],title="Inflation")
+p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_liqp_sh]],title="Inflation")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:b_safep_sh]],title="Output")#
+p4 = plot(1:horizon,states[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]],title="Output")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_safep_sh]],title="r* (Forward 5-year real natural rate)")#
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh]],title="r* (Forward 5-year real natural rate)")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:b_safep_sh]],title="Ex-ante real rate")#
+p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:b_liqp_sh]],title="Ex-ante real rate")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
 plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
