@@ -1,3 +1,4 @@
+
 using DSGE, Dates, DataFrames,OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO, Statistics, ModelConstructors, LinearAlgebra
 # using Nullables, DataFrames, OrderedCollections, Dates,HDF5, CSV, JLD2, FileIO, Statistics
 using Measures  # for mm margins
@@ -168,7 +169,7 @@ shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in sh
 shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
 states, obs, pseudo = forecast(system, s_0, shocks_path)
 # --- Step 1: Compute IRFs for each shock ---
-plotvars = [:obs_gdp, :obs_gdpdeflator, :obs_nominalrate , :Forward5YearRealNaturalRate] # Output, Inflation, Policy Rate, R*
+plotvars = [:obs_gdp, :pi_t, :obs_nominalrate , :Forward5YearRealNaturalRate,:ExAnteRealRate,:RealNaturalRate] # Output, Inflation, Policy Rate, R*
 horizon = size(shocks_path, 2)
 plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
 
@@ -179,9 +180,9 @@ p1 = plot(plotdates,desired_path,title="Post-Covid difference of HLW vs DSGE ")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
+p3 = plot(plotdates,obs[m.pseudo_observables[:π_t],:],title="Inflation")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(plotdates,states[m.endogenous_states[:y_t],:],title="Output")#
+p4 = plot(plotdates,states[m.pseudo_observables[:y_t],:],title="Output")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p5 = plot(plotdates,pseudo[m.pseudo_observables[:ExAnteRealRate],:],title="Ex-ante real rate")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
@@ -191,8 +192,97 @@ plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 savefig("Main results/what_if_rstar_had_been_HLW_post_COVID.pdf")   # saves the plot from p as a .pdf vector graphic
 
+# --- Write plotted series to CSV ---
+using CSV, DataFrames
+df_out_norstarincrease_WZ = DataFrame(
+        Date = plotdates,
+        HLW_minus_DSGE = desired_path,
+        PolicyRate = obs[m.observables[:obs_nominalrate], :],
+        Inflation = obs[m.observables[:obs_gdpdeflator], :],
+        Output = states[m.endogenous_states[:y_t], :],
+        ExAnteRealRate = pseudo[m.pseudo_observables[:ExAnteRealRate], :],
+        RealNaturalRate = pseudo[m.pseudo_observables[:RealNaturalRate], :]
+)
+CSV.write("Main results/what_if_rstar_had_been_HLW_post_COVID.csv", df_out_norstarincrease_WZ)
 
 
+# === Baseline vs Counterfactual Plotting Section ===
+using CSV, DataFrames
+
+# Directory and vintage for DSGE smoothed series
+dsge_table_dir = joinpath(basepath, "dsge", "output_data", "m1010", "ss20", "forecast", "tables")
+vintage = "250825"  # Update if needed to match your DSGE output
+cond = "none"
+para = "mode"
+
+# Helper to get the correct filename for a variable
+function get_hist_filename(var::Symbol)
+        return "hist_" * String(var) * "_cond=" * cond * "_para=" * para * "_vint=" * vintage * ".csv"
+end
+
+
+# Load all baseline series into a Dict{Symbol, DataFrame} using CSV.File
+baseline_dfs = Dict{Symbol, DataFrame}()
+for v in plotvars
+        fname = get_hist_filename(v)
+        fpath = joinpath(dsge_table_dir, fname)
+        if isfile(fpath)
+                baseline_dfs[v] = DataFrame(CSV.File(fpath))
+        else
+                @warn "File not found for variable $(v): $(fpath)"
+        end
+end
+
+# --- Plot all variables in a 3x2 grid: baseline (blue) vs counterfactual (red) ---
+using Plots
+zeroline = zeros(length(plotdates))
+plots_arr = Vector{Any}(undef, length(plotvars))
+for (i, v) in enumerate(plotvars)
+
+        if !haskey(baseline_dfs, v)
+                plots_arr[i] = plot(title=string(v), legend=false) # empty plot if missing
+                continue
+        end
+        df_base = baseline_dfs[v]
+        varcol = names(df_base)[names(df_base) .!= :date][end]
+        # Filter to plotdates and ensure order matches plotdates
+        df_base_short = DataFrames.filter(row -> row.date in plotdates, df_base)
+        # If not already sorted, sort by date
+        sort!(df_base_short, :date)
+        # Get counterfactual series for this variable
+        if v == :pi_t
+                cf_series = pseudo[m.pseudo_observables[:π_t], :]
+                else
+                if v in keys(m.observables)
+                        cf_series = obs[m.observables[v], :]
+                elseif v in keys(m.endogenous_states)
+                        cf_series = states[m.endogenous_states[v], :]
+                elseif v in keys(m.pseudo_observables)
+                        cf_series = pseudo[m.pseudo_observables[v], :]
+                else
+                        @warn "Variable $(v) not found in model observables/states/pseudo-observables."
+                        plots_arr[i] = plot(title=string(v), legend=false)
+                        continue
+                end
+        end
+
+        cf_short = cf_series[end-length(plotdates)+1:end]
+        # Plot: baseline (blue), counterfactual (red), zero line (black)
+        p = plot(df_base_short.date, df_base_short[!, varcol], label="DSGE Baseline", color=:blue, lw=2, title=string(v))
+        plot!(p, plotdates, cf_short+df_base_short[!, varcol], label="Counterfactual HLW r*", color=:red, lw=2)
+        plot!(p, plotdates, zeroline, lc=:black, lw=2, label="")
+        plot!(p, legend=false)
+        plots_arr[i] = p
+end
+
+# Fill up to 6 plots if plotvars < 6
+while length(plots_arr) < 6
+        push!(plots_arr, plot(title="", legend=false))
+end
+
+plt = plot(plots_arr[1], plots_arr[2], plots_arr[3], plots_arr[4], plots_arr[5], plots_arr[6], layout=(3,2), legend=false)
+plot!(plt, size=(960,540))
+savefig(plt, "Main results/compare_baseline_vs_HLW_grid.pdf")
 
 
 # Alternative if r* did not increase post COVID19
