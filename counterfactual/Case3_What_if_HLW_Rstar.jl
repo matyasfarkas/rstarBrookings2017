@@ -292,7 +292,7 @@ plot!(plt, size=(960,540))
 savefig(plt, "Main results/compare_baseline_vs_HLW_grid.pdf")
 
 
-# Alternative if r* did not increase post COVID19
+##### Alternative if r* did not increase post COVID19
 desired_path =hlw_rstar.mean_1[end-20:259] .- hlw_rstar.mean_1[end-20]  #rstar_diff[end-16:end] # Desired path for the state variable
 # desired_path = -desired_path
 var_name =:Forward5YearRealNaturalRate
