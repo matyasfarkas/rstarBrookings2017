@@ -117,13 +117,13 @@ end
 plotstart = 114 # 1999-Q1
 horizon = size(privilege_shock_vals,1) - plotstart + 1
 using Plots
-p1 = plot(dates[plotstart:end],obs_privilege[m.observables[:obs_nominalrate],plotstart:end],title="Policy rate")
+p1 = plot(dates[plotstart:end],obs_privilege[m.observables[:obs_nominalrate],plotstart:end],color=:blue, lw=2,title="Policy rate")
 plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(dates[plotstart:end],obs_privilege[m.observables[:obs_gdpdeflator],plotstart:end],title="Inflation")
+p2 = plot(dates[plotstart:end],obs_privilege[m.observables[:obs_gdpdeflator],plotstart:end],color=:blue, lw=2,title="Inflation")
 plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(dates[plotstart:end],states_privilege[m.endogenous_states[:y_t],plotstart:end],title="Output")#
+p3 = plot(dates[plotstart:end],states_privilege[m.endogenous_states[:y_t],plotstart:end],color=:blue, lw=2 , title="Output")#
 plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(dates[plotstart:end],pseudo_privilege[m.pseudo_observables[:Forward5YearRealNaturalRate],plotstart:end],title="r* (Forward 5-year real natural rate)")#
+p4 = plot(dates[plotstart:end],pseudo_privilege[m.pseudo_observables[:Forward5YearRealNaturalRate],plotstart:end],color=:blue, lw=2,title="r* (Forward 5-year real natural rate)")#
 plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
 # p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate")#
 # plot!(zeros(horizon,1),lc=:black,lw=2,label="")
