@@ -153,8 +153,6 @@ savefig( "Main results/rstar_what_if_HLW.pdf")   # saves the plot from p as a .
 
 
 
-
-
 # Alternative if r* had been the HLW post COVID
 desired_path = hlw_rstar.HLW[end-20:259] .- hlw_rstar.mean[end-20:259]
 

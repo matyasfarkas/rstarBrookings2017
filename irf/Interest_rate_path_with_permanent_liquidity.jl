@@ -117,6 +117,7 @@ shock_name = :b_liqp_sh # Select MP to implement the specific path in state vari
 var_name = :obs_nominalrate # Select the targeted state variable
 var_value = -1.0  # Select the depth of the path
 peg_horizon = 6;
+desired_path = vcat(fill(var_value, peg_horizon), zeros(horizon - peg_horizon))
 
 # Setup - copied from impulse_responses.jl
     var_names, var_class =
@@ -142,15 +143,15 @@ peg_horizon = 6;
 
     # Isolate single shock
     shocks = zeros(nshocks, horizon)
-    for t = 1:peg_horizon
+    for t = 1:horizon
         if var_class == :states
-            var_value_att = var_value - obs[m.endogenous_states[var_name],t, m.exogenous_shocks[shock_name]]
+            var_value_att = desired_path[t] - obs[m.endogenous_states[var_name],t, m.exogenous_shocks[shock_name]]
             shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_state_value(var_value_att,
                                                                         var_names[var_name],
                                                                         exo[shock_name],
                                                                         system[:RRR])
         else # == :obs
-            var_value_att = var_value - obs[m.observables[var_name],t, m.exogenous_shocks[shock_name]]
+            var_value_att = desired_path[t] - obs[m.observables[var_name],t, m.exogenous_shocks[shock_name]]
             shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_obs_value(var_value_att,
                                                                         var_names[var_name],
                                                                         exo[shock_name],
