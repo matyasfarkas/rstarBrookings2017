@@ -110,7 +110,7 @@ end
 
 
 #####################
-# Standard MP shock #
+# Permanent liquidity shock #
 #####################
 
 shock_name = :b_liqp_sh # Select MP to implement the specific path in state variable 
