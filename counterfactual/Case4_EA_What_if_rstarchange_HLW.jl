@@ -17,7 +17,7 @@ m = Model1010("ss20")
 # DSGE.update!(m, params_mode)
 
 # Settings for data, paths, etc.
-m <= DSGE.Setting(:data_vintage, "161223")
+m <= DSGE.Setting(:data_vintage, "250113")
 # Settings for forecast dates
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
@@ -109,7 +109,7 @@ idx = findlast(c -> c == '\\', mypath)
 basepath = mypath[1:idx]
 
 ## Load in HLW real time estiamtes of R*
-csv_path = joinpath(basepath, "Main results", "DSGE_vs_HLW.csv")
+csv_path = joinpath(basepath, "Main results", "DSGE_vs_HLW_EA.csv")
 hlw_rstar = DataFrame(CSV.File(csv_path))
 
 valid_idx = findall(row -> !ismissing(row[:date]) && !ismissing(row[:HLW]) && !ismissing(row[:mean]), eachrow(hlw_rstar))
@@ -118,7 +118,7 @@ rstar_diff = hlw_rstar.HLW[valid_idx] .- hlw_rstar.mean[valid_idx]
 dates= hlw_rstar.date[valid_idx]
 
 ##### Alternative if r* did not increase post COVID19
-desired_path =hlw_rstar.HLW[end-20:259] .- hlw_rstar.HLW[end-20] -(hlw_rstar.mean_1[end-20:259] .- hlw_rstar.mean_1[end-20])   #rstar_diff[end-16:end] # Desired path for the state variable
+desired_path =hlw_rstar.HLW[end-20:end] .- hlw_rstar.HLW[end-20] -(hlw_rstar.mean_1[end-20:end] .- hlw_rstar.mean_1[end-20])   #rstar_diff[end-16:end] # Desired path for the state variable
 # desired_path = -desired_path
 var_name =:Forward5YearRealNaturalRate
 
@@ -153,7 +153,7 @@ plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
-savefig( "Main results/rstar_had_increased_by_HLW_alone.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( "Main results/rstar_had_increased_by_HLW_alone_EA.pdf")   # saves the plot from p as a .pdf vector graphic
 
 # === Baseline vs Counterfactual Plotting Section ===
 using CSV, DataFrames
@@ -240,8 +240,8 @@ end
 
 plt = plot(plots_arr[1], plots_arr[2], plots_arr[3], plots_arr[4], plots_arr[5], plots_arr[6], layout=(3,2), legend=false)
 plot!(plt, size=(960,540))
-savefig(plt, "Main results/compare_baseline_vs_HLW_change_grid.pdf")
 
+savefig(plt, "Main results/compare_baseline_vs_HLW_change_grid_EA.pdf")
 
 
 
@@ -304,7 +304,7 @@ end
 plt = plot(plots_ar1[1], plots_ar1[2], layout=(1,2), legend=false)
 plot!(plt, size=(960,540))
 
-savefig(plt, "Main results/compare_baseline_vs_HLW_change_only_ex_ante_realrate.pdf")
+savefig(plt, "Main results/compare_baseline_vs_HLW_change_only_ex_ante_realrate_EA.pdf")
 
 
 # --- Plot 2x1 inflation and output grid: baseline (blue) vs counterfactual (red) ---
@@ -364,9 +364,13 @@ while length(plots_arr) < 6
         push!(plots_arr, plot(title="", legend=false))
 end
 
-plt = plot(plots_arr[1], plots_arr[2],  layout=(1,2), legend=false)
+plt = plot(plots_arr[1], plots_arr[2],  layout=(2,1), legend=false)
 plot!(plt, size=(960,540))
 
-savefig(plt, "Main results/compare_baseline_vs_HLW_change_only_inflation_and_output.pdf")
+savefig(plt, "Main results/compare_baseline_vs_HLW_change_only_inflation_and_output_EA.pdf")
+
+
+
+
 
 
