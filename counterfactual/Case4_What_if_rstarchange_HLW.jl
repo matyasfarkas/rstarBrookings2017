@@ -155,6 +155,27 @@ plot!(size=(960,540))
 
 savefig( "Main results/rstar_had_increased_by_HLW_alone.pdf")   # saves the plot from p as a .pdf vector graphic
 
+
+
+# --- Save chart data to CSV ---
+using CSV, DataFrames
+
+# Prepare data for CSV
+chart_data = DataFrame(
+    date = plotdates,
+    Desired_Path = desired_path,
+    Policy_Rate = obs[m.observables[:obs_nominalrate], :],
+    Inflation = obs[m.observables[:obs_gdpdeflator], :],
+    Output = states[m.endogenous_states[:y_t], :],
+    ExAnteRealRate = pseudo[m.pseudo_observables[:ExAnteRealRate], :],
+    RealNaturalRate = pseudo[m.pseudo_observables[:RealNaturalRate], :]
+)
+
+# Save to CSV
+csv_output_path = joinpath(basepath, "Main results", "rstar_had_increased_by_HLW_alone_US_chart_data.csv")
+CSV.write(csv_output_path, chart_data)
+println("Chart data saved to: $csv_output_path")
+
 # === Baseline vs Counterfactual Plotting Section ===
 using CSV, DataFrames
 

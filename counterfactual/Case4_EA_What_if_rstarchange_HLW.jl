@@ -118,7 +118,7 @@ rstar_diff = hlw_rstar.HLW[valid_idx] .- hlw_rstar.mean[valid_idx]
 dates= hlw_rstar.date[valid_idx]
 
 ##### Alternative if r* did not increase post COVID19
-desired_path =hlw_rstar.HLW[end-20:end] .- hlw_rstar.HLW[end-20] -(hlw_rstar.mean_1[end-20:end] .- hlw_rstar.mean_1[end-20])   #rstar_diff[end-16:end] # Desired path for the state variable
+desired_path =hlw_rstar.HLW[end-16:end] .- hlw_rstar.HLW[end-16] -(hlw_rstar.mean_1[end-16:end] .- hlw_rstar.mean_1[end-16])   #rstar_diff[end-16:end] # Desired path for the state variable
 # desired_path = -desired_path
 var_name =:Forward5YearRealNaturalRate
 
@@ -155,12 +155,33 @@ plot!(size=(960,540))
 
 savefig( "Main results/rstar_had_increased_by_HLW_alone_EA.pdf")   # saves the plot from p as a .pdf vector graphic
 
+
+# --- Save chart data to CSV ---
+using CSV, DataFrames
+
+# Prepare data for CSV
+chart_data = DataFrame(
+    date = plotdates,
+    Desired_Path = desired_path,
+    Policy_Rate = obs[m.observables[:obs_nominalrate], :],
+    Inflation = obs[m.observables[:obs_gdpdeflator], :],
+    Output = states[m.endogenous_states[:y_t], :],
+    ExAnteRealRate = pseudo[m.pseudo_observables[:ExAnteRealRate], :],
+    RealNaturalRate = pseudo[m.pseudo_observables[:RealNaturalRate], :]
+)
+
+# Save to CSV
+csv_output_path = joinpath(basepath, "Main results", "rstar_had_increased_by_HLW_alone_EA_chart_data.csv")
+CSV.write(csv_output_path, chart_data)
+println("Chart data saved to: $csv_output_path")
+
+
 # === Baseline vs Counterfactual Plotting Section ===
 using CSV, DataFrames
 
 # Directory and vintage for DSGE smoothed series
-dsge_table_dir = joinpath(basepath, "dsge", "output_data", "m1010", "ss20", "forecast", "tables")
-vintage = "250825"  # Update if needed to match your DSGE output
+dsge_table_dir = joinpath(basepath, "dsge", "output_data", "m1010", "ss23", "forecast", "tables")
+vintage = "250113"  # Update if needed to match your DSGE output
 cond = "none"
 para = "mode"
 
