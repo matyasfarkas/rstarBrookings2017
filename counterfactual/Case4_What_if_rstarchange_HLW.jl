@@ -240,4 +240,68 @@ end
 
 plt = plot(plots_arr[1], plots_arr[2], plots_arr[3], plots_arr[4], plots_arr[5], plots_arr[6], layout=(3,2), legend=false)
 plot!(plt, size=(960,540))
+
 savefig(plt, "Main results/compare_baseline_vs_HLW_change_grid.pdf")
+
+
+
+# --- Plot all variables in a 3x2 grid: baseline (blue) vs counterfactual (red) ---
+using Plots
+
+titlelist = ["Ex-ante real rate"]
+plotvars = [:ExAnteRealRate]
+zeroline = zeros(length(plotdates))
+plots_ar1 = Vector{Any}(undef, 2)
+for (i, v) in enumerate(plotvars)
+
+        if !haskey(baseline_dfs, v)
+                plots_arr[i] = plot(title=string(v), legend=false) # empty plot if missing
+                continue
+        end
+        df_base = baseline_dfs[v]
+        varcol = names(df_base)[names(df_base) .!= :date][end]
+        # Filter to plotdates and ensure order matches plotdates
+        df_base_short = DataFrames.filter(row -> row.date in plotdates, df_base)
+        # If not already sorted, sort by date
+        sort!(df_base_short, :date)
+        # Get counterfactual series for this variable
+        if v == :pi_t
+                cf_series = pseudo[m.pseudo_observables[:π_t], :]
+                else
+                if v in keys(m.observables)
+                        cf_series = obs[m.observables[v], :]
+                elseif v in keys(m.endogenous_states)
+                        cf_series = states[m.endogenous_states[v], :]
+                elseif v in keys(m.pseudo_observables)
+                        cf_series = pseudo[m.pseudo_observables[v], :]
+                else
+                        @warn "Variable $(v) not found in model observables/states/pseudo-observables."
+                        plots_arr[i] = plot(title=string(v), legend=false)
+                        continue
+                end
+        end
+        cf_series[1] = 0.0 # Align first value to zero
+        cf_short = cf_series[end-length(plotdates)+1:end]
+        # Format x-ticks to show only the year
+        # Format x-ticks to show only the year (yyyy)
+        years = unique(year.(plotdates))
+        # Find the first date in plotdates for each year
+        year_tick_dates = [findfirst(d -> year(d) == y, plotdates) !== nothing ? plotdates[findfirst(d -> year(d) == y, plotdates)] : Date(string(y)*"-01-01") for y in years]
+        year_tick_labels = [string(y) for y in years]
+        xtick_tuple = (year_tick_dates, year_tick_labels)
+        # Plot: baseline (blue), counterfactual (red), zero line (black)
+        p = plot(df_base_short.date, df_base_short[!, varcol], label="DSGE Baseline", color=:blue, lw=2, xticks=xtick_tuple, ylim=(-5.5,4))
+        p1 = plot(df_base_short.date, cf_short+df_base_short[!, varcol], label="Counterfactual HLW r", color=:red, lw=2, xticks=xtick_tuple, ylim=(-5.5,4))
+        # p1 = plot(plotdates, cf_short+df_base_short[!, varcol], label="Counterfactual HLW r*", color=:red, lw=2)
+        plot!(p, plotdates, zeroline, lc=:black, lw=2, label="")
+        plot!(p1, plotdates, zeroline, lc=:black, lw=2, label="")
+        plot!(p1, legend=false)
+        plot!(p1, legend=false)
+        plots_ar1[1] = p
+        plots_ar1[2] = p1
+end
+
+plt = plot(plots_ar1[1], plots_ar1[2], layout=(1,2), legend=false)
+plot!(plt, size=(960,540))
+
+savefig(plt, "Main results/compare_baseline_vs_HLW_change_only_ex_ante_realrate.pdf")
