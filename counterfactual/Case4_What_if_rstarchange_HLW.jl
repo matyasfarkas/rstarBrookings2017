@@ -17,7 +17,7 @@ m = Model1010("ss20")
 # DSGE.update!(m, params_mode)
 
 # Settings for data, paths, etc.
-m <= DSGE.Setting(:data_vintage, "161223")
+m <= DSGE.Setting(:data_vintage, "250825")
 # Settings for forecast dates
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
@@ -104,27 +104,28 @@ end
 
 
 # DSGE.Settings for data, paths, etc.
+# DSGE.Settings for data, paths, etc.
 mypath = @__DIR__
 idx = findlast(c -> c == '\\', mypath)
 basepath = mypath[1:idx]
 
 ## Load in HLW real time estiamtes of R*
-csv_path = joinpath(basepath, "Main results", "DSGE_vs_HLW.csv")
-hlw_rstar = DataFrame(CSV.File(csv_path))
+csv_path = joinpath(basepath, "Main results","US", "Ex_post_real_rate_gaps.csv")
+US_dataset = DataFrame(CSV.File(csv_path))
 
-valid_idx = findall(row -> !ismissing(row[:date]) && !ismissing(row[:HLW]) && !ismissing(row[:mean]), eachrow(hlw_rstar))
+valid_idx = findall(row -> !ismissing(row[:date]) && !ismissing(row[:Target]), eachrow(US_dataset))
+dates= US_dataset.date[valid_idx]
 
-rstar_diff = hlw_rstar.HLW[valid_idx] .- hlw_rstar.mean[valid_idx]
-dates= hlw_rstar.date[valid_idx]
-
-##### Alternative if r* did not increase post COVID19
-desired_path =hlw_rstar.HLW[end-20:259] .- hlw_rstar.HLW[end-20] -(hlw_rstar.mean_1[end-20:259] .- hlw_rstar.mean_1[end-20])   #rstar_diff[end-16:end] # Desired path for the state variable
+##### Alternative if realrate gap change of HLW was implemented using policy rate shocks alone
+desired_path = skipmissing(US_dataset.Target[valid_idx]) |> collect  # Desired path for the state variable
+desired_path = -desired_path
 # desired_path = -desired_path
-var_name =:Forward5YearRealNaturalRate
+var_name =:RealRateGap
 
 # hock_syms = [  :b_liqtil_sh,   :b_liqp_sh,  :b_safetil_sh,  :b_safep_sh ] # Convenience yield shocks causing the difference
 # shock_syms = [  :zp_sh ] # Convenience yield shocks causing the difference
-shock_syms = collect(Iterators.filter(k -> !startswith(String(k), "rm_sh"), keys(m.exogenous_shocks)))
+shock_syms =keys(m.exogenous_shocks)
+#  collect(Iterators.filter(k -> !startswith(String(k), "rm_sh"), keys(m.exogenous_shocks)))
 
 shock_inds = repeat(reshape([m.exogenous_shocks[shock_name] for shock_name in shock_syms], :, 1), 1, length(desired_path))
 
@@ -137,7 +138,7 @@ plotdates = Date.(dates[end-horizon+1:end], dateformat"mm/dd/yyyy")
 
 horizon = size(shocks_path, 2)
 using Plots
-p1 = plot(plotdates,desired_path,title="Change in r* since end of COVID19")
+p1 = plot(plotdates,desired_path,title="Target")
 #p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
@@ -148,7 +149,7 @@ p4 = plot(plotdates,states[m.endogenous_states[:y_t],:],title="Output")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p5 = plot(plotdates,pseudo[m.pseudo_observables[:ExAnteRealRate],:],title="Ex-ante real rate")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealNaturalRate],:],title="Real natural rate")#
+p6 = plot(plotdates,pseudo[m.pseudo_observables[:RealRateGap],:],title="Real rate gap")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))

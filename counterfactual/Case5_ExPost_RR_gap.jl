@@ -17,13 +17,13 @@ m = Model1010("ss20")
 # DSGE.update!(m, params_mode)
 
 # Settings for data, paths, etc.
-m <= DSGE.Setting(:data_vintage, "250825")
+m <= DSGE.Setting(:data_vintage, "161223")
 # Settings for forecast dates
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
- mode_file = rawpath(m, "estimate", "paramsmode.h5")
-        #mode_file = replace(mode_file, "ss20", "ss18")
-        DSGE.update!(m, h5read(mode_file, "params"))
+#  mode_file = rawpath(m, "estimate", "paramsmode.h5")
+#         #mode_file = replace(mode_file, "ss20", "ss18")
+#         DSGE.update!(m, h5read(mode_file, "params"))
 
 
 system = DSGE.compute_system(m)
@@ -113,9 +113,10 @@ dates= US_dataset.date[valid_idx]
 
 ##### Alternative if realrate gap change of HLW was implemented using policy rate shocks alone
 desired_path = skipmissing(US_dataset.Target[valid_idx]) |> collect  # Desired path for the state variable
-desired_path = -desired_path.*4
+desired_path = -desired_path
 var_name =:obs_nominalrate
 horizon = size(desired_path, 1)
+# desired_path = [1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
 shock_name =   :rm_sh # MP shock implements the real rate gap change
 # shock_syms = collect(Iterators.filter(k -> startswith(String(k), "rm_sh"), keys(m.exogenous_shocks)))
 
@@ -167,6 +168,7 @@ var_names, var_class =
     states[:, :, exo[shock_name]], obs[:, :, exo[shock_name]], pseudo[:, :, exo[shock_name]], _ = forecast(system, s_0, shocks)
     end
 
+    # states, obs, pseudo = forecast(system, s_0, shocks)
 
 # --- Step 1: Compute IRFs for each shock ---
 plotvars = [:Forward5YearRealNaturalRate,:obs_nominalrate,  :pi_t,  :y_t,:ExAnteRealRate,:RealNaturalRate] # Output, Inflation, Policy Rate, R*
@@ -176,10 +178,10 @@ using Plots
 p1 = plot(plotdates,desired_path,title="Targeted Path")
 #p1 = plot(plotdates,states[m.endogenous_states[:b_liq_t],:],title="Combined liquidity shocks")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:,exo[shock_name]],title="Policy rate")
+p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:,exo[shock_name]].*4,title="Policy rate")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 # p3 = plot(plotdates, pseudo[m.pseudo_observables[:π_t], :, shock_idx].*4,title="Inflation")
-p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:,exo[shock_name]].*4*10,title="Inflation")
+p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:,exo[shock_name]].*4,title="Inflation")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p4 = plot(plotdates,states[m.endogenous_states[:y_t],:,exo[shock_name]],title="Output")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
