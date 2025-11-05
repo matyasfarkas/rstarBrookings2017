@@ -49,7 +49,7 @@ dates= US_dataset.date[valid_idx]
 
 ##### Alternative if realrate gap change of HLW was implemented using policy rate shocks alone
 desired_path = skipmissing(US_dataset.Target[valid_idx]) |> collect  # Desired path for the state variable
-desired_path = -desired_path.*4
+desired_path = -desired_path
 var_name =:obs_nominalrate
 horizon = size(desired_path, 1)
 
@@ -114,9 +114,9 @@ p1 = plot(plotdates,desired_path,title="Targeted Path")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p2 = plot(plotdates,obs[m.observables[:obs_nominalrate],:,exo[shock_name]],title="Policy rate")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator],:,exo[shock_name]].*4,title="Inflation")
+p3 = plot(plotdates,obs[m.observables[:obs_gdpdeflator].*4,:,exo[shock_name]],title="Inflation")
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(plotdates,states[m.endogenous_states[:y_t],:,exo[shock_name]]./4,title="Output")#
+p4 = plot(plotdates,states[m.endogenous_states[:y_t],:,exo[shock_name]],title="Output")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
 p5 = plot(plotdates,pseudo[m.pseudo_observables[:ExAnteRealRate],:,exo[shock_name]],title="Ex-ante real rate")#
 plot!(plotdates,zeros(horizon,1),lc=:black,lw=2,label="")
@@ -150,7 +150,7 @@ for (i, v) in enumerate(plotvars)
         continue
     end
     cf_series[1] = 0.0 # Align first value to zero
-    cf_short = cf_series[end-length(plotdates)+1:end]
+    cf_short = cf_series[end-length(plotdates)+1:end].*4
     years = unique(year.(plotdates))
     year_tick_dates = [findfirst(d -> year(d) == y, plotdates) !== nothing ? plotdates[findfirst(d -> year(d) == y, plotdates)] : Date(string(y)*"-01-01") for y in years]
     year_tick_labels = [string(y) for y in years]
@@ -178,7 +178,7 @@ for (i, v) in enumerate(plotvars)
     elseif v in keys(m.observables)
         cf_series = obs[m.observables[v], :, shock_idx].*4
     elseif v in keys(m.endogenous_states)
-        cf_series = states[m.endogenous_states[v], :, shock_idx]./4
+        cf_series = states[m.endogenous_states[v], :, shock_idx]./2
     elseif v in keys(m.pseudo_observables)
         cf_series = pseudo[m.pseudo_observables[v], :, shock_idx]
     else

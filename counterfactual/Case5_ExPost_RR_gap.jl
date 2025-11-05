@@ -217,7 +217,7 @@ for (i, v) in enumerate(plotvars)
         continue
     end
     cf_series[1] = 0.0 # Align first value to zero
-    cf_short = cf_series[end-length(plotdates)+1:end]
+    cf_short = cf_series[end-length(plotdates)+1:end].*4
     years = unique(year.(plotdates))
     year_tick_dates = [findfirst(d -> year(d) == y, plotdates) !== nothing ? plotdates[findfirst(d -> year(d) == y, plotdates)] : Date(string(y)*"-01-01") for y in years]
     year_tick_labels = [string(y) for y in years]
@@ -243,7 +243,7 @@ for (i, v) in enumerate(plotvars)
     if v == :pi_t
         cf_series = pseudo[m.pseudo_observables[:π_t], :, shock_idx]
     elseif v in keys(m.observables)
-        cf_series = obs[m.observables[v], :, shock_idx].*4*10
+        cf_series = obs[m.observables[v], :, shock_idx].*4
     elseif v in keys(m.endogenous_states)
         cf_series = states[m.endogenous_states[v], :, shock_idx]
     elseif v in keys(m.pseudo_observables)
