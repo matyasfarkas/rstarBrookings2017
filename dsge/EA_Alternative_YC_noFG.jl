@@ -11,7 +11,7 @@ run_full_forecast  = false
 
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
-m = Model1010("ss23")
+m = Model1011("ss23")
 # This is the Euro Area estimation specification:
 # function ss23!(m::Model1010)
 #     # ss20 with altered prior for EA dataset. 
@@ -29,7 +29,7 @@ dataroot = joinpath(dirname(@__FILE__()), "input_data")
 saveroot = dirname(@__FILE__())
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
-m <= DSGE.Setting(:data_vintage, "250115")
+m <= DSGE.Setting(:data_vintage, "250116")
 m <= DSGE.Setting(:use_population_forecast, false)
 
 # mode_file = joinpath(dirname(@__FILE__()), "output_data", "m1010","ss20", "estimate","raw", "paramsmode_vint=250113.h5") #250113
@@ -85,8 +85,7 @@ forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
 compute_meansbands(m, :mode, cond_type, output_vars)
 
                 # print history means and bands tables to csv
-shockdec_vars = [:π_t, :y_t, :rm_t, :rm_tl1,:rm_tl2,:rm_tl3,:rm_tl4,:rm_tl5,:rm_tl6,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
-                :RealRateGap,:Forward5YearRateGap,:ExpectedAvg5YearRateGap,:RealNaturalRate, :Forward5YearRealNaturalRate,
+shockdec_vars = [:π_t, :y_t, :rm_t, :ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,:RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
 
