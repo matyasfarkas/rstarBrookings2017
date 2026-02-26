@@ -1,0 +1,74 @@
+\documentclass[12pt]{article}
+\usepackage{booktabs}
+\usepackage[justification=centering]{caption}
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{cellspace}
+\setlength\cellspacetoplimit{7pt}
+\setlength\cellspacebottomlimit{7pt}
+\begin{document}
+\pagestyle{empty}
+\renewcommand*\footnoterule{}\vspace*{.5cm}
+{\small
+\begin{longtable}{rrc@{\hspace{1in}}rrc}
+\caption{Posteriors}
+\label{tab:param-posteriors}
+\\ \hline
+& Mean & (p5, p95) & & Mean & (p5, p95) \\ \hline
+\endhead
+\hline \\
+\endfoot
+\multicolumn{6}{l}{\textit{Steady State}} \\[3pt]
+$100\gamma$ & 0.33 & (0.32, 0.35) & $S''$ & 5.32 & (5.26, 5.38) \\
+$\alpha$ & 0.12 & (0.12, 0.12) & $\psi$ & 0.97 & (0.96, 0.98) \\
+$100(\beta^{-1} - 1)$ & 0.19 & (0.15, 0.22) & $\delta_{gdpdef}$ & 0.09 & (0.09, 0.09) \\
+$\sigma_{c}$ & 0.56 & (0.55, 0.57) & $\bar{L}$ & -22.32 & (-27.18, -17.60) \\
+$h$ & 0.61 & (0.61, 0.62) & $\lambda_w$ & 1.50 & \scriptsize{fixed} \\
+$\nu_l$ & 1.05 & (0.99, 1.11) & $\pi_*$ & 0.50 & \scriptsize{fixed} \\
+$\delta$ & 0.03 & \scriptsize{fixed} & $g_*$ & 0.18 & \scriptsize{fixed} \\
+$\Phi_p$ & 1.00 & \scriptsize{fixed} & & & \\[3pt]
+\multicolumn{6}{l}{\textit{Nominal Rigidities}} \\[3pt]
+$\zeta_p$ & 0.99 & (0.99, 0.99) & $\iota_w$ & 0.56 & (0.51, 0.61) \\
+$\zeta_w$ & 0.62 & (0.61, 0.64) & $\epsilon_{p}$ & 10.00 & \scriptsize{fixed} \\
+$\iota_p$ & 0.40 & (0.36, 0.43) & $\epsilon_{w}$ & 10.00 & \scriptsize{fixed} \\[3pt]
+\multicolumn{6}{l}{\textit{Policy}} \\[3pt]
+$\psi_1$ & 1.82 & (1.79, 1.86) & $\rho_R$ & 0.93 & (0.93, 0.94) \\
+$\psi_2$ & 0.17 & (0.15, 0.19) & $\rho_{r^m}$ & 0.37 & (0.36, 0.38) \\
+$\psi_3$ & 0.03 & (0.02, 0.04) & & & \\[3pt]
+\multicolumn{6}{l}{\textit{Financial Frictions}} \\[3pt]
+$F(\bar{\omega})$ & 0.03 & \scriptsize{fixed} & $ln(b_{safe})$ & 0.07 & \scriptsize{fixed} \\
+$SP_*$ & 1.60 & (1.56, 1.65) & $ln(b_{liq})$ & 0.12 & \scriptsize{fixed} \\
+$\zeta_{sp,b}$ & 0.03 & (0.03, 0.03) & $\lambda_{AAA}$ & 0.00 & \scriptsize{fixed} \\
+$\gamma_*$ & 0.99 & \scriptsize{fixed} & & & \\[3pt]
+\multicolumn{6}{l}{\textit{Exogenous Processes}} \\[3pt]
+$\rho_g$ & 0.79 & (0.79, 0.79) & $\sigma_{z^p}$ & 0.41 & (0.39, 0.44) \\
+$\rho_{\mu}$ & 1.00 & (1.00, 1.00) & $\sigma_{z}$ & 0.19 & (0.18, 0.20) \\
+$\rho_{z^p}$ & 0.72 & (0.65, 0.78) & $\sigma_{b^p, liq}$ & 0.03 & (0.03, 0.03) \\
+$\rho_z$ & 0.22 & (0.12, 0.34) & $\sigma_{\tilde{b}, liq}$ & 0.09 & (0.09, 0.10) \\
+$\rho_{b^p,liq}$ & 0.99 & \scriptsize{fixed} & $\sigma_{b^p, safe}$ & 0.02 & (0.02, 0.03) \\
+$\rho_{\tilde{b},liq}$ & 0.87 & (0.85, 0.88) & $\sigma_{\tilde{b}, safe}$ & 0.31 & (0.31, 0.31) \\
+$\rho_{b^p,safe}$ & 0.99 & \scriptsize{fixed} & $\sigma_{\sigma_\omega}$ & 0.22 & (0.22, 0.23) \\
+$\rho_{\tilde{b},safe}$ & 0.84 & (0.83, 0.86) & $\sigma_{\pi_*}$ & 0.04 & (0.04, 0.04) \\
+$\rho_{\sigma_\omega}$ & 1.00 & (1.00, 1.00) & $\sigma_{\lambda_f}$ & 0.06 & (0.05, 0.06) \\
+$\rho_{\pi_*}$ & 0.99 & \scriptsize{fixed} & $\sigma_{\lambda_w}$ & 0.29 & (0.28, 0.29) \\
+$\rho_{\lambda_f}$ & 0.78 & (0.78, 0.79) & $\sigma_{r^m}$ & 0.14 & (0.13, 0.15) \\
+$\rho_{\lambda_w}$ & 0.85 & (0.85, 0.85) & $\sigma_{1,r}$ & 0.07 & (0.07, 0.07) \\
+$\eta_{\lambda_f}$ & 0.70 & (0.70, 0.70) & $\sigma_{2,r}$ & 0.06 & (0.06, 0.06) \\
+$\eta_{\lambda_w}$ & 1.00 & (1.00, 1.00) & $\sigma_{3,r}$ & 0.05 & (0.05, 0.05) \\
+$\eta_{gz}$ & 0.01 & (0.01, 0.01) & $\sigma_{4,r}$ & 0.05 & (0.05, 0.05) \\
+$\sigma_{g}$ & 1.97 & (1.92, 2.02) & $\sigma_{5,r}$ & 0.05 & (0.05, 0.05) \\
+$\sigma_{\mu}$ & 3.25 & (2.96, 3.47) & $\sigma_{6,r}$ & 0.05 & (0.05, 0.05) \\[3pt]
+\multicolumn{6}{l}{\textit{Measurement}} \\[3pt]
+$\delta_{gdpdef}$ & 0.09 & (0.09, 0.09) & $\rho_{tfp}$ & 0.09 & (0.04, 0.14) \\
+$\gamma_{gdpdef}$ & 2.46 & (2.46, 2.46) & $\sigma_{gdp}$ & 0.13 & (0.13, 0.13) \\
+$\rho_{gdp}$ & 0.15 & (0.11, 0.19) & $\sigma_{gdi}$ & 0.50 & (0.50, 0.50) \\
+$\rho_{gdi}$ & 0.36 & (0.22, 0.45) & $\sigma_{gdpdef}$ & 0.20 & (0.20, 0.20) \\
+$\varrho_{gdp}$ & 0.36 & (0.24, 0.56) & $\sigma_{pce}$ & 0.14 & (0.14, 0.14) \\
+$\rho_{gdpdef}$ & 0.14 & (0.10, 0.18) & $\sigma_{AAA}$ & 0.03 & (0.03, 0.03) \\
+$\rho_{pce}$ & 0.75 & (0.73, 0.76) & $\sigma_{BBB}$ & 0.00 & \scriptsize{fixed} \\
+$\rho_{AAA}$ & -0.00 & \scriptsize{fixed} & $\sigma_{10y}$ & 0.11 & (0.11, 0.11) \\
+$\rho_{BBB}$ & -0.00 & \scriptsize{fixed} & $\sigma_{tfp}$ & 1.97 & (1.97, 1.97) \\
+$\rho_{10y}$ & 0.95 & (0.95, 0.95) & & & \\[3pt]
+\end{longtable}}
+\end{document}

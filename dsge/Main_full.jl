@@ -26,20 +26,38 @@ m <= DSGE.Setting(:use_population_forecast, false)
 
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
-m <= DSGE.Setting(:reoptimize, true)
-m <= DSGE.Setting(:calculate_hessian, true)
+m <= DSGE.Setting(:reoptimize, false)
+m <= DSGE.Setting(:calculate_hessian, false)
 
 # Settings for forecast dates
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
 
 m <= DSGE.Setting(:forecast_block_size,  50)
+m <= DSGE.Setting(:optimization_iterations, 100,"Number of iterations the optimizer should run for")
+m <= DSGE.Setting(:n_mh_simulations, 1000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
+m <= DSGE.Setting(:mh_adaptive_accpt, false,"Whether to use adaptive acceptance rate in Metropolis-Hastings")
+m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
+m <= DSGE.Setting(:mh_c, 0.75,"Step size used for adaptive acceptance rate in Metropolis-Hastings")
+m <= DSGE.Setting(:n_mh_burn, 1,"Number of blocks to use as burn-in in Metropolis-Hastings")
+m <= DSGE.Setting(:mh_thin, 5,"Metropolis-Hastings thinning step")
+m <= DSGE.Setting(:mh_cc, 0.09,"Jump size for Metropolis-Hastings (after initialization)")
+m <= DSGE.Setting(:mh_cc0, 0.01,"Jump size for initialization of Metropolis-Hastings")
+m <= DSGE.Setting(:mh_α, 1.0,"Mixture proportion for adaptive acceptance rate in Metropolis-Hastings")
+
 nworkers = 20
 addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
 
 df = load_data(m; check_empty_columns = false)
 data = df_to_matrix(m, df)
-estimate(m, data; verbose=:high)
+if reoptimize(m)
+    estimate(m, data; verbose=:high)
+else
+ params_mode = load_draws(m, :mode)
+DSGE.update!(m, params_mode)
+DSGE.steadystate!(m)
+
+end
 
     output_vars = Vector{Symbol}(undef,0)
     do_histforecast= true
@@ -133,33 +151,33 @@ DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, 
 ## RUN
 ##########################################################################################
 
-# Run estimation
-if run_estimation
+# # Run estimation
+# if run_estimation
 
-    if reoptimize(m)
-        # Start from ss18 mode
-        mode_file = rawpath(m, "estimate", "paramsmode.h5")
-        #mode_file = replace(mode_file, "ss20", "ss18")
-        DSGE.update!(m, h5read(mode_file, "params"))
-    else
-        # Use calculated ss18 mode
-        mode_file = joinpath(dataroot, "user", "paramsmode_vint=240324.h5")
-        specify_mode!(m, mode_file)
-    end
+#     if reoptimize(m)
+#         # Start from ss18 mode
+#         mode_file = rawpath(m, "estimate", "paramsmode.h5")
+#         #mode_file = replace(mode_file, "ss20", "ss18")
+#         DSGE.update!(m, h5read(mode_file, "params"))
+#     else
+#         # Use calculated ss18 mode
+#         mode_file = joinpath(dataroot, "user", "paramsmode_vint=240324.h5")
+#         specify_mode!(m, mode_file)
+#     end
 
-    # Use calculated ss18 hessian
-    if !calculate_hessian(m)
-        hessian_file = joinpath(dataroot, "user", "hessian_vint=240324.h5")
-        specify_hessian(m, hessian_file)
-    end
-    df = DSGE.load_data(m,try_disk = false, check_empty_columns = false, summary_statistics = :none)
-    data = df_to_matrix(m, df)
-    estimate(m, data; verbose=:high)
+#     # Use calculated ss18 hessian
+#     if !calculate_hessian(m)
+#         hessian_file = joinpath(dataroot, "user", "hessian_vint=240324.h5")
+#         specify_hessian(m, hessian_file)
+#     end
+#     df = DSGE.load_data(m,try_disk = false, check_empty_columns = false, summary_statistics = :none)
+#     data = df_to_matrix(m, df)
+#     estimate(m, data; verbose=:high)
 
-    # Print tables of estimated parameter moments
-    groupings = DSGE.parameter_groupings(m)
-    moment_tables(m, groupings = groupings)
-end
+#     # Print tables of estimated parameter moments
+#     groupings = DSGE.parameter_groupings(m)
+#     moment_tables(m, groupings = groupings)
+# end
 
 # # Forecast step: produces smoothed histories and shock decompositions
 # if run_modal_forecast || run_full_forecast

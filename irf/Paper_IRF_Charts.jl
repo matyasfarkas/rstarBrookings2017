@@ -73,7 +73,7 @@ end
 # =========================
 
 path = dirname(@__FILE__)
-horizon  = 40
+horizon  = 20
 peg_horizon = 6 # Length of the peg in periods
 m = Model1010("ss20");
 
@@ -200,22 +200,39 @@ peg_horizon = 6;
 
 
 using Plots
-p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]],title="Monetary policy shock")
+y = states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]]
+x = 1:horizon
+
+# Keep only non-zero entries
+idx = [1,2,3,4,5,6]   # example horizons
+#idx = abs.(y) .> 10^-6
+
+p1 = plot(
+    x[idx],
+    y[idx],
+    seriestype = :scatter,
+    marker = :star5,
+    markersize = 6,
+    markercolor = :black,
+    title = "Unanticipated policy shocks (APR)",
+    label = ""
+)
+
+plot!(p1, x, zeros(horizon), lc=:black, lw=2, label="")
+p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]],title="Policy rate (APR)")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]],title="Policy rate")
+p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]],title="Inflation (%, yoy)")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]],title="Inflation")
+p4 = plot(1:horizon,obs[m.endogenous_states[:y_t],:, m.exogenous_shocks[:rm_sh]],title="Output (% dev from SS)")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]],title="Output")#
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate, APR)", ylims = (-0.1, 0.1))#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate)", ylims = (-0.1, 0.1))#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:rm_sh]],title="Ex-ante real rate")#
+p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:rm_sh]],title="Ex-ante real rate (APR)")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
 plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
-pdf_path = "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf"
+pdf_path = "Final Paper/Figures/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf"
 savefig(pdf_path)   # saves the plot from p as a .pdf vector graphic
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -318,7 +335,7 @@ using Plots
 
 # --- Step 1: Compute IRFs for each shock ---
 PlotT = horizon # Total IRF horizon to plot
-plotvars = [:obs_gdp, :obs_gdpdeflator, :obs_nominalrate] # Output, Inflation, Policy Rate
+plotvars = [:y_t, :obs_gdpdeflator, :obs_nominalrate] # Output, Inflation, Policy Rate
 shock_syms = [:rm_sh, :rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6] # MP + 1-6 FG shocks
 
 nvars = length(plotvars)
@@ -381,7 +398,7 @@ for i = 1:nvars
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-pdf_path = "irf/FG_6horizon_policy_rate_output_inflation.pdf"
+pdf_path = "FG_6horizon_policy_rate_output_inflation.pdf"
 savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -403,7 +420,7 @@ pw = plot(1:PlotT, shk_weights_store[:, peg_horizon-1], lw=2, label="Shock weigh
 xlabel!("Quarter ahead shocks")
 ylabel!("Weight")
 title!("Shock Weights for FG horizon $peg_horizon")
-pdf_path = "irf/FG_6horizon_shock_weights.pdf"
+pdf_path = "FG_6horizon_shock_weights.pdf"
 savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -421,7 +438,7 @@ export_series_xlsx(
 #########################################################################
 # Adding the other variables to plot
 #########################################################################
-
+horizon = 20
 plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :ExAnteRealRate] 
 
 titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output", "r* (Forward 5-year real natural rate)", "Ex-ante real rate"]
@@ -531,7 +548,7 @@ titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output"
 nvars = length(plotvars)
 
 
-shock_syms = [:rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6] # MP + 1-6 FG shocks
+shock_syms = [:rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6] #  1-6 FG shocks
 
 nvars = length(plotvars)
 nshocks = length(shock_syms)
@@ -583,9 +600,34 @@ end
 TT = 1:PlotT
 
 p = plot(layout=(3,2), size=(1200,800))
+
 for i = 1:nvars+1
     if i == 1
-        plot!(p[i], TT, shk_weights_store[:, peg_horizon-1], lw=2, label="")
+        # shk_weights_store[t, h] = weight on the t-th shock (MP/news shock at that timing)
+        # for the forward-guidance implementation of length FGdur = h+1 (i.e., horizon h uses 2..(h+1) shocks).
+        # Visualization: "triangular build-up" — at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
+        Tmax = 5 # min(5, PlotT)                                  # show periods 1..5
+        Hmax = min(6, size(shk_weights_store, 2))              # up to 6 horizons/columns (=> up to 6 stars)
+        alphas = collect(range(1.0, 0.15, length=Hmax))        # longer horizon => more transparent
+
+        for t in Tmax #1:Tmax
+            nh = Hmax #min(t + 1, Hmax)                              # t=1 -> 2 stars, ..., t=5 -> 6 stars
+            for hidx in 1:nh
+                y = shk_weights_store[t, hidx]
+                # (Optional) suppress numerical zeros:
+                # if abs(y) <= 1e-12; continue; end
+
+                plot!(p[i], [hidx], [y];
+                    seriestype = :scatter,
+                    marker = :star5,
+                    markersize = 7,
+                    markercolor = RGBA(1.0, 0.0, 0.0, alphas[hidx]),
+                    markerstrokecolor = RGBA(1.0, 0.0, 0.0, alphas[hidx]),
+                    label = ""
+                )
+            end
+        end
+
     else
         if plotvars[i-1] in keys(m.observables)
             plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
@@ -597,13 +639,15 @@ for i = 1:nvars+1
             end
         end
     end
+
     plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
     title!(p[i], titles[i])
-    ylabel!(p[i], "Percent")
+    ylabel!(p[i], "%, apr")
     xlabel!(p[i], "Quarter")
 end
+
 plot!(p)
-pdf_path = "irf/FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN.pdf"
+pdf_path = "FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN_w_stars.pdf"
 savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -623,6 +667,107 @@ export_series_xlsx(
 )
 # ================================================
 
+
+# --- Step 3: Plot results (STACKED BARS in shades of red) ---
+using Colors
+
+TT = 1:PlotT
+p  = plot(layout=(3,2), size=(1200,800))
+
+for i = 1:nvars+1
+    if i == 1
+        # shk_weights_store[t, h] = weight on shock at timing t
+        # implied by an FG implementation of length FGdur = h+1
+        # (h=1 uses 2 shocks, ..., h=5 uses 6 shocks).
+        # Visualization: triangular build-up — at t=1 stack 2 horizons, ..., at t=5 stack 6.
+
+        Tmax = min(5, PlotT)
+        Hmax = min(6, size(shk_weights_store, 2))
+
+        # Build triangular matrix
+        Wtri = zeros(Tmax, Hmax)
+        for t in 1:Tmax
+            nh = min(t + 1, Hmax)
+            for h in 1:nh
+                Wtri[t, h] = shk_weights_store[t, h]
+            end
+        end
+
+        # Shades of red: darker for short horizons, lighter for long horizons
+        red_shades = [RGBA(0.8, 0.0, 0.0, a) for a in range(1.0, 0.25, length=Hmax)]
+
+        bar!(p[i], 1:Tmax, Wtri;
+            bar_position = :stack,
+            color = red_shades,
+            label = ""
+        )
+
+        plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
+
+    else
+        if plotvars[i-1] in keys(m.observables)
+            plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+        elseif plotvars[i-1] in keys(m.pseudo_observables)
+            if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
+            else
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            end
+        end
+        plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
+    end
+
+    title!(p[i], titles[i])
+    ylabel!(p[i], "Percent")
+    xlabel!(p[i], "Quarter")
+end
+
+plot!(p)
+pdf_path = "FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN_with_stacked_bars.pdf"
+savefig(pdf_path)
+
+# --- Step 3: Plot results (HEATMAP for combined shocks) ---
+TT = 1:PlotT
+p  = plot(layout=(3,2), size=(1200,800))
+
+for i = 1:nvars+1
+    if i == 1
+        # shk_weights_store[t, h] = shock weight at timing t for FG length FGdur=h+1 (h=1 uses 2 shocks, ..., h=5 uses 6).
+        # Heatmap highlights the triangular structure of weights across (t,h).
+        Tmax = min(6, PlotT)
+        Hmax = min(6, size(shk_weights_store, 2))
+
+        W = shk_weights_store[1:Tmax, 1:Hmax]
+
+        # x-axis = horizon index h, y-axis = shock timing t
+        heatmap!(p[i], 1:Hmax, 1:Tmax, W;
+            xlabel = "FG horizon index (h)",
+            ylabel = "Shock timing (t)",
+            colorbar = true
+        )
+        plot!(p[i], [1, Hmax], [0, 0], lc=:black, lw=0, label="")  # no-op (keeps consistency)
+
+    else
+        if plotvars[i-1] in keys(m.observables)
+            plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+        elseif plotvars[i-1] in keys(m.pseudo_observables)
+            if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
+            else
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            end
+        end
+        plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
+    end
+
+    title!(p[i], titles[i])
+    ylabel!(p[i], "Percent")
+    xlabel!(p[i], "Quarter")
+end
+
+plot!(p)
+pdf_path = "FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN_heatmap.pdf"
+savefig(pdf_path)
 
 # (Your remaining commented-out blocks and OLD CODE remain unchanged below.)
 #  OLD CODE

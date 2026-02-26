@@ -11,7 +11,7 @@ run_full_forecast  = false
 
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
-m = Model1011("ss23")
+m = Model1010("ss24")
 # This is the Euro Area estimation specification:
 # function ss23!(m::Model1010)
 #     # ss20 with altered prior for EA dataset. 
@@ -38,8 +38,21 @@ m <= DSGE.Setting(:use_population_forecast, false)
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
 
-m <= DSGE.Setting(:reoptimize, false)
+m <= DSGE.Setting(:reoptimize, true)
 m <= DSGE.Setting(:calculate_hessian, false)
+
+m <= DSGE.Setting(:optimization_iterations, 10,"Number of iterations the optimizer should run for")
+m <= DSGE.Setting(:n_mh_simulations, 100,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
+m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
+m <= DSGE.Setting(:mh_adaptive_accpt, false,"Whether to use adaptive acceptance rate in Metropolis-Hastings")
+m <= DSGE.Setting(:mh_c, 0.75,"Step size used for adaptive acceptance rate in Metropolis-Hastings")
+m <= DSGE.Setting(:n_mh_burn, 1,"Number of blocks to use as burn-in in Metropolis-Hastings")
+m <= DSGE.Setting(:mh_thin, 5,"Metropolis-Hastings thinning step")
+m <= DSGE.Setting(:mh_cc, 0.09,"Jump size for Metropolis-Hastings (after initialization)")
+m <= DSGE.Setting(:mh_cc0, 0.01,"Jump size for initialization of Metropolis-Hastings")
+m <= DSGE.Setting(:mh_α, 1.0,"Mixture proportion for adaptive acceptance rate in Metropolis-Hastings")
+
+
 m <= DSGE.Setting(:date_mainsample_start,  quartertodate("1972-Q2"))
 m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
 
@@ -48,6 +61,41 @@ m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q3"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
 
 df = load_data(m; check_empty_columns = false)
+
+
+# ##########################################################################################
+# ## RUN
+# ##########################################################################################
+
+# Run estimation
+if run_estimation
+
+    if reoptimize(m)
+        # Start from s23 mode
+        mode_file = joinpath(dataroot, "user", "paramsmode_vint=250115.h5")
+        #mode_file = replace(mode_file, "ss20", "ss18")
+        DSGE.update!(m, h5read(mode_file, "params"))
+    else
+        # Use calculated ss18 mode
+        mode_file = joinpath(dataroot, "user", "paramsmode_vint=250115.h5")
+        specify_mode!(m, mode_file)
+    end
+
+    # Use calculated ss18 hessian
+    if !calculate_hessian(m)
+        hessian_file = joinpath(dataroot, "user", "hessian_vint=250114.h5")
+        DSGE.specify_hessian!(m, hessian_file)
+    end
+    df = DSGE.load_data(m,try_disk = true, check_empty_columns = false, summary_statistics = :none)
+    data = df_to_matrix(m, df)
+    estimate(m, data; verbose=:low)
+
+    # Print tables of estimated parameter moments
+    groupings = DSGE.parameter_groupings(m)
+    moment_tables(m, groupings = groupings)
+end
+
+
 
     output_vars = Vector{Symbol}(undef,0)
     do_histforecast= true
@@ -79,13 +127,14 @@ usual_model_forecast(m, :mode, :none, output_vars,     forecast_string = "",    
 cond_type = :none
 forecast_string =""
 
-forecast_one(m, :mode, cond_type, output_vars; verbose = :high)
+forecast_one(m, :mode, cond_type, output_vars; verbose = :high,check_empty_columns = false)
 
 # compute means and bands
-compute_meansbands(m, :mode, cond_type, output_vars)
+compute_meansbands(m, :mode, cond_type, output_vars,check_empty_columns = false)
 
                 # print history means and bands tables to csv
-shockdec_vars = [:π_t, :y_t, :rm_t, :ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,:RealNaturalRate, :Forward5YearRealNaturalRate,
+shockdec_vars = [:π_t, :y_t, :rm_t, :rm_tl1,:rm_tl2,:rm_tl3,:rm_tl4,:rm_tl5,:rm_tl6,:ExAnteRealRate, :Forward5YearRealRate, :Forward10YearRealRate,
+                :RealRateGap,:Forward5YearRateGap,:ExpectedAvg5YearRateGap,:RealNaturalRate, :Forward5YearRealNaturalRate,
                 :Forward10YearRealNaturalRate, :Forward20YearRealNaturalRate,
                 :Forward30YearRealNaturalRate]
 
@@ -167,7 +216,7 @@ DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, 
 #     end
 #     df = DSGE.load_data(m,try_disk = true, check_empty_columns = false, summary_statistics = :none)
 #     data = df_to_matrix(m, df)
-#     estimate(m, data; verbose=:low)
+#     estimate(m, data; verbose=:high)
 
 #     # Print tables of estimated parameter moments
 #     groupings = DSGE.parameter_groupings(m)
