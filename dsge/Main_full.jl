@@ -26,7 +26,7 @@ m <= DSGE.Setting(:use_population_forecast, false)
 
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
-m <= DSGE.Setting(:reoptimize, false)
+m <= DSGE.Setting(:reoptimize, true)
 m <= DSGE.Setting(:calculate_hessian, false)
 
 # Settings for forecast dates
@@ -34,8 +34,8 @@ m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
 
 m <= DSGE.Setting(:forecast_block_size,  50)
-m <= DSGE.Setting(:optimization_iterations, 100,"Number of iterations the optimizer should run for")
-m <= DSGE.Setting(:n_mh_simulations, 1000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
+m <= DSGE.Setting(:optimization_iterations, 10,"Number of iterations the optimizer should run for")
+m <= DSGE.Setting(:n_mh_simulations, 100,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
 m <= DSGE.Setting(:mh_adaptive_accpt, false,"Whether to use adaptive acceptance rate in Metropolis-Hastings")
 m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
 m <= DSGE.Setting(:mh_c, 0.75,"Step size used for adaptive acceptance rate in Metropolis-Hastings")
@@ -50,13 +50,19 @@ addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterMana
 
 df = load_data(m; check_empty_columns = false)
 data = df_to_matrix(m, df)
-if reoptimize(m)
-    estimate(m, data; verbose=:high)
-else
- params_mode = load_draws(m, :mode)
-DSGE.update!(m, params_mode)
-DSGE.steadystate!(m)
+    if !calculate_hessian(m)
+        hessian_file = joinpath(saveroot, "output_data", "m1010", "ss20", "estimate", "raw", "hessian_vint=250825.h5")
+        DSGE.specify_hessian!(m, hessian_file)
+    end
 
+if reoptimize(m)
+    estimate(m, data; verbose=:low)
+    groupings = DSGE.parameter_groupings(m)
+    moment_tables(m, groupings = groupings)
+else
+    params_mode = load_draws(m, :mode)
+    DSGE.update!(m, params_mode)
+    DSGE.steadystate!(m)
 end
 
     output_vars = Vector{Symbol}(undef,0)
@@ -174,9 +180,9 @@ DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, 
 #     data = df_to_matrix(m, df)
 #     estimate(m, data; verbose=:high)
 
-#     # Print tables of estimated parameter moments
-#     groupings = DSGE.parameter_groupings(m)
-#     moment_tables(m, groupings = groupings)
+    # Print tables of estimated parameter moments
+    groupings = DSGE.parameter_groupings(m)
+    moment_tables(m, groupings = groupings)
 # end
 
 # # Forecast step: produces smoothed histories and shock decompositions

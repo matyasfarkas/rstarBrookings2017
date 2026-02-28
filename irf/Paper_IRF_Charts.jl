@@ -6,6 +6,7 @@ using Plots # no need for `using Plots` as that is reexported here
 # =========================
 using XLSX
 using Dates
+saveroot = dirname(@__FILE__())
 
 # Sheet name = PDF basename; return a *String* (not SubString)
 function sheet_from_pdf(pdf_path::AbstractString; maxlen::Int=31)::String
@@ -69,13 +70,21 @@ function export_series_xlsx(filepath::AbstractString,
 end
 
 # =========================
-# Your original script
+# Original script
 # =========================
 
 path = dirname(@__FILE__)
 horizon  = 20
 peg_horizon = 6 # Length of the peg in periods
 m = Model1010("ss20");
+
+
+m <= DSGE.Setting(:data_vintage, "250825")
+ params_mode = load_draws(m, :mode)
+DSGE.update!(m, params_mode)
+DSGE.steadystate!(m)
+
+
 
 var_name = :obs_nominalrate # Select the targeted state variable
 system = compute_system(m)
@@ -149,6 +158,12 @@ end
 
 m = Model1010("ss20");
 system = compute_system(m)
+
+m <= DSGE.Setting(:data_vintage, "250825")
+ params_mode = load_draws(m, :mode)
+DSGE.update!(m, params_mode)
+DSGE.steadystate!(m)
+
 shock_name = :rm_sh # Select MP to implement the specific path in state variable 
 var_name = :obs_nominalrate # Select the targeted state variable
 var_value = -1.0  # Select the depth of the path
@@ -232,7 +247,7 @@ plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
 plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
-pdf_path = "Final Paper/Figures/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf"
+pdf_path = joinpath(saveroot,"paper","Interest_rate_peg_IRF_Policy_rate_with_MP_shock.pdf")
 savefig(pdf_path)   # saves the plot from p as a .pdf vector graphic
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -272,24 +287,7 @@ p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:],title="Ex-an
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
-########################################################################
-# An ever changing shock for the end of the peg that implements the FG path #
-########################################################################
-desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
-var_name =:obs_nominalrate
-mp_ind = m.exogenous_shocks[:rm_sh]
-fg_inds = [m.exogenous_shocks[:rm_shl6],
-           m.exogenous_shocks[:rm_shl5],
-           m.exogenous_shocks[:rm_shl4],
-           m.exogenous_shocks[:rm_shl3],
-           m.exogenous_shocks[:rm_shl2],
-           m.exogenous_shocks[:rm_shl1]] # This uses FG1-FG6 shocks
-shock_inds = vcat(fg_inds,mp_ind) # Using mp and 1-6 horizon FG shocks
-shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
-print("Shocks path: ",shocks_path)
-states, obs, pseudo, _ = forecast(system, s_0, hcat(shocks_path, zeros(size(collect(m.exogenous_shocks),1), horizon-peg_horizon)))
 
-using Plots
 p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:],title="Combined monetary policy shocks")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
@@ -305,7 +303,7 @@ p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:],title="Ex-an
 plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
 plot!(size=(960,540))
 
-pdf_path = "irf/FTPL_Equilibrium_IRF_Policy_rate_with_promise_for_period.pdf"
+pdf_path = joinpath(saveroot,"paper","FTPL_Equilibrium_IRF_Policy_rate_with_promise_for_period.pdf")
 savefig(pdf_path)   # saves the plot from p as a .pdf vector graphic
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -517,7 +515,7 @@ for i = 1:nvars+1
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-pdf_path = "irf/FG_6horizon_policy_rate_output_inflation_and_rstar.pdf"
+pdf_path = joinpath(saveroot,"paper","stanadard_interest_rate_peg_with_MP_and_FG_stars.pdf")
 savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -544,7 +542,7 @@ export_series_xlsx(
 
 plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :ExAnteRealRate] 
 
-titles = ["Combined monetary policy shocks","Policy rate", "Inflation", "Output", "r* (Forward 5-year real natural rate)", "Ex-ante real rate"]
+titles = ["Anticipated policy shocks (APR)","Policy rate (APR)", "Inflation (%, yoy)", "Output (% dev from SS)", "r* (Forward 5-year real natural rate, APR)", "Ex-ante real rate (APR)"]
 nvars = length(plotvars)
 
 
@@ -613,7 +611,7 @@ for i = 1:nvars+1
         for t in Tmax #1:Tmax
             nh = Hmax #min(t + 1, Hmax)                              # t=1 -> 2 stars, ..., t=5 -> 6 stars
             for hidx in 1:nh
-                y = shk_weights_store[t, hidx]
+                y = shk_weights_store[hidx, t]
                 # (Optional) suppress numerical zeros:
                 # if abs(y) <= 1e-12; continue; end
 
@@ -621,8 +619,8 @@ for i = 1:nvars+1
                     seriestype = :scatter,
                     marker = :star5,
                     markersize = 7,
-                    markercolor = RGBA(1.0, 0.0, 0.0, alphas[hidx]),
-                    markerstrokecolor = RGBA(1.0, 0.0, 0.0, alphas[hidx]),
+                    markercolor = RGBA(1.0, 0.0, 0.0,1.0), # fully transparent red for marker color (invisible star)
+                    markerstrokecolor = RGBA(1.0, 0.0, 0.0, 1.0),
                     label = ""
                 )
             end
@@ -642,12 +640,12 @@ for i = 1:nvars+1
 
     plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
     title!(p[i], titles[i])
-    ylabel!(p[i], "%, apr")
+    ylabel!(p[i], "%")
     xlabel!(p[i], "Quarter")
 end
 
 plot!(p)
-pdf_path = "FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN_w_stars.pdf"
+pdf_path = joinpath(saveroot,"paper","interest_rate_peg_with_only_FG_stars.pdf")
 savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -778,10 +776,34 @@ savefig(pdf_path)
 
 m = Model1010("ss20");
 system = compute_system(m)
-shock_name = :rm_sh # Select MP to implement the specific path in state variable 
+
+m <= DSGE.Setting(:data_vintage, "250825")
+ params_mode = load_draws(m, :mode)
+DSGE.update!(m, params_mode)
+DSGE.steadystate!(m)
+
+#####################
+# Permanent liquidity shock #
+#####################
+
+
+mypath = @__DIR__
+idx = findlast(c -> c == '\\', mypath)
+basepath = mypath[1:idx]
+dataroot = joinpath(basepath, "dsge", "output_data")
+
+var_name = :obs_nominalrate # Select the targeted state variable
+m = Model1010("ss20");
+mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=161223.h5")
+specify_mode!(m, mode_file)
+system = compute_system(m)
+
+states_irf, obs_irf, pseudo_irf = impulse_responses(system, horizon)
+shock_name = :b_liqp_sh # Select MP to implement the specific path in state variable 
 var_name = :obs_nominalrate # Select the targeted state variable
 var_value = -1.0  # Select the depth of the path
-peg_horizon =6;
+peg_horizon = 6;
+desired_path = vcat(fill(var_value, peg_horizon), zeros(horizon - peg_horizon))
 
 # Setup - copied from impulse_responses.jl
     var_names, var_class =
@@ -807,15 +829,15 @@ peg_horizon =6;
 
     # Isolate single shock
     shocks = zeros(nshocks, horizon)
-    for t = 1:peg_horizon
+    for t = 1:horizon
         if var_class == :states
-            var_value_att = var_value - obs[m.endogenous_states[var_name],t, m.exogenous_shocks[shock_name]]
+            var_value_att = desired_path[t] - obs[m.endogenous_states[var_name],t, m.exogenous_shocks[shock_name]]
             shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_state_value(var_value_att,
                                                                         var_names[var_name],
                                                                         exo[shock_name],
                                                                         system[:RRR])
         else # == :obs
-            var_value_att = var_value - obs[m.observables[var_name],t, m.exogenous_shocks[shock_name]]
+            var_value_att = desired_path[t] - obs[m.observables[var_name],t, m.exogenous_shocks[shock_name]]
             shocks[exo[shock_name], t] = DSGE.obtain_shock_from_desired_obs_value(var_value_att,
                                                                         var_names[var_name],
                                                                         exo[shock_name],
@@ -829,38 +851,14 @@ peg_horizon =6;
 
 
 using Plots
-p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]],title="Monetary policy shock")
+p1 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh]],title="Policy rate",ylims = (-1.25, 0.75))
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]],title="Policy rate")
+p2 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_liqp_sh]],title="Inflation",ylims = (-0.5, 0.25))
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]],title="Inflation")
+p3 = plot(1:horizon,states[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]],title="Output",ylims = (-3,1))#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]],title="Output")#
+p4 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh]],title="r* (Forward 5-year real natural rate)")#
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate)", ylims = (-0.1, 0.1))#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="Real natural rate", ylims = (-0.1, 0.1))#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
-plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
+plot(p1, p2, p3, p4,layout=(2,2), legend=false)
 plot!(size=(960,540))
-
-pdf_path = "irf/FTPL_Equilibrium_IRF_Policy_rate_with_MP_shock.pdf"
-savefig(pdf_path)   # saves the plot from p as a .pdf vector graphic
-
-# ===== ADDED ONLY: export underlying plotted data (same PDF name sheet; overwrites sheet) =====
-export_series_xlsx(
-    xlsx_out,
-    sheet_from_pdf(pdf_path),
-    tgrid,
-    Dict(
-        "Monetary policy shock (rm_t)"            => vec(states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]]),
-        "Policy rate (obs_nominalrate)"          => vec(obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]]),
-        "Inflation (obs_gdpdeflator)"            => vec(obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]]),
-        "Output (obs_gdp)"                       => vec(obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]]),
-        "r* (Forward5YearRealNaturalRate)"       => vec(pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]]),
-        "Real natural rate (RealNaturalRate)"    => vec(pseudo[m.pseudo_observables[:RealNaturalRate],:, m.exogenous_shocks[:rm_sh]]),
-        "Zero line"                              => zeros(horizon),
-    )
-)
-# ================================================

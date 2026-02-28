@@ -42,7 +42,7 @@ m <= DSGE.Setting(:reoptimize, true)
 m <= DSGE.Setting(:calculate_hessian, false)
 
 m <= DSGE.Setting(:optimization_iterations, 10,"Number of iterations the optimizer should run for")
-m <= DSGE.Setting(:n_mh_simulations, 1000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
+m <= DSGE.Setting(:n_mh_simulations, 100,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
 m <= DSGE.Setting(:mh_adaptive_accpt, false,"Whether to use adaptive acceptance rate in Metropolis-Hastings")
 m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
 m <= DSGE.Setting(:mh_c, 0.75,"Step size used for adaptive acceptance rate in Metropolis-Hastings")

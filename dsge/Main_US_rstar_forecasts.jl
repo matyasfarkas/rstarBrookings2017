@@ -53,7 +53,7 @@ var_idx = m.pseudo_observables[outvar]
 
 mnc = m
 
-for i_year in 2001:2025
+for i_year in 2020:2025
     for i_quarter in 1:4
         
         # Timing & Slicing
@@ -123,7 +123,7 @@ for i_year in 2001:2025
 end
 
 # --- 5. FINAL EXPORT ---
-output_path = joinpath(saveroot, "rstar_pseudo_realtime_results.csv")
+output_path = joinpath(saveroot,"Final Paper","Figures","Data", "rstar_pseudo_realtime_results.csv")
 CSV.write(output_path, master_df)
 println("Process complete. File saved to $output_path")
 
@@ -181,7 +181,7 @@ vspan!(p, [Dates.value(Date(2020, 1, 1)), Dates.value(Date(2020, 6, 30))],
 
 
 # 9. Save and Display
-savefig(joinpath(saveroot, "US_rstar_final_chart.png"))
+savefig(joinpath(saveroot,"Final Paper","Figures", "US_rstar_final_chart.png"))
 display(p)
 
 
@@ -254,5 +254,5 @@ xlims!(p_starfish, (Dates.value(zoom_start), Dates.value(zoom_end)))
 xticks!(p_starfish, (Dates.value.(tick_dates), tick_labels), xrotation = 45)
 
 # 8. Save
-savefig(joinpath(saveroot, "US_rstar_starfish_chart_wFG.png"))
+savefig(joinpath(saveroot,"Final Paper","Figures","US_rstar_starfish_chart_wFG.png"))
 display(p_starfish)
