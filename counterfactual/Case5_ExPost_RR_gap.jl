@@ -17,7 +17,7 @@ m = Model1010("ss20")
 # DSGE.update!(m, params_mode)
 
 # Settings for data, paths, etc.
-m <= DSGE.Setting(:data_vintage, "161223")
+m <= DSGE.Setting(:data_vintage, "250825")
 # Settings for forecast dates
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))

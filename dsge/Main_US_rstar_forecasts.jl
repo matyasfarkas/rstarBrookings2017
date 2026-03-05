@@ -53,7 +53,7 @@ var_idx = m.pseudo_observables[outvar]
 
 mnc = m
 
-for i_year in 2020:2025
+for i_year in 2021:2025
     for i_quarter in 1:4
         
         # Timing & Slicing
@@ -172,8 +172,8 @@ xlims!(p, (Dates.value(zoom_start), Dates.value(zoom_end)))
 xticks!(p, (Dates.value.(tick_dates), tick_labels), xrotation = 45)
 
 # 8. Add Recession Shading
-vspan!(p, [Dates.value(Date(2007, 12, 1)), Dates.value(Date(2009, 6, 30))], 
-       color=:gray, alpha=0.2, label="")
+# vspan!(p, [Dates.value(Date(2007, 12, 1)), Dates.value(Date(2009, 6, 30))], 
+#        color=:gray, alpha=0.2, label="")
 vspan!(p, [Dates.value(Date(2020, 1, 1)), Dates.value(Date(2020, 6, 30))], 
        color=:gray, alpha=0.2, label="")
 # vspan!(p, [Dates.value(Date(2025,1, 1)), Dates.value(Date(2026, 12, 31))], 
@@ -181,7 +181,7 @@ vspan!(p, [Dates.value(Date(2020, 1, 1)), Dates.value(Date(2020, 6, 30))],
 
 
 # 9. Save and Display
-savefig(joinpath(saveroot,"Final Paper","Figures", "US_rstar_final_chart.png"))
+savefig(joinpath(saveroot,"Final Paper","Figures", "US_rstar_final_chart_long_sample.png"))
 display(p)
 
 
@@ -254,5 +254,5 @@ xlims!(p_starfish, (Dates.value(zoom_start), Dates.value(zoom_end)))
 xticks!(p_starfish, (Dates.value.(tick_dates), tick_labels), xrotation = 45)
 
 # 8. Save
-savefig(joinpath(saveroot,"Final Paper","Figures","US_rstar_starfish_chart_wFG.png"))
+savefig(joinpath(saveroot,"Final Paper","Figures","US_rstar_starfish_chart_wFG_long_sample.png"))
 display(p_starfish)

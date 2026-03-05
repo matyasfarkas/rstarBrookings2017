@@ -11,54 +11,87 @@ saveroot = joinpath(basepath, "dsge")
 horizon  = 40
 
 
-
 # Standard model
-m = Model1010("ss20");
 
 m10 = Model1010("ss20");
-mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=161223.h5")
+mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=250825.h5")
 specify_mode!(m10, mode_file)
 system10 = compute_system(m10)
 states_irf10, obs_irf10, pseudo_irf10 = impulse_responses(system10, horizon)
 
 
 # EA model
-m11 = Model1010("ss20");
+m11 = Model1010("ss24");
 use_FG_in_EA = true
 if use_FG_in_EA
-mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=250113.h5")
+mode_file = joinpath(dataroot, "m1010","ss24","estimate","raw", "paramsmode_vint=250115.h5")
 else
-mode_file =joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=250114.h5")
+mode_file =joinpath(dataroot, "m1010","ss24","estimate","raw", "paramsmode_vint=250116.h5")
 end
 specify_mode!(m11, mode_file)
 system11 = DSGE.compute_system(m11)
 states_irf11, obs_irf11, pseudo_irf11 = impulse_responses(system11, horizon)
 
+saveroot = dirname(@__FILE__())
+
+
+
+p1 = plot(1:horizon,[states_irf10[m10.endogenous_states[:y_t],:, m10.exogenous_shocks[:b_liqp_sh]],states_irf11[m11.endogenous_states[:y_t],:, m11.exogenous_shocks[:b_liqp_sh]]],title="Output", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p2 = plot(1:horizon,[obs_irf10[m10.observables[:obs_gdpdeflator],:, m10.exogenous_shocks[:b_liqp_sh]]*4,obs_irf11[m11.observables[:obs_gdpdeflator],:, m11.exogenous_shocks[:b_liqp_sh]]*4] ,title="Inflation", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p3 = plot(1:horizon,[ obs_irf10[m10.observables[:obs_nominalrate],:, m10.exogenous_shocks[:b_liqp_sh ]] *4, obs_irf11[m11.observables[:obs_nominalrate],:, m11.exogenous_shocks[:b_liqp_sh ]] *4] ,title="Policy rate", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p4=  plot(1:horizon,[ pseudo_irf10[m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:b_liqp_sh ]]*4, pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:b_liqp_sh ]] *4 ] ,title="r*", label=["US model" "EA model"])
+plot(p1, p2, p3, p4, layout=(2,2), legend=false)
+savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_Liquidity.pdf"))   # saves the plot from p as a .pdf vector graphic
+
+
+p1 = plot(1:horizon,[states_irf10[m10.endogenous_states[:y_t],:, m10.exogenous_shocks[:rm_sh]],states_irf11[m11.endogenous_states[:y_t],:, m11.exogenous_shocks[:rm_sh]]],title="Output", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p2 = plot(1:horizon,[obs_irf10[m10.observables[:obs_gdpdeflator],:, m10.exogenous_shocks[:rm_sh]]*4,obs_irf11[m11.observables[:obs_gdpdeflator],:, m11.exogenous_shocks[:rm_sh]]*4] ,title="Inflation", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p3 = plot(1:horizon,[ obs_irf10[m10.observables[:obs_nominalrate],:, m10.exogenous_shocks[:rm_sh ]]*4 , obs_irf11[m11.observables[:obs_nominalrate],:, m11.exogenous_shocks[:rm_sh ]]*4] ,title="Policy rate", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p4=  plot(1:horizon,[ pseudo_irf10[m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:rm_sh ]]*4, pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:rm_sh ]] ] ,title="r*", ylims = (-0.1, 0.1), label=["US model" "EA model"])
+plot(p1, p2, p3, p4, layout=(2,2), legend=false)
+savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_MP.pdf"))   # saves the plot from p as a .pdf vector graphic
+
+p1 = plot(1:horizon,[states_irf10[m10.endogenous_states[:y_t],:, m10.exogenous_shocks[:rm_shl6]],states_irf11[m11.endogenous_states[:y_t],:, m11.exogenous_shocks[:rm_shl6]]],title="Output", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p2 = plot(1:horizon,[obs_irf10[m10.observables[:obs_gdpdeflator],:, m10.exogenous_shocks[:rm_shl6]]*4,obs_irf11[m11.observables[:obs_gdpdeflator],:, m11.exogenous_shocks[:rm_shl6]]*4] ,title="Inflation", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p3 = plot(1:horizon,[ obs_irf10[m10.observables[:obs_nominalrate],:, m10.exogenous_shocks[:rm_shl6 ]] *4, obs_irf11[m11.observables[:obs_nominalrate],:, m11.exogenous_shocks[:rm_shl6 ]] *4] ,title="Policy rate", label=["US model" "EA model"])
+plot!(legend=:bottomright)
+p4=  plot(1:horizon,[ pseudo_irf10[m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:rm_shl6 ]]*4, pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:rm_shl6 ]]*4 ] ,title="r*", ylims = (-0.1, 0.1), label=["US model" "EA model"])
+plot(p1, p2, p3, p4, layout=(2,2), legend=false)
+savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_FG6.pdf"))   # saves the plot from p as a .pdf vector graphic
+
 
 
 plot(1:horizon,[pseudo_irf10[m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:b_liqp_sh]], pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:b_liqp_sh]] ],title="IRFs of r* to a permanent liquidity shock", label=["US model" "EA model"])
 plot!(legend=:bottomright)
-savefig( "irf/all/IRF_rstar_to_permanet_liquidity_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_rstar_to_permanet_liquidity_shock.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 plot(1:horizon,[pseudo_irf10[m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:b_safep_sh]],pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:b_safep_sh]]  ],title="IRFs of r*  to a permanent safety shock", label=["US model" "EA model"])
 plot!(legend=:bottomright)
-savefig( "irf/all/IRF_rstar_to_permanet_safety_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_rstar_to_permanet_safety_shock.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 plot(1:horizon,[ pseudo_irf10[ m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:zp_sh ]],pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:zp_sh]]  ],title="IRFs of r* to permanent technology shock", label=["US model" "EA model"])
 plot!(legend=:bottomright)
-savefig( "irf/all/IRF_rstar_to_permanet_technology_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_rstar_to_permanet_technology_shock.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 plot(1:horizon,[ pseudo_irf10[ m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:z_sh ]],pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:z_sh]]  ],title="IRFs of r* to transitory technology shock", label=["US model" "EA model"])
 plot!(legend=:bottomright)
-savefig( "irf/all/IRF_rstar_to_transitory_technology_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_rstar_to_transitory_technology_shock.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 plot(1:horizon,[ pseudo_irf10[ m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:μ_sh ]],pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:μ_sh]]  ],title="IRFs of r* to investment specific technology shock", label=["US model" "EA model"])
 plot!(legend=:bottomright)
-savefig( "irf/all/IRF_rstar_to_investment_specific_technology_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_rstar_to_investment_specific_technology_shock.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 plot(1:horizon,[ pseudo_irf10[ m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:σ_ω_sh ]],pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:σ_ω_sh]]  ],title="IRFs of r* to risk shock", label=["Basline model" "No FG model" "No convenience yield shocks model"])
 plot!(legend=:bottomright)
-savefig( "irf/all/IRF_rstar_to_risk_shock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_rstar_to_risk_shock.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 
 
@@ -72,7 +105,7 @@ p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_s
 plot!(legend=:bottomright)
 p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh ]] ] ,title="r*", label=["US model" ])
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
-savefig( "irf/all/IRF_output_inflation_FFR_to_Liquidity.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_Liquidity.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 
 p1 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_safep_sh]]],title="Output", label=["US model"])
@@ -83,7 +116,7 @@ p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_s
 plot!(legend=:bottomright)
 p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_safep_sh ]] ] ,title="r*", label=["US model" ])
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
-savefig( "irf/all/IRF_output_inflation_FFR_to_safety.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_safety.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 
 p1 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:zp_sh]]],title="Output", label=["US model"])
@@ -94,7 +127,7 @@ p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_s
 plot!(legend=:bottomright)
 p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:zp_sh ]] ] ,title="r*", label=["US model" ])
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
-savefig( "irf/all/IRF_output_inflation_FFR_to_permanentTFP.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf","IRF_output_inflation_FFR_to_permanentTFP.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 
 
@@ -106,7 +139,7 @@ p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_s
 plot!(legend=:bottomright)
 p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_shl6 ]] ] ,title="r*", label=["US model" ])
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
-savefig( "irf/all/IRF_output_inflation_FFR_to_FG6.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_FG6.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 p1 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:rm_sh]]],title="Output", label=["US model"])
 plot!(legend=:bottomright)
@@ -116,7 +149,7 @@ p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_s
 plot!(legend=:bottomright)
 p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh ]] ] ,title="r*", label=["US model" ], ylims=(-0.1,0.1))
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
-savefig( "irf/all/IRF_output_inflation_FFR_to_MP.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_MP.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 p1 = plot(1:horizon,[states_irf10[m.endogenous_states[:y_t],:, m.exogenous_shocks[:g_sh]]],title="Output", label=["US model"])
 plot!(legend=:bottomright)
@@ -126,7 +159,7 @@ p3 = plot(1:horizon,[ obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_s
 plot!(legend=:bottomright)
 p4=  plot(1:horizon,[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:g_sh ]] ] ,title="r*", label=["US model" ])
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
-savefig( "irf/all/IRF_output_inflation_FFR_to_Gshock.pdf")   # saves the plot from p as a .pdf vector graphic
+savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_Gshock.pdf"))   # saves the plot from p as a .pdf vector graphic
 
 # # policy rate
 # plot(1:horizon,[obs_irf10[m10.observables[:obs_nominalrate],:, m10.exogenous_shocks[:b_liqp_sh]], obs_irf11[m11.observables[:obs_nominalrate],:, m11.exogenous_shocks[:b_liqp_sh]] ],title="IRFs of the policy rate to permanent liquidity shock", label=["Basline model" "No FG model"])

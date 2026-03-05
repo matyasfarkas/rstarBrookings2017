@@ -121,7 +121,7 @@ function obtain_shocks_from_desired_state_path_iterative(x::Vector{Float64}, m::
     end
 
 
-    for t in 1:horizon
+    for t in 1:horizon-1
         
         # Compute IRF for a unit shock at time t for the specified shock
         test_shocks = zeros(nshocks, horizon)
@@ -166,7 +166,7 @@ DSGE.steadystate!(m)
 
 shock_name = :rm_sh # Select MP to implement the specific path in state variable 
 var_name = :obs_nominalrate # Select the targeted state variable
-var_value = -1.0  # Select the depth of the path
+var_value = -1.0/4  # Select the depth of the path
 peg_horizon = 6;
 
 # Setup - copied from impulse_responses.jl
@@ -215,7 +215,7 @@ peg_horizon = 6;
 
 
 using Plots
-y = states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]]
+y = shocks[m.exogenous_shocks[:rm_sh],:]
 x = 1:horizon
 
 # Keep only non-zero entries
@@ -224,25 +224,36 @@ idx = [1,2,3,4,5,6]   # example horizons
 
 p1 = plot(
     x[idx],
-    y[idx],
+    y[idx]*4,
     seriestype = :scatter,
     marker = :star5,
     markersize = 6,
     markercolor = :black,
-    title = "Unanticipated policy shocks (APR)",
+    title = "Contemporanous Policy Innovations (APR)",
     label = ""
 )
-
+    ylabel!(p1, "%")
+    xlabel!(p1, "Quarter")
 plot!(p1, x, zeros(horizon), lc=:black, lw=2, label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]],title="Policy rate (APR)")
+p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]]*4,title="Policy rate (APR)")
+    ylabel!(p2, "%")
+    xlabel!(p2, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]],title="Inflation (%, yoy)")
+p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]]*4,title="Inflation (%, yoy)")
+    ylabel!(p3, "%")
+    xlabel!(p3, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.endogenous_states[:y_t],:, m.exogenous_shocks[:rm_sh]],title="Output (% dev from SS)")#
+p4 = plot(1:horizon,states[m.endogenous_states[:y_t],:, m.exogenous_shocks[:rm_sh]],title="Output (% dev from SS)")#
+    ylabel!(p4, "%")
+    xlabel!(p4, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]],title="r* (Forward 5-year real natural rate, APR)", ylims = (-0.1, 0.1))#
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]]*4,title="r* (Forward 5-year real natural rate, APR)", ylims = (-0.1, 0.1))#
+    ylabel!(p5, "%")
+    xlabel!(p5, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:rm_sh]],title="Ex-ante real rate (APR)")#
+p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:rm_sh]]*4,title="Ex-ante real rate (APR)")#
+    ylabel!(p6, "%")
+    xlabel!(p6, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
 plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
@@ -263,62 +274,6 @@ export_series_xlsx(
         "r* (Forward5YearRealNaturalRate)"       => vec(pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]]),
         "Ex-ante real rate (ExAnteRealRate)"     => vec(pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:rm_sh]]),
         "Zero line"                              => zeros(horizon),
-    )
-)
-# ================================================
-
-desired_path = vec(var_value *ones(peg_horizon)) # Desired path for the state variable
-shock_inds = [m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh],m.exogenous_shocks[:rm_sh]] # This replicates the only MP path case
-shocks_path = obtain_shocks_from_desired_state_path_iterative(desired_path,m, var_name, shock_inds, system)
-states, obs, pseudo, _ = forecast(system, s_0, hcat(shocks_path, zeros(size(collect(m.exogenous_shocks),1), horizon-peg_horizon)))
-using Plots
-p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:],title="Combined monetary policy shocks")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:],title="Output")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)", ylims = (-0.1, 0.1))#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:],title="Ex-ante real rate", ylims = (-0.1, 0.1))#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
-plot!(size=(960,540))
-
-
-p1 = plot(1:horizon,states[m.endogenous_states[:rm_t],:],title="Combined monetary policy shocks")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:],title="Policy rate")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:],title="Inflation")
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,obs[m.observables[:obs_gdp],:],title="Output")#
-plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:],title="r* (Forward 5-year real natural rate)", ylims = (-0.1, 0.1))#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:],title="Ex-ante real rate")#
-# plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-plot(p1, p2, p3, p4,p5,p6, layout=(3,2), legend=false)
-plot!(size=(960,540))
-
-pdf_path = joinpath(saveroot,"paper","FTPL_Equilibrium_IRF_Policy_rate_with_promise_for_period.pdf")
-savefig(pdf_path)   # saves the plot from p as a .pdf vector graphic
-
-# ===== ADDED ONLY: export underlying plotted data =====
-export_series_xlsx(
-    xlsx_out,
-    sheet_from_pdf(pdf_path),
-    tgrid,
-    Dict(
-        "Combined monetary policy shocks (rm_t)" => vec(states[m.endogenous_states[:rm_t],:]),
-        "Policy rate (obs_nominalrate)"         => vec(obs[m.observables[:obs_nominalrate],:]),
-        "Inflation (obs_gdpdeflator)"           => vec(obs[m.observables[:obs_gdpdeflator],:]),
-        "Output (obs_gdp)"                      => vec(obs[m.observables[:obs_gdp],:]),
-        "r* (Forward5YearRealNaturalRate)"      => vec(pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:]),
-        "Ex-ante real rate (ExAnteRealRate)"    => vec(pseudo[m.pseudo_observables[:ExAnteRealRate],:]),
-        "Zero line"                             => zeros(horizon),
     )
 )
 # ================================================
@@ -363,7 +318,7 @@ shk_weights_store = zeros(PlotT, length(FGhorz))
 
 for (hidx, horz) in enumerate(FGhorz)
     FGdur = horz + 1 # Duration of FG in periods (Matlab uses +1)
-    FG_vec = fill(-1.0, FGdur) # Desired policy rate path
+    FG_vec = fill(-1.0, FGdur)/4 # Desired policy rate path
 
     # Build IRF matrix for policy rate
     R_mp_mat = zeros(FGdur, FGdur)
@@ -396,7 +351,7 @@ for i = 1:nvars
     xlabel!(p[i], "Quarter")
 end
 plot!(p)
-pdf_path = "FG_6horizon_policy_rate_output_inflation.pdf"
+pdf_path = joinpath(saveroot,"paper","Vanila_FG_6horizon_policy_rate_output_inflation.pdf")
 savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
@@ -406,8 +361,8 @@ export_series_xlsx(
     collect(1:PlotT),
     Dict(
         "Output"       => vec(FGplotmat[:, 1, peg_horizon-1]),
-        "Inflation"    => vec(FGplotmat[:, 2, peg_horizon-1]),
-        "Policy Rate"  => vec(FGplotmat[:, 3, peg_horizon-1]),
+        "Inflation"    => vec(FGplotmat[:, 2, peg_horizon-1]*4),
+        "Policy Rate"  => vec(FGplotmat[:, 3, peg_horizon-1]*4),
         "Zero line"    => zeros(PlotT),
     )
 )
@@ -497,10 +452,14 @@ TT = 1:PlotT
 p = plot(layout=(3,2), size=(1200,800))
 for i = 1:nvars+1
     if i == 1
-        plot!(p[i], TT, shk_weights_store[:, peg_horizon-1], lw=2, label="")
+        plot!(p[i], TT, shk_weights_store[:, peg_horizon-1]*4, lw=2, label="")
+    elseif i ==34
+        if plotvars[i-1] in keys(m.observables)
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+        end
     else
         if plotvars[i-1] in keys(m.observables)
-            plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1]*4, lw=2, label="")
         elseif plotvars[i-1] in keys(m.pseudo_observables)
             if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
                 plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
@@ -542,7 +501,7 @@ export_series_xlsx(
 
 plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :ExAnteRealRate] 
 
-titles = ["Anticipated policy shocks (APR)","Policy rate (APR)", "Inflation (%, yoy)", "Output (% dev from SS)", "r* (Forward 5-year real natural rate, APR)", "Ex-ante real rate (APR)"]
+titles = ["Anticipated Policy Innovations (APR)","Policy rate (APR)", "Inflation (%, yoy)", "Output (% dev from SS)", "r* (Forward 5-year real natural rate, APR)", "Ex-ante real rate (APR)"]
 nvars = length(plotvars)
 
 
@@ -605,7 +564,7 @@ for i = 1:nvars+1
         # for the forward-guidance implementation of length FGdur = h+1 (i.e., horizon h uses 2..(h+1) shocks).
         # Visualization: "triangular build-up" — at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
         Tmax = 5 # min(5, PlotT)                                  # show periods 1..5
-        Hmax = min(6, size(shk_weights_store, 2))              # up to 6 horizons/columns (=> up to 6 stars)
+        Hmax = 6             # up to 6 horizons/columns (=> up to 6 stars)
         alphas = collect(range(1.0, 0.15, length=Hmax))        # longer horizon => more transparent
 
         for t in Tmax #1:Tmax
@@ -615,7 +574,7 @@ for i = 1:nvars+1
                 # (Optional) suppress numerical zeros:
                 # if abs(y) <= 1e-12; continue; end
 
-                plot!(p[i], [hidx], [y];
+                plot!(p[i], [hidx+1], [y];
                     seriestype = :scatter,
                     marker = :star5,
                     markersize = 7,
@@ -666,142 +625,21 @@ export_series_xlsx(
 # ================================================
 
 
-# --- Step 3: Plot results (STACKED BARS in shades of red) ---
-using Colors
-
-TT = 1:PlotT
-p  = plot(layout=(3,2), size=(1200,800))
-
-for i = 1:nvars+1
-    if i == 1
-        # shk_weights_store[t, h] = weight on shock at timing t
-        # implied by an FG implementation of length FGdur = h+1
-        # (h=1 uses 2 shocks, ..., h=5 uses 6 shocks).
-        # Visualization: triangular build-up — at t=1 stack 2 horizons, ..., at t=5 stack 6.
-
-        Tmax = min(5, PlotT)
-        Hmax = min(6, size(shk_weights_store, 2))
-
-        # Build triangular matrix
-        Wtri = zeros(Tmax, Hmax)
-        for t in 1:Tmax
-            nh = min(t + 1, Hmax)
-            for h in 1:nh
-                Wtri[t, h] = shk_weights_store[t, h]
-            end
-        end
-
-        # Shades of red: darker for short horizons, lighter for long horizons
-        red_shades = [RGBA(0.8, 0.0, 0.0, a) for a in range(1.0, 0.25, length=Hmax)]
-
-        bar!(p[i], 1:Tmax, Wtri;
-            bar_position = :stack,
-            color = red_shades,
-            label = ""
-        )
-
-        plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
-
-    else
-        if plotvars[i-1] in keys(m.observables)
-            plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
-        elseif plotvars[i-1] in keys(m.pseudo_observables)
-            if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
-                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
-            else
-                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
-            end
-        end
-        plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
-    end
-
-    title!(p[i], titles[i])
-    ylabel!(p[i], "Percent")
-    xlabel!(p[i], "Quarter")
-end
-
-plot!(p)
-pdf_path = "FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN_with_stacked_bars.pdf"
-savefig(pdf_path)
-
-# --- Step 3: Plot results (HEATMAP for combined shocks) ---
-TT = 1:PlotT
-p  = plot(layout=(3,2), size=(1200,800))
-
-for i = 1:nvars+1
-    if i == 1
-        # shk_weights_store[t, h] = shock weight at timing t for FG length FGdur=h+1 (h=1 uses 2 shocks, ..., h=5 uses 6).
-        # Heatmap highlights the triangular structure of weights across (t,h).
-        Tmax = min(6, PlotT)
-        Hmax = min(6, size(shk_weights_store, 2))
-
-        W = shk_weights_store[1:Tmax, 1:Hmax]
-
-        # x-axis = horizon index h, y-axis = shock timing t
-        heatmap!(p[i], 1:Hmax, 1:Tmax, W;
-            xlabel = "FG horizon index (h)",
-            ylabel = "Shock timing (t)",
-            colorbar = true
-        )
-        plot!(p[i], [1, Hmax], [0, 0], lc=:black, lw=0, label="")  # no-op (keeps consistency)
-
-    else
-        if plotvars[i-1] in keys(m.observables)
-            plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
-        elseif plotvars[i-1] in keys(m.pseudo_observables)
-            if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
-                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
-            else
-                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
-            end
-        end
-        plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
-    end
-
-    title!(p[i], titles[i])
-    ylabel!(p[i], "Percent")
-    xlabel!(p[i], "Quarter")
-end
-
-plot!(p)
-pdf_path = "FG_6horizon_policy_rate_output_inflation_and_rstar_FISHERIAN_heatmap.pdf"
-savefig(pdf_path)
-
-# (Your remaining commented-out blocks and OLD CODE remain unchanged below.)
-#  OLD CODE
-
-#####################
-# Standard MP shock #
-#####################
-
-m = Model1010("ss20");
-system = compute_system(m)
-
-m <= DSGE.Setting(:data_vintage, "250825")
- params_mode = load_draws(m, :mode)
-DSGE.update!(m, params_mode)
-DSGE.steadystate!(m)
-
 #####################
 # Permanent liquidity shock #
 #####################
 
-
-mypath = @__DIR__
-idx = findlast(c -> c == '\\', mypath)
-basepath = mypath[1:idx]
-dataroot = joinpath(basepath, "dsge", "output_data")
-
-var_name = :obs_nominalrate # Select the targeted state variable
 m = Model1010("ss20");
-mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=161223.h5")
-specify_mode!(m, mode_file)
+system = compute_system(m)
+m <= DSGE.Setting(:data_vintage, "250825")
+ params_mode = load_draws(m, :mode)
+DSGE.update!(m, params_mode)
+DSGE.steadystate!(m)
 system = compute_system(m)
 
-states_irf, obs_irf, pseudo_irf = impulse_responses(system, horizon)
 shock_name = :b_liqp_sh # Select MP to implement the specific path in state variable 
 var_name = :obs_nominalrate # Select the targeted state variable
-var_value = -1.0  # Select the depth of the path
+var_value = -1.0/4  # Select the depth of the path
 peg_horizon = 6;
 desired_path = vcat(fill(var_value, peg_horizon), zeros(horizon - peg_horizon))
 
@@ -851,14 +689,66 @@ desired_path = vcat(fill(var_value, peg_horizon), zeros(horizon - peg_horizon))
 
 
 using Plots
-p1 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh]],title="Policy rate",ylims = (-1.25, 0.75))
+#y = states[m.endogenous_states[:b_liqp_t],:, m.exogenous_shocks[:b_liqp_sh]]
+y = shocks[m.exogenous_shocks[:b_liqp_sh],:]
+x = 1:horizon
+
+# Keep only non-zero entries
+idx = [1,2,3,4,5,6,7,8]   # example horizons
+#idx = abs.(y) .> 10^-6
+
+p1 = plot(
+    x[idx],
+    y[idx]*4,
+    seriestype = :scatter,
+    marker = :star5,
+    markersize = 6,
+    markercolor = :blue,
+    title = "Permanent Liquidity Innovations (APR)",
+    label = ""
+)
+    ylabel!(p1, "%")
+    xlabel!(p1, "Quarter")
+plot!(p1, x, zeros(horizon), lc=:black, lw=2, label="")
+p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh]]*4,title="Policy rate (APR)")
+    ylabel!(p2, "%")
+    xlabel!(p2, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p2 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_liqp_sh]],title="Inflation",ylims = (-0.5, 0.25))
+p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:b_liqp_sh]]*4,title="Inflation (%, yoy)")#
+    ylabel!(p3, "%")
+    xlabel!(p3, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,states[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]],title="Output",ylims = (-3,1))#
+p4 = plot(1:horizon,states[m.endogenous_states[:y_t],:, m.exogenous_shocks[:b_liqp_sh]]*4,title="Output (% dev from SS)")#
+    ylabel!(p4, "%")
+    xlabel!(p4, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p4 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh]],title="r* (Forward 5-year real natural rate)")#
+p5 = plot(1:horizon,pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh]]*4,title="r* (Forward 5-year real natural rate, APR)", ylims = (-1.1, 1.1))#
+    ylabel!(p5, "%")
+    xlabel!(p5, "Quarter")
+plot!(zeros(horizon,1),lc=:black,lw=2,label="")
+p6 = plot(1:horizon,pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:b_liqp_sh]]*4,title="Ex-ante real rate (APR)")#
+    ylabel!(p6, "%")
+    xlabel!(p6, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 
-plot(p1, p2, p3, p4,layout=(2,2), legend=false)
+plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(size=(960,540))
+pdf_path = joinpath(saveroot,"paper","IRF_rate_peg_with_permanent_liquidity_shock.pdf")
+savefig(pdf_path)   # saves the plot from p as a .pdf vector graphic
+
+# ===== ADDED ONLY: export underlying plotted data =====
+export_series_xlsx(
+    xlsx_out,
+    sheet_from_pdf(pdf_path),
+    tgrid,
+    Dict(
+        "Monetary policy shock (rm_t)"            => vec(states[m.endogenous_states[:rm_t],:, m.exogenous_shocks[:rm_sh]]),
+        "Policy rate (obs_nominalrate)"          => vec(obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:rm_sh]]),
+        "Inflation (obs_gdpdeflator)"            => vec(obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]]),
+        "Output (obs_gdp)"                       => vec(obs[m.observables[:obs_gdp],:, m.exogenous_shocks[:rm_sh]]),
+        "r* (Forward5YearRealNaturalRate)"       => vec(pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:rm_sh]]),
+        "Ex-ante real rate (ExAnteRealRate)"     => vec(pseudo[m.pseudo_observables[:ExAnteRealRate],:, m.exogenous_shocks[:rm_sh]]),
+        "Zero line"                              => zeros(horizon),
+    )
+)
+# ============================

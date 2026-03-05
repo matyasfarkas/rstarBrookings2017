@@ -84,7 +84,7 @@ var_idx = m.pseudo_observables[outvar]
 
 
 mnc = m
-for i_year in 2020:2024
+for i_year in 2021:2024
     for i_quarter in 1:4
         if i_year == 2024 && i_quarter > 3
             continue

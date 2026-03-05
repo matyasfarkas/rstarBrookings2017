@@ -7,12 +7,12 @@ using DataFrames, CSV
 ##############
 # Load the EA model with FG 
 ##############
-use_FG_in_EA  = false  # set to false to load the EA model without FG shocks
+use_FG_in_EA  = true  # set to false to load the EA model without FG shocks
 
 
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
-m = Model1010("ss20")
+m = Model1010("ss24")
 
 # DSGE.Settings for data, paths, etc.
 mypath = @__DIR__
@@ -25,9 +25,9 @@ saveroot = joinpath(basepath, "dsge")
 m <= DSGE.Setting(:dataroot, dataroot, "Input data directory path")
 m <= DSGE.Setting(:saveroot, saveroot, "Output data directory path")
 if use_FG_in_EA 
-    m <= DSGE.Setting(:data_vintage, "250113")
+    m <= DSGE.Setting(:data_vintage, "250115")
 else
-    m <= DSGE.Setting(:data_vintage, "250114")
+    m <= DSGE.Setting(:data_vintage, "250116")
 end
 m <= DSGE.Setting(:reoptimize, false)
 m <= DSGE.Setting(:calculate_hessian, false)
@@ -41,9 +41,9 @@ m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
 
 df = load_data(m; check_empty_columns = false)
 if use_FG_in_EA
-mode_file = joinpath("dsge/output_data/m1010/ss20/estimate/raw/" ,  "paramsmode_vint=250113.h5")
+mode_file = joinpath(saveroot,"output_data/m1010/ss24/estimate/raw/" ,  "paramsmode_vint=250115.h5")
 else
-mode_file = joinpath("dsge/output_data/m1010/ss20/estimate/raw/" ,  "paramsmode_vint=250114.h5")
+mode_file = joinpath(saveroot, "output_data/m1010/ss24/estimate/raw/" ,  "paramsmode_vint=250116.h5")
 end
 specify_mode!(m, mode_file)
 system = DSGE.compute_system(m)
@@ -102,7 +102,7 @@ s_0 = zeros(nstates)
 shocks = zeros(nshocks, horizon)
 
 m1 = Model1010("ss20")
-mode_file = joinpath("dsge/output_data/m1010/ss20/estimate/raw" ,  "paramsmode_vint=161223.h5")
+mode_file = joinpath(saveroot,"output_data/m1010/ss20/estimate/raw" ,  "paramsmode_vint=250825.h5")
 specify_mode!(m1, mode_file)
 system_US = DSGE.compute_system(m1)
 
@@ -132,9 +132,9 @@ plot!(dates[plotstart:end],zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,layout=(2,2), legend=false)
 plot!(size=(960,540))
 if use_FG_in_EA 
-    savefig( "Main results/Exorbitant privilege.pdf")   # saves the plot from p as a .pdf vector graphic
+    savefig( joinpath(saveroot, "Final Paper","Figures", "Exorbitant privilege.pdf") )   # saves the plot from p as a .pdf vector graphic
 else
-    savefig( "Main results/Exorbitant privilege without FG shocks in EA.pdf")   # saves the plot from p as a .pdf vector graphic
+    savefig( joinpath(saveroot, "Final Paper","Figures","Exorbitant privilege without FG shocks in EA.pdf"))   # saves the plot from p as a .pdf vector graphic
 end
 
 
@@ -149,9 +149,9 @@ df_out = DataFrame(
     Forward5YearRealNaturalRate = pseudo_privilege[m.pseudo_observables[:Forward5YearRealNaturalRate], plotstart:end]
 )
 if use_FG_in_EA
-    CSV.write("Main results/Exorbitant_privilege.csv", df_out)
+    CSV.write("Exorbitant_privilege.csv", df_out)
 else
-    CSV.write("Main results/Exorbitant_privilege_without_FG_shocks_in_EA.csv", df_out)
+    CSV.write("Exorbitant_privilege_without_FG_shocks_in_EA.csv", df_out)
 end
 
 system10 = compute_system(m)
@@ -180,5 +180,5 @@ plot!(legend=:bottomright)
 p4=  plot(1:horizon,-[ pseudo_irf10[m.pseudo_observables[:Forward5YearRealNaturalRate],:, m.exogenous_shocks[:b_liqp_sh ]]./ minimum(obs_irf10[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:b_liqp_sh ]]) ] ,title="r* (Forward 5-year real natural rate)", label=["Basline model" ])
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
 
-    savefig( "Main results/IRF_to_permanet_liquidity_shock_scaled.pdf")   # saves the plot from p as a .pdf vector graphic
+    savefig( joinpath(saveroot, "Final Paper","Figures", "IRF_to_permanet_liquidity_shock_scaled.pdf") )       # saves the plot from p as a .pdf vector graphic
 
