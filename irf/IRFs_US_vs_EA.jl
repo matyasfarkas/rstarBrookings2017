@@ -53,7 +53,7 @@ p2 = plot(1:horizon,[obs_irf10[m10.observables[:obs_gdpdeflator],:, m10.exogenou
 plot!(legend=:bottomright)
 p3 = plot(1:horizon,[ obs_irf10[m10.observables[:obs_nominalrate],:, m10.exogenous_shocks[:rm_sh ]]*4 , obs_irf11[m11.observables[:obs_nominalrate],:, m11.exogenous_shocks[:rm_sh ]]*4] ,title="Policy rate", label=["US model" "EA model"])
 plot!(legend=:bottomright)
-p4=  plot(1:horizon,[ pseudo_irf10[m10.pseudo_observables[:Forward5YearRealNaturalRate],:, m10.exogenous_shocks[:rm_sh ]]*4, pseudo_irf11[m11.pseudo_observables[:Forward5YearRealNaturalRate],:, m11.exogenous_shocks[:rm_sh ]] ] ,title="r*", ylims = (-0.1, 0.1), label=["US model" "EA model"])
+p4=  plot(1:horizon,[ pseudo_irf10[m10.pseudo_observables[:ExAnteRealRate],:, m10.exogenous_shocks[:rm_sh ]]*4, pseudo_irf11[m10.pseudo_observables[:ExAnteRealRate],:, m10.exogenous_shocks[:rm_sh ]]*4 ] ,title="Ex Ante Real Rate", label=["US model" "EA model"])
 plot(p1, p2, p3, p4, layout=(2,2), legend=false)
 savefig( joinpath(saveroot,"paper","irf", "IRF_output_inflation_FFR_to_MP.pdf"))   # saves the plot from p as a .pdf vector graphic
 

@@ -239,7 +239,7 @@ p2 = plot(1:horizon,obs[m.observables[:obs_nominalrate],:, m.exogenous_shocks[:r
     ylabel!(p2, "%")
     xlabel!(p2, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
-p3 = plot(1:horizon,obs[m.observables[:obs_gdpdeflator],:, m.exogenous_shocks[:rm_sh]]*4,title="Inflation (%, yoy)")
+p3 = plot(1:horizon,obs[m.observables[:obs_corepce],:, m.exogenous_shocks[:rm_sh]]*4,title="Inflation (%, qoq annualized)")
     ylabel!(p3, "%")
     xlabel!(p3, "Quarter")
 plot!(zeros(horizon,1),lc=:black,lw=2,label="")
@@ -623,6 +623,336 @@ export_series_xlsx(
     )
 )
 # ================================================
+
+
+
+#########################################################################
+# FG exercise Jesper and Zoltan style: "rm_sh at t=0" + peg for periods 1..h with FG shocks only (rm_shl1..rm_shlh)
+#########################################################################
+
+# --- User knobs ---
+PlotT      = horizon                  # IRF length
+
+plotvars = [:obs_nominalrate, :obs_gdpdeflator, :obs_gdp,
+            :Forward5YearRealNaturalRate, :ExAnteRealRate]
+
+titles = ["Anticipated Policy Innovations (APR)",
+          "Policy rate (APR)",
+          "Inflation (%, yoy)",
+          "Output (% dev from SS)",
+          "r* (Forward 5-year real natural rate, APR)",
+          "Ex-ante real rate (APR)"]
+
+nvars = length(plotvars)
+
+# Include contemporaneous MP shock at t=0 plus 1..6 FG (news) shocks
+shock_syms = [:rm_sh]
+nshocks = length(shock_syms)
+
+# Store IRFs: irfmat[t, var, shock]
+irfmat = zeros(PlotT, nvars, nshocks)
+
+for (j, shock_sym) in enumerate(shock_syms)
+    shocks = zeros(size(system[:RRR], 2), PlotT)
+    shocks[m.exogenous_shocks[shock_sym], 1] = 0.0
+    states, obs, pseudo, _ = forecast(system, s_0, shocks)
+
+    for (i, var_sym) in enumerate(plotvars)
+        if haskey(m.observables, var_sym)
+            irfmat[:, i, j] .= obs[m.observables[var_sym], 1:PlotT]
+        elseif haskey(m.endogenous_states, var_sym)
+            irfmat[:, i, j] .= states[m.endogenous_states[var_sym], 1:PlotT]
+        elseif haskey(m.pseudo_observables, var_sym)
+            irfmat[:, i, j] .= pseudo[m.pseudo_observables[var_sym], 1:PlotT]
+        end
+    end
+end
+
+irfmatR = irfmat # IRF of policy rate to contemporaneous MP shock (used for peg target and FG weights)
+
+plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :ExAnteRealRate] 
+
+titles = ["Anticipated Policy Innovations (APR)","Policy rate (APR)", "Inflation (%, yoy)", "Output (% dev from SS)", "r* (Forward 5-year real natural rate, APR)", "Ex-ante real rate (APR)"]
+nvars = length(plotvars)
+
+
+shock_syms = [:rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6] #  1-6 FG shocks
+
+nvars = length(plotvars)
+nshocks = length(shock_syms)
+
+# Store IRFs: irfmat[t, var, shock]
+irfmat = zeros(PlotT, nvars, nshocks)
+for (j, shock_sym) in enumerate(shock_syms)
+    shocks = zeros(size(system[:RRR], 2), PlotT)
+    shocks[m.exogenous_shocks[shock_sym], 1] = 1.0
+    states, obs, pseudo, _ = forecast(system, s_0, shocks)
+    for (i, var_sym) in enumerate(plotvars)
+        if var_sym in keys(m.observables)
+            irfmat[:, i, j] .= obs[m.observables[var_sym], 1:PlotT]
+        elseif var_sym in keys(m.endogenous_states)
+            irfmat[:, i, j] .= states[m.endogenous_states[var_sym], 1:PlotT]
+        elseif var_sym in keys(m.pseudo_observables)
+            irfmat[:, i, j] .= pseudo[m.pseudo_observables[var_sym], 1:PlotT]
+        end
+    end
+end
+
+
+# --- Step 2: Loop over FG horizons and compute weights and IRFs ---
+FGhorz = 1:(peg_horizon-1) # Try 1 to 5 horizon pegs
+FGplotmat = zeros(PlotT, nvars, length(FGhorz))
+shk_weights_store = zeros(PlotT, length(FGhorz))
+
+for (hidx, horz) in enumerate(FGhorz)
+    FGdur = horz + 1 # Duration of FG in periods (Matlab uses +1)
+    FG_vec = (fill(-1.0, FGdur)-irfmatR[1:FGdur, 1, 1]) # Desired policy rate path
+
+    # Build IRF matrix for policy rate
+    R_mp_mat = zeros(FGdur, FGdur)
+    for s = 1:FGdur
+        R_mp_mat[:, s] .= irfmat[1:FGdur, 1, s] # 3rd var is policy rate
+    end
+
+    # Solve for shock weights
+    shk_weights = R_mp_mat \ FG_vec
+    shk_weights_store[1:FGdur, hidx] .= shk_weights
+
+    # Construct total IRFs for each variable
+    for s = 1:FGdur
+        FGplotmat[:, :, hidx] .+= shk_weights[s] .* irfmat[:, :, s]
+    end
+end
+FGplotmat[:, 1, peg_horizon-1] .+= irfmatR[:, 1, 1] # Add contemporaneous MP shock back to policy rate IRF  
+
+# --- Step 3: Plot results ---
+TT = 1:PlotT
+
+p = plot(layout=(3,2), size=(1200,800))
+
+for i = 1:nvars+1
+    if i == 1
+        # shk_weights_store[t, h] = weight on the t-th shock (MP/news shock at that timing)
+        # for the forward-guidance implementation of length FGdur = h+1 (i.e., horizon h uses 2..(h+1) shocks).
+        # Visualization: "triangular build-up" — at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
+        Tmax = 5 # min(5, PlotT)                                  # show periods 1..5
+        Hmax = 6             # up to 6 horizons/columns (=> up to 6 stars)
+        alphas = collect(range(1.0, 0.15, length=Hmax))        # longer horizon => more transparent
+
+        for t in Tmax #1:Tmax
+            nh = Hmax #min(t + 1, Hmax)                              # t=1 -> 2 stars, ..., t=5 -> 6 stars
+            for hidx in 1:nh
+                y = shk_weights_store[hidx, t]
+                # (Optional) suppress numerical zeros:
+                # if abs(y) <= 1e-12; continue; end
+                if hidx == 1
+                    plot!(p[i], [hidx], [irfmatR[1, 1, 1]];
+                        seriestype = :scatter,
+                        marker = :star5,
+                        markersize = 7,
+                        markercolor = RGBA(0.0,0.0,0.0,1.0), # fully opaque red for contemporaneous shock
+                        markerstrokecolor = RGBA(0.0,0.0,0.0,1.0),
+                        label = ""
+                    )
+                end
+                plot!(p[i], [hidx+1], [y];
+                    seriestype = :scatter,
+                    marker = :star5,
+                    markersize = 7,
+                    markercolor = RGBA(1.0, 0.0, 0.0,1.0), # fully transparent red for marker color (invisible star)
+                    markerstrokecolor = RGBA(1.0, 0.0, 0.0, 1.0),
+                    label = ""
+                )
+            end
+        end
+
+    else
+        if plotvars[i-1] in keys(m.observables)
+            if i == 2 # Policy rate: add contemporaneous MP shock to FG response
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="",ylims=(-1.5, 1.5))
+            else
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            end
+        elseif plotvars[i-1] in keys(m.pseudo_observables)
+            if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
+            else
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            end
+        end
+    end
+
+    plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
+    title!(p[i], titles[i])
+    ylabel!(p[i], "%")
+    xlabel!(p[i], "Quarter")
+end
+
+plot!(p)
+
+#########################################################################
+# FG exercise Jesper and Zoltan style: "rm_sh at t=0" + peg for periods 1..h with FG shocks only (rm_shl1..rm_shlh)
+#########################################################################
+
+# --- User knobs ---
+PlotT      = horizon                  # IRF length
+
+plotvars = [:obs_nominalrate, :obs_gdpdeflator, :obs_gdp,
+            :Forward5YearRealNaturalRate, :ExAnteRealRate]
+
+titles = ["Anticipated Policy Innovations (APR)",
+          "Policy rate (APR)",
+          "Inflation (%, yoy)",
+          "Output (% dev from SS)",
+          "r* (Forward 5-year real natural rate, APR)",
+          "Ex-ante real rate (APR)"]
+
+nvars = length(plotvars)
+
+# Include contemporaneous MP shock at t=0 plus 1..6 FG (news) shocks
+shock_syms = [:rm_sh]
+nshocks = length(shock_syms)
+
+# Store IRFs: irfmat[t, var, shock]
+irfmat = zeros(PlotT, nvars, nshocks)
+
+for (j, shock_sym) in enumerate(shock_syms)
+    shocks = zeros(size(system[:RRR], 2), PlotT)
+    shocks[m.exogenous_shocks[shock_sym], 1] = -1.78
+    states, obs, pseudo, _ = forecast(system, s_0, shocks)
+
+    for (i, var_sym) in enumerate(plotvars)
+        if haskey(m.observables, var_sym)
+            irfmat[:, i, j] .= obs[m.observables[var_sym], 1:PlotT]
+        elseif haskey(m.endogenous_states, var_sym)
+            irfmat[:, i, j] .= states[m.endogenous_states[var_sym], 1:PlotT]
+        elseif haskey(m.pseudo_observables, var_sym)
+            irfmat[:, i, j] .= pseudo[m.pseudo_observables[var_sym], 1:PlotT]
+        end
+    end
+end
+
+irfmatR = irfmat # IRF of policy rate to contemporaneous MP shock (used for peg target and FG weights)
+
+plotvars = [ :obs_nominalrate,:obs_gdpdeflator,  :obs_gdp, :Forward5YearRealNaturalRate, :ExAnteRealRate] 
+
+titles = ["Anticipated Policy Innovations (APR)","Policy rate (APR)", "Inflation (%, yoy)", "Output (% dev from SS)", "r* (Forward 5-year real natural rate, APR)", "Ex-ante real rate (APR)"]
+nvars = length(plotvars)
+
+
+shock_syms = [:rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6] #  1-6 FG shocks
+
+nvars = length(plotvars)
+nshocks = length(shock_syms)
+
+# Store IRFs: irfmat[t, var, shock]
+irfmat = zeros(PlotT, nvars, nshocks)
+for (j, shock_sym) in enumerate(shock_syms)
+    shocks = zeros(size(system[:RRR], 2), PlotT)
+    shocks[m.exogenous_shocks[shock_sym], 1] = 1.0
+    states, obs, pseudo, _ = forecast(system, s_0, shocks)
+    for (i, var_sym) in enumerate(plotvars)
+        if var_sym in keys(m.observables)
+            irfmat[:, i, j] .= obs[m.observables[var_sym], 1:PlotT]
+        elseif var_sym in keys(m.endogenous_states)
+            irfmat[:, i, j] .= states[m.endogenous_states[var_sym], 1:PlotT]
+        elseif var_sym in keys(m.pseudo_observables)
+            irfmat[:, i, j] .= pseudo[m.pseudo_observables[var_sym], 1:PlotT]
+        end
+    end
+end
+
+
+# --- Step 2: Loop over FG horizons and compute weights and IRFs ---
+FGhorz = 1:(peg_horizon-1) # Try 1 to 5 horizon pegs
+FGplotmat = zeros(PlotT, nvars, length(FGhorz))
+shk_weights_store = zeros(PlotT, length(FGhorz))
+
+for (hidx, horz) in enumerate(FGhorz)
+    FGdur = horz + 1 # Duration of FG in periods (Matlab uses +1)
+    FG_vec = (fill(-1.0, FGdur)-irfmatR[1:FGdur, 1, 1]) # Desired policy rate path
+
+    # Build IRF matrix for policy rate
+    R_mp_mat = zeros(FGdur, FGdur)
+    for s = 1:FGdur
+        R_mp_mat[:, s] .= irfmat[1:FGdur, 1, s] # 3rd var is policy rate
+    end
+
+    # Solve for shock weights
+    shk_weights = R_mp_mat \ FG_vec
+    shk_weights_store[1:FGdur, hidx] .= shk_weights
+
+    # Construct total IRFs for each variable
+    for s = 1:FGdur
+        FGplotmat[:, :, hidx] .+= shk_weights[s] .* irfmat[:, :, s]
+    end
+end
+FGplotmat[:, 1, peg_horizon-1] .+= irfmatR[:, 1, 1] # Add contemporaneous MP shock back to policy rate IRF  
+
+# --- Step 3: Plot results ---
+TT = 1:PlotT
+
+p = plot(layout=(3,2), size=(1200,800))
+
+for i = 1:nvars+1
+    if i == 1
+        # shk_weights_store[t, h] = weight on the t-th shock (MP/news shock at that timing)
+        # for the forward-guidance implementation of length FGdur = h+1 (i.e., horizon h uses 2..(h+1) shocks).
+        # Visualization: "triangular build-up" — at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
+        Tmax = 5 # min(5, PlotT)                                  # show periods 1..5
+        Hmax = 6             # up to 6 horizons/columns (=> up to 6 stars)
+        alphas = collect(range(1.0, 0.15, length=Hmax))        # longer horizon => more transparent
+
+        for t in Tmax #1:Tmax
+            nh = Hmax #min(t + 1, Hmax)                              # t=1 -> 2 stars, ..., t=5 -> 6 stars
+            for hidx in 1:nh
+                y = shk_weights_store[hidx, t]
+                # (Optional) suppress numerical zeros:
+                # if abs(y) <= 1e-12; continue; end
+                if hidx == 1
+                    plot!(p[i], [hidx], [irfmatR[1, 1, 1]];
+                        seriestype = :scatter,
+                        marker = :star5,
+                        markersize = 7,
+                        markercolor = RGBA(0.0,0.0,0.0,1.0), # fully opaque red for contemporaneous shock
+                        markerstrokecolor = RGBA(0.0,0.0,0.0,1.0),
+                        label = ""
+                    )
+                end
+                plot!(p[i], [hidx+1], [y];
+                    seriestype = :scatter,
+                    marker = :star5,
+                    markersize = 7,
+                    markercolor = RGBA(1.0, 0.0, 0.0,1.0), # fully transparent red for marker color (invisible star)
+                    markerstrokecolor = RGBA(1.0, 0.0, 0.0, 1.0),
+                    label = ""
+                )
+            end
+        end
+
+    else
+        if plotvars[i-1] in keys(m.observables)
+            if i == 2 # Policy rate: add contemporaneous MP shock to FG response
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="",ylims=(-1.5, 1.5))
+            else
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            end
+        elseif plotvars[i-1] in keys(m.pseudo_observables)
+            if plotvars[i-1] == :Forward5YearRealNaturalRate || plotvars[i-1] == :RealNaturalRate
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="", ylims=(-0.1, 0.1))
+            else
+                plot!(p[i], TT, FGplotmat[:, i-1, peg_horizon-1], lw=2, label="")
+            end
+        end
+    end
+
+    plot!(p[i], TT, zeros(PlotT), lc=:black, lw=1, label="")
+    title!(p[i], titles[i])
+    ylabel!(p[i], "%")
+    xlabel!(p[i], "Quarter")
+end
+
+plot!(p)
 
 
 #####################

@@ -192,8 +192,8 @@ mkpath(paperdir)
 # Model init
 m = Model1010("ss20")
 m <= DSGE.Setting(:data_vintage, "250825")
-params_mode = load_draws(m, :mode)
-DSGE.update!(m, params_mode)
+mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=250825.h5")
+specify_mode!(m, mode_file)
 
 m <= DSGE.Setting(:date_forecast_start, quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
@@ -212,8 +212,9 @@ US = DataFrame(CSV.File(csv_path))
 valid = findall(r -> !ismissing(r[:date]) && !ismissing(r[:actual_MP_stance]), eachrow(US))
 dates_raw = US.date[valid]
 desired_path = -collect(skipmissing(US.actual_MP_stance[valid]))/4
+desired_path= [-0.5347660219210864, -0.42580683141933096, -0.2848610819447991, -0.1902461026228856, -0.13293768204673204, -0.09838621322188786, -0.0771225475192518, -0.06375336981838424, -0.05522381954465688, -0.04973500673305435, -0.046172815925899724, -0.04381636832118916, -0.04218579829272206, -0.04095821113356902, -0.03991776319380584, -0.03892372752154872, -0.037888760326541024, -0.03676344848609328, -0.03552502983049402]
 
-var_name   = :ExAnteRealRate
+var_name   = :obs_nominalrate
 shock_name = :rm_sh
 horizon    = length(desired_path)
 
@@ -234,7 +235,11 @@ shocks = obtain_shocks_from_desired_state_path_iterative(
     system
 )
 
+
 states, obs, pseudo = forecast(system, s0, shocks)
+# shockks = zeros(29, 19)
+# shockks[exo[shock_name], 1] = -1
+# states, obs, pseudo = forecast(system, s0, shockks)
 
 #------------------------------------------------------------------------------
 # Figure 1: 3x2 grid
@@ -242,14 +247,14 @@ states, obs, pseudo = forecast(system, s0, shocks)
 
 targeted   = Float64.(desired_path)
 policy     = get_series(m, states, obs, pseudo, :obs_nominalrate)
-infl_yoy   = 4 .* get_series(m, states, obs, pseudo, :obs_gdpdeflator)
+infl       = 4 .* get_series(m, states, obs, pseudo, :obs_corepce)
 output     = get_series(m, states, obs, pseudo, :y_t)
 exante_ann = get_series(m, states, obs, pseudo, :ExAnteRealRate)
 obs_gdp       = 4 .* get_series(m, states, obs, pseudo, :obs_gdp)
 
 p1 = plot_with_zero(plotdates, targeted,   title="Targeted Path")
 p2 = plot_with_zero(plotdates, policy,     title="Policy rate")
-p3 = plot_with_zero(plotdates, infl_yoy,   title="Inflation")
+p3 = plot_with_zero(plotdates, infl,   title="Inflation")
 p4 = plot_with_zero(plotdates, output,     title="Output")
 p5 = plot_with_zero(plotdates, exante_ann, title="Ex-ante real rate")
 p6 = plot_with_zero(plotdates, obs_gdp,    title="GDP growth (%, qoq annualized)")
@@ -260,7 +265,7 @@ pdf_path1 = joinpath(saveroot, "paper", "What_if_real_rate_gap_change_HLW_using_
 save_pdf_and_csv(fig1, pdf_path1, plotdates; series=OrderedDict(
     :TargetedPath                => targeted,
     :PolicyRate                  => policy,
-    :InflationYoY                => infl_yoy,
+    :Inflation                   => infl,
     :Output                      => output,
     :ExAnteRealRate_Annualized   => exante_ann,
     :obs_gdp                     => obs_gdp

@@ -221,8 +221,8 @@ m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q3"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
 
-m <= DSGE.Setting(:forecast_block_size,  1000)
-m <= DSGE.Setting(:n_mh_blocks, 10,"Number of blocks for Metropolis-Hastings")
+m <= DSGE.Setting(:forecast_block_size,  100)
+m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
 
 # Run estimation
 if run_estimation
@@ -283,12 +283,12 @@ if run_modal_forecast || run_full_forecast
     # Full-distribution forecast
     if run_full_forecast
         #my_procs = DSGE.addprocsfcn(nworkers)
-        ClusterManagers.@everywhere using DSGE
+        # ClusterManagers.@everywhere using DSGE
 
         DSGE.forecast_one(m, :full, cond_type, output_vars; verbose = :high, forecast_string = forecast_string,check_empty_columns = false)
         rstar_bands = [0.68, 0.95]
         DSGE.compute_meansbands(m, :full, cond_type, output_vars; verbose = :high, density_bands = rstar_bands,
-                           forecast_string = forecast_string)
+                           forecast_string = forecast_string, use_population_forecast = false, check_empty_columns = false)
         #rmprocs(my_procs)
 
         DSGE.meansbands_to_matrix(m, :full, cond_type, output_vars; forecast_string = forecast_string)

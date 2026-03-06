@@ -197,7 +197,7 @@ mkpath(paperdir)
 m = Model1010("ss24")
 m <= DSGE.Setting(:data_vintage, "250115")
 mode_file = joinpath(datafolder, "m1010","ss24","estimate","raw", "paramsmode_vint=250115.h5")
-DSGE.update!(m, h5read(mode_file, "params"))
+specify_mode!(m, mode_file)
 
 system = DSGE.compute_system(m)
 system = DSGE.zero_system_constants(system)
