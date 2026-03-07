@@ -5,7 +5,7 @@ using DSGE, ClusterManagers, HDF5, Plots, StatsPlots
 ##########################################################################################
 
 # What do you want to do?
-run_estimation     = true 
+run_estimation     = false 
 run_modal_forecast = true 
 run_full_forecast  = false
 
@@ -41,8 +41,8 @@ m <= DSGE.Setting(:use_population_forecast, false)
 m <= DSGE.Setting(:reoptimize, true)
 m <= DSGE.Setting(:calculate_hessian, false)
 
-m <= DSGE.Setting(:optimization_iterations, 10,"Number of iterations the optimizer should run for")
-m <= DSGE.Setting(:n_mh_simulations, 100,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
+m <= DSGE.Setting(:optimization_iterations, 100,"Number of iterations the optimizer should run for")
+m <= DSGE.Setting(:n_mh_simulations, 1000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
 m <= DSGE.Setting(:mh_adaptive_accpt, false,"Whether to use adaptive acceptance rate in Metropolis-Hastings")
 m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
 m <= DSGE.Setting(:mh_c, 0.75,"Step size used for adaptive acceptance rate in Metropolis-Hastings")
@@ -196,7 +196,7 @@ DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, 
 # ##########################################################################################
 using DSGE, ClusterManagers, HDF5, Plots, StatsPlots
 # What do you want to do?
-run_estimation     = true 
+run_estimation     = false 
 run_modal_forecast = false 
 run_full_forecast  = true
 
@@ -221,8 +221,14 @@ m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q3"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
 
+m <= DSGE.Setting(:optimization_iterations, 100,"Number of iterations the optimizer should run for")
 m <= DSGE.Setting(:forecast_block_size,  100)
+m <= DSGE.Setting(:n_mh_simulations, 1000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
+m <= DSGE.Setting(:mh_adaptive_accpt, false,"Whether to use adaptive acceptance rate in Metropolis-Hastings")
 m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
+m <= DSGE.Setting(:mh_c, 0.75,"Step size used for adaptive acceptance rate in Metropolis-Hastings")
+m <= DSGE.Setting(:n_mh_burn, 1,"Number of blocks to use as burn-in in Metropolis-Hastings")
+m <= DSGE.Setting(:mh_thin, 5,"Metropolis-Hastings thinning step")
 
 # Run estimation
 if run_estimation
@@ -240,7 +246,7 @@ if run_estimation
 
     # Use calculated hessian
     if !calculate_hessian(m)
-        hessian_file = joinpath(dataroot, "user", "hessian_vint=250114.h5")
+        hessian_file = joinpath(dataroot, "user", "hessian_vint=250115.h5")
         DSGE.specify_hessian!(m, hessian_file)
     end
     df = DSGE.load_data(m,try_disk = true, check_empty_columns = false, summary_statistics = :none)
@@ -288,7 +294,7 @@ if run_modal_forecast || run_full_forecast
         DSGE.forecast_one(m, :full, cond_type, output_vars; verbose = :high, forecast_string = forecast_string,check_empty_columns = false)
         rstar_bands = [0.68, 0.95]
         DSGE.compute_meansbands(m, :full, cond_type, output_vars; verbose = :high, density_bands = rstar_bands,
-                           forecast_string = forecast_string, use_population_forecast = false, check_empty_columns = false)
+                           forecast_string = forecast_string, check_empty_columns = false)
         #rmprocs(my_procs)
 
         DSGE.meansbands_to_matrix(m, :full, cond_type, output_vars; forecast_string = forecast_string)

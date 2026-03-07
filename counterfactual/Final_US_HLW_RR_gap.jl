@@ -184,16 +184,23 @@ end
 # Main
 #------------------------------------------------------------------------------
 
-# Save paths
-saveroot = dirname(@__FILE__)
-paperdir = joinpath(saveroot, "paper")
-mkpath(paperdir)
+
 
 # Model init
 m = Model1010("ss20")
 m <= DSGE.Setting(:data_vintage, "250825")
-mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=250825.h5")
+
+mypath = @__DIR__
+idx = findlast(c -> c == '\\', mypath)
+basepath = mypath[1:idx]
+dataroot = joinpath(basepath, "dsge", "input_data")
+saveroot = joinpath(basepath, "dsge")
+datafolder = joinpath(basepath, "dsge", "output_data")
+mode_file = joinpath(datafolder, "m1010","ss20","estimate","raw", "paramsmode_vint=250825.h5")
 specify_mode!(m, mode_file)
+
+
+
 
 m <= DSGE.Setting(:date_forecast_start, quartertodate("2024-Q4"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q4"))
@@ -212,9 +219,9 @@ US = DataFrame(CSV.File(csv_path))
 valid = findall(r -> !ismissing(r[:date]) && !ismissing(r[:actual_MP_stance]), eachrow(US))
 dates_raw = US.date[valid]
 desired_path = -collect(skipmissing(US.actual_MP_stance[valid]))/4
-desired_path= [-0.5347660219210864, -0.42580683141933096, -0.2848610819447991, -0.1902461026228856, -0.13293768204673204, -0.09838621322188786, -0.0771225475192518, -0.06375336981838424, -0.05522381954465688, -0.04973500673305435, -0.046172815925899724, -0.04381636832118916, -0.04218579829272206, -0.04095821113356902, -0.03991776319380584, -0.03892372752154872, -0.037888760326541024, -0.03676344848609328, -0.03552502983049402]
+# desired_path= [-0.5347660219210864, -0.42580683141933096, -0.2848610819447991, -0.1902461026228856, -0.13293768204673204, -0.09838621322188786, -0.0771225475192518, -0.06375336981838424, -0.05522381954465688, -0.04973500673305435, -0.046172815925899724, -0.04381636832118916, -0.04218579829272206, -0.04095821113356902, -0.03991776319380584, -0.03892372752154872, -0.037888760326541024, -0.03676344848609328, -0.03552502983049402]
 
-var_name   = :obs_nominalrate
+var_name   = :ExAnteRealRate # :obs_nominalrate, :ExAnteRealRate, :y_t
 shock_name = :rm_sh
 horizon    = length(desired_path)
 
@@ -261,7 +268,7 @@ p6 = plot_with_zero(plotdates, obs_gdp,    title="GDP growth (%, qoq annualized)
 
 fig1 = plot(p1, p2, p3, p4, p5, p6; layout=(3,2), legend=false, size=(960,540))
 
-pdf_path1 = joinpath(saveroot, "paper", "What_if_real_rate_gap_change_HLW_using_policy_rate_shock.pdf")
+pdf_path1 = joinpath(saveroot, "Final Paper","Counterfactual", "What_if_real_rate_gap_change_HLW_using_policy_rate_shock.pdf")
 save_pdf_and_csv(fig1, pdf_path1, plotdates; series=OrderedDict(
     :TargetedPath                => targeted,
     :PolicyRate                  => policy,
@@ -288,7 +295,7 @@ fig2 = plot_with_zero(
 )
 plot!(fig2; size=(960,540))
 
-pdf_path2 = joinpath(saveroot, "paper", "compare_baseline_vs_HLW_change_only_ex_ante_realrate.pdf")
+pdf_path2 = joinpath(saveroot, "Final Paper","Counterfactual", "compare_baseline_vs_HLW_change_only_ex_ante_realrate.pdf")
 save_pdf_and_csv(fig2, pdf_path2, plotdates; series=OrderedDict(
     :ExAnteRealRate_Annualized => y2
 ))
@@ -297,7 +304,7 @@ save_pdf_and_csv(fig2, pdf_path2, plotdates; series=OrderedDict(
 # Figure 3: Inflation + Output
 #------------------------------------------------------------------------------
 
-y_inf = copy(infl_yoy); y_inf[1] = 0.0
+y_inf = copy(infl); y_inf[1] = 0.0
 y_out = copy(output);   y_out[1] = 0.0
 
 p_inf = plot_with_zero(plotdates, y_inf; title="Inflation (%, yoy)", xticks=xt)
@@ -305,7 +312,7 @@ p_out = plot_with_zero(plotdates, y_out; title="Output (% dev from SS)", xticks=
 
 fig3 = plot(p_inf, p_out; layout=(1,2), legend=false, size=(960,540))
 
-pdf_path3 = joinpath(saveroot, "paper", "Paper_Compare_baseline_vs_HLW_change_only_inflation_and_output.pdf")
+pdf_path3 = joinpath(saveroot, "Final Paper","Counterfactual", "Paper_Compare_baseline_vs_HLW_change_only_inflation_and_output.pdf")
 save_pdf_and_csv(fig3, pdf_path3, plotdates; series=OrderedDict(
     :InflationYoY => y_inf,
     :Output       => y_out
