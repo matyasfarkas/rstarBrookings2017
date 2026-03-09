@@ -7,6 +7,7 @@ using Plots # no need for `using Plots` as that is reexported here
 using XLSX
 using Dates
 saveroot = dirname(@__FILE__())
+path = dirname(@__FILE__)
 
 # Sheet name = PDF basename; return a *String* (not SubString)
 function sheet_from_pdf(pdf_path::AbstractString; maxlen::Int=31)::String
@@ -291,7 +292,7 @@ export_series_xlsx(
 # using Plots
 
 # # --- Step 1: Compute IRFs for each shock ---
-# PlotT = horizon # Total IRF horizon to plot
+PlotT = horizon # Total IRF horizon to plot
 # plotvars = [:y_t, :obs_corepce, :obs_nominalrate] # Output, Inflation, Policy Rate
 # shock_syms = [:rm_sh, :rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6] # MP + 1-6 FG shocks
 
@@ -530,6 +531,8 @@ irfmat = zeros(PlotT, nvars, nshocks)
 for (j, shock_sym) in enumerate(shock_syms)
     shocks = zeros(size(system[:RRR], 2), PlotT)
     shocks[m.exogenous_shocks[shock_sym], 1] = -1 #     shocks[m.exogenous_shocks[shock_sym], 1] = -1
+    states, obs, pseudo, _ = forecast(system, s_0, shocks)
+    shocks[m.exogenous_shocks[shock_sym], 1] = 1/obs[m.observables[:obs_nominalrate], 1] # Normalize to 1 unit shock on policy rate
     states, obs, pseudo, _ = forecast(system, s_0, shocks)
     for (i, var_sym) in enumerate(plotvars)
         if haskey(m.observables, var_sym)

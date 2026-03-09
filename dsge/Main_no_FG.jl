@@ -7,7 +7,7 @@ using DSGE, ClusterManagers, HDF5, Plots, StatsPlots
 # What do you want to do?
 run_estimation     = false 
 run_modal_forecast = false 
-run_full_forecast  = true
+run_full_forecast  = false
 
 # Initialize model object
 # Note that the default for m1010 uses 6 anticipated shocks
@@ -37,8 +37,8 @@ m <= DSGE.Setting(:date_forecast_start,  quartertodate("2025-Q3"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2025-Q3"))
 
 m <= DSGE.Setting(:forecast_block_size,  1000)
-m <= DSGE.Setting(:optimization_iterations, 10,"Number of iterations the optimizer should run for")
-m <= DSGE.Setting(:n_mh_simulations, 5000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
+m <= DSGE.Setting(:optimization_iterations, 100,"Number of iterations the optimizer should run for")
+m <= DSGE.Setting(:n_mh_simulations, 1000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
 m <= DSGE.Setting(:mh_adaptive_accpt, false,"Whether to use adaptive acceptance rate in Metropolis-Hastings")
 m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
 m <= DSGE.Setting(:mh_c, 0.75,"Step size used for adaptive acceptance rate in Metropolis-Hastings")
@@ -50,15 +50,8 @@ m <= DSGE.Setting(:mh_α, 1.0,"Mixture proportion for adaptive acceptance rate i
 
 df = load_data(m; check_empty_columns = false)
 data = df_to_matrix(m, df)
-    if !calculate_hessian(m)
-        hessian_file = joinpath(saveroot, "output_data", "m1010", "ss20", "estimate", "raw", "hessian_vint=250825.h5")
-        DSGE.specify_hessian!(m, hessian_file)
-    end
-
 if reoptimize(m)
-    
     estimate(m, data; verbose=:low)
-
 else
  params_mode = load_draws(m, :mode)
 DSGE.update!(m, params_mode)
@@ -74,15 +67,16 @@ if run_estimation
         DSGE.update!(m, h5read(mode_file, "params"))
     else
         # Use calculated ss18 mode
-        mode_file = joinpath(dataroot, "user", "paramsmode_vint=240324.h5")
+        mode_file = joinpath(dataroot, "user", "paramsmode_vint=250826.h5")
         specify_mode!(m, mode_file)
     end
 
     # Use calculated ss18 hessian
     if !calculate_hessian(m)
-        hessian_file = joinpath(dataroot, "user", "hessian_vint=240324.h5")
-        specify_hessian(m, hessian_file)
+        hessian_file = joinpath(saveroot, "output_data", "m1010", "ss20", "estimate", "raw", "hessian_vint=250825.h5")
+        DSGE.specify_hessian!(m, hessian_file)
     end
+
     df = DSGE.load_data(m,try_disk = false, check_empty_columns = false, summary_statistics = :none)
     data = df_to_matrix(m, df)
     estimate(m, data; verbose=:low)

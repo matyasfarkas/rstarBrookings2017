@@ -5,7 +5,7 @@ using DSGE, ClusterManagers, HDF5, Plots, StatsPlots
 ##########################################################################################
 
 # What do you want to do?
-run_estimation     = true 
+run_estimation     = false 
 run_modal_forecast = true 
 run_full_forecast  = false
 
@@ -38,7 +38,7 @@ m <= DSGE.Setting(:use_population_forecast, false)
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
 
-m <= DSGE.Setting(:reoptimize, true)
+m <= DSGE.Setting(:reoptimize, false)
 m <= DSGE.Setting(:calculate_hessian, false)
 
 m <= DSGE.Setting(:optimization_iterations, 50,"Number of iterations the optimizer should run for")

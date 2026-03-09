@@ -196,7 +196,7 @@ DSGE.write_meansbands_tables_all(m, :mode, cond_type, [:shockdecobs, :trendobs, 
 # ##########################################################################################
 using DSGE, ClusterManagers, HDF5, Plots, StatsPlots
 # What do you want to do?
-run_estimation     = false 
+run_estimation     = true 
 run_modal_forecast = false 
 run_full_forecast  = true
 
@@ -223,9 +223,9 @@ m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
 
 m <= DSGE.Setting(:optimization_iterations, 100,"Number of iterations the optimizer should run for")
 m <= DSGE.Setting(:forecast_block_size,  100)
-m <= DSGE.Setting(:n_mh_simulations, 1000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
+m <= DSGE.Setting(:n_mh_simulations, 10000,"Number of draws saved (after thinning) per block in Metropolis-Hastings")
 m <= DSGE.Setting(:mh_adaptive_accpt, false,"Whether to use adaptive acceptance rate in Metropolis-Hastings")
-m <= DSGE.Setting(:n_mh_blocks, 2,"Number of blocks for Metropolis-Hastings")
+m <= DSGE.Setting(:n_mh_blocks, 5,"Number of blocks for Metropolis-Hastings")
 m <= DSGE.Setting(:mh_c, 0.75,"Step size used for adaptive acceptance rate in Metropolis-Hastings")
 m <= DSGE.Setting(:n_mh_burn, 1,"Number of blocks to use as burn-in in Metropolis-Hastings")
 m <= DSGE.Setting(:mh_thin, 5,"Metropolis-Hastings thinning step")
