@@ -248,7 +248,7 @@ for col in vint_cols[1:end-1]
     
     # If the anchor line doesn't exist yet for this vintage, skip it
     if tether_idx === nothing
-        continue
+        continue5
     end
     
     tether_val = anchor_vals[tether_idx]

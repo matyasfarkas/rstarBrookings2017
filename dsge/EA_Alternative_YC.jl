@@ -38,7 +38,7 @@ m <= DSGE.Setting(:use_population_forecast, false)
 # Settings for estimation
 # set to false => will load pre-computed mode and hessian before MCMC
 
-m <= DSGE.Setting(:reoptimize, true)
+m <= DSGE.Setting(:reoptimize, false)
 m <= DSGE.Setting(:calculate_hessian, false)
 
 m <= DSGE.Setting(:optimization_iterations, 100,"Number of iterations the optimizer should run for")
@@ -59,6 +59,8 @@ m <= DSGE.Setting(:date_presample_start,  quartertodate("1970-Q2"))
 # Settings for forecast dates
 m <= DSGE.Setting(:date_forecast_start,  quartertodate("2024-Q3"))
 m <= DSGE.Setting(:date_conditional_end, quartertodate("2024-Q3"))
+
+m <= DSGE.Setting(:shockdec_startdate,  quartertodate("1990-Q1"))
 
 df = load_data(m; check_empty_columns = false)
 

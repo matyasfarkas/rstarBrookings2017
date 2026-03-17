@@ -532,7 +532,11 @@ for (j, shock_sym) in enumerate(shock_syms)
     shocks = zeros(size(system[:RRR], 2), PlotT)
     shocks[m.exogenous_shocks[shock_sym], 1] = -1 #     shocks[m.exogenous_shocks[shock_sym], 1] = -1
     states, obs, pseudo, _ = forecast(system, s_0, shocks)
-    shocks[m.exogenous_shocks[shock_sym], 1] = 1/obs[m.observables[:obs_nominalrate], 1] # Normalize to 1 unit shock on policy rate
+    shocks[m.exogenous_shocks[shock_sym], 1] =  -1/0.55 #1/obs[m.observables[:obs_nominalrate], 1] #Normalize to 1 unit shock on policy rate
+    # To have no increase in output on impact, set shock to be 1/obs[m.observables[:obs_nominalrate], 1] #Normalize to 1 unit shock on policy rate
+    # To have larger output increase cosnider: mp shock to be -1/0.55
+    # To have medium output increase cosnider: mp shock to be -1/0.56
+
     states, obs, pseudo, _ = forecast(system, s_0, shocks)
     for (i, var_sym) in enumerate(plotvars)
         if haskey(m.observables, var_sym)
@@ -544,7 +548,7 @@ for (j, shock_sym) in enumerate(shock_syms)
         end
     end
 end
-
+shocksR = shocks # Store the actual shock vector used for the contemporaneous MP shock IRF (for reference and export)
 irfmatR = irfmat # IRF of policy rate to contemporaneous MP shock (used for peg target and FG weights)
 
 plotvars = [ :obs_nominalrate,:obs_corepce,  :obs_gdp, :Forward5YearRealNaturalRate, :ExAnteRealRate] 
@@ -669,7 +673,7 @@ end
 
 plot!(p)
 
-pdf_path = joinpath(saveroot,"Final Paper","figures","interest_rate_peg_with_contemporaneous_innovation_1_and_rest_FG.pdf")
+pdf_path = joinpath(saveroot,"Final Paper","figures","interest_rate_peg_with_contemporaneous_innovation_1_and_rest_FG_no_increase.pdf")
 savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====

@@ -44,6 +44,7 @@ m <= DSGE.Setting(:mh_thin, 5,"Metropolis-Hastings thinning step")
 m <= DSGE.Setting(:mh_cc, 0.09,"Jump size for Metropolis-Hastings (after initialization)")
 m <= DSGE.Setting(:mh_cc0, 0.01,"Jump size for initialization of Metropolis-Hastings")
 m <= DSGE.Setting(:mh_α, 1.0,"Mixture proportion for adaptive acceptance rate in Metropolis-Hastings")
+m <= DSGE.Setting(:shockdec_startdate,  quartertodate("1990-Q1"))
 
 nworkers = 20
 addprocsfcn = addprocs_sge # choose to work with your scheduler; see ClusterManagers.jl
