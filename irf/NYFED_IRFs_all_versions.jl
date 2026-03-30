@@ -6,9 +6,13 @@ horizon  = 80
 
 # Standard model
 m10 = Model1010("ss20");
-
+mode_file = joinpath(dataroot, "m1010","ss20","estimate","raw", "paramsmode_vint=250825.h5")
+specify_mode!(m10, mode_file)
 system10 = compute_system(m10)
 states_irf10, obs_irf10, pseudo_irf10 = impulse_responses(system10, horizon)
+
+
+
 # # No FG model
 # m11 = Model1011("ss20");
 # system11 = compute_system(m11)
