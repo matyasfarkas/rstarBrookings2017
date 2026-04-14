@@ -1,4 +1,4 @@
-using DSGE;
+﻿using DSGE;
 using Plots # no need for `using Plots` as that is reexported here
 
 # =========================
@@ -1171,8 +1171,9 @@ shared_response_titles = [
 ]
 combined_titles = vcat(["Policy Innovations (APR)"], shared_response_titles)
 perm_liq_titles = vcat(["Permanent Liquidity Innovations (APR)"], shared_response_titles)
-
-p_comb = plot(layout=(3,2), size=(1200,800), legend=false)
+shared_figure_layout = (3, 2)
+shared_figure_size = (1200, 800)
+p_comb = plot(layout=shared_figure_layout, size=shared_figure_size, legend=false)
 
 # ------------------------------------------------------------------
 # Panel 1: stars
@@ -1384,7 +1385,9 @@ end
 x0 = 0:(horizon-1)
 idx_plot = 1:7
 idx_plot_x = 0:6
-perm_liq_xticks = 0:2:10
+perm_liq_xticks = 0:2:20
+
+perm_liq_xticks_p1 = 0:2:10
 
 permanent_liquidity_inflation_path = obs[m.observables[:obs_corepce], :, m.exogenous_shocks[:b_liqp_sh]] .* 4
 inflation_values_for_limits = vcat(
@@ -1410,7 +1413,7 @@ p1 = plot(
     markerstrokecolor = :blue,
     title = perm_liq_titles[1],
     label = "",
-    xticks = perm_liq_xticks,
+    xticks = perm_liq_xticks_p1,
     ylims = panel_ylim(1)
 )
 ylabel!(p1, "%")
@@ -1423,37 +1426,37 @@ p2 = plot(x0, obs[m.observables[:obs_nominalrate], :, m.exogenous_shocks[:b_liqp
 ylabel!(p2, "%")
 xlabel!(p2, "Quarter")
 plot!(p2, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p2, (0, 10))
+xlims!(p2, (0, 20))
 
 p3 = plot(x0, permanent_liquidity_inflation_path,
     title=perm_liq_titles[3], xticks=perm_liq_xticks, ylims=inflation_ylim_shared, label="")
 ylabel!(p3, "%")
 xlabel!(p3, "Quarter")
 plot!(p3, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p3, (0, 10))
+xlims!(p3, (0, 20))
 
 p4 = plot(x0, states[m.endogenous_states[:y_t], :, m.exogenous_shocks[:b_liqp_sh]]*4,
     title=perm_liq_titles[4], xticks=perm_liq_xticks, ylims=panel_ylim(4), label="")
 ylabel!(p4, "%")
 xlabel!(p4, "Quarter")
 plot!(p4, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p4, (0, 10))
+xlims!(p4, (0, 20))
 
 p5 = plot(x0, pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate], :, m.exogenous_shocks[:b_liqp_sh]] .* 4,
     title=perm_liq_titles[5], xticks=perm_liq_xticks, ylims=panel_ylim(6), label="")
 ylabel!(p5, "%")
 xlabel!(p5, "Quarter")
 plot!(p5, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p5, (0, 10))
+xlims!(p5, (0, 20))
 
 p6 = plot(x0, pseudo[m.pseudo_observables[:ExAnteRealRate], :, m.exogenous_shocks[:b_liqp_sh]] .* 4,
     title=perm_liq_titles[6], xticks=perm_liq_xticks, ylims=panel_ylim(6), label="")
 ylabel!(p6, "%")
 xlabel!(p6, "Quarter")
 plot!(p6, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p6, (0, 10))
+xlims!(p6, (0, 20))
 
-p_cy = plot(p1, p2, p3, p4, p5, p6, layout=(3,2), legend=false, size=(960,540))
+p_cy = plot(p1, p2, p3, p4, p5, p6, layout=shared_figure_layout, legend=false, size=shared_figure_size)
 
 savefig(p_comb, combined_pdf_path)
 
