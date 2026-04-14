@@ -273,7 +273,7 @@ plot!(zeros(horizon,1),lc=:black,lw=2,label="")
 plot(p1, p2, p3, p4,p5,p6,layout=(3,2), legend=false)
 plot!(layout=(3,2), size=(1200,800))
 pdf_path = joinpath(saveroot,"Final Paper","figures","Interest_rate_peg_IRF_Policy_rate_with_MP_shock.pdf")
-savefig(pdf_path)   # saves the plot from p as a .pdf vector graphic
+# savefig(pdf_path)   # saves the plot from p as a .pdf vector graphic
 
 # ===== ADDED ONLY: export underlying plotted data =====
 export_series_xlsx(
@@ -301,6 +301,17 @@ comb_s4_paths = hcat(
     vec(pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate], :, m.exogenous_shocks[:rm_sh]]) .* 4,
     vec(pseudo[m.pseudo_observables[:ExAnteRealRate], :, m.exogenous_shocks[:rm_sh]]) .* 4
 )
+
+function annualize_inflation_paths(paths::AbstractMatrix)
+    return hcat(
+        paths[:, 1],
+        paths[:, 2] .* 4,
+        paths[:, 3],
+        paths[:, 4],
+        paths[:, 5],
+    )
+end
+
 
 
 # ########################################################################
@@ -635,7 +646,7 @@ for i = 1:nvars+1
     if i == 1
         # shk_weights_store[t, h] = weight on the t-th shock (MP/news shock at that timing)
         # for the forward-guidance implementation of length FGdur = h+1 (i.e., horizon h uses 2..(h+1) shocks).
-        # Visualization: "triangular build-up" — at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
+        # Visualization: "triangular build-up" -- at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
         Tmax = 5 # min(5, PlotT)                                  # show periods 1..5
         Hmax = 6             # up to 6 horizons/columns (=> up to 6 stars)
         alphas = collect(range(1.0, 0.15, length=Hmax))        # longer horizon => more transparent
@@ -695,7 +706,7 @@ end
 plot!(p)
 
 pdf_path = joinpath(saveroot,"Final Paper","figures","interest_rate_peg_with_contemporaneous_innovation_1_and_rest_FG_no_increase.pdf")
-savefig(pdf_path)
+# savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
 export_series_xlsx(
@@ -717,7 +728,7 @@ export_series_xlsx(
 
 # Store scenario 1 for combined figure
 comb_s1_weights = copy(shk_weights_store[:, peg_horizon-1])
-comb_s1_paths   = copy(FGplotmat[:, :, peg_horizon-1])
+comb_s1_paths   = annualize_inflation_paths(copy(FGplotmat[:, :, peg_horizon-1]))
 comb_s1_mp0     = irfmatR[1, 1, 1]
 
 
@@ -833,7 +844,7 @@ for i = 1:nvars+1
     if i == 1
         # shk_weights_store[t, h] = weight on the t-th shock (MP/news shock at that timing)
         # for the forward-guidance implementation of length FGdur = h+1 (i.e., horizon h uses 2..(h+1) shocks).
-        # Visualization: "triangular build-up" — at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
+        # Visualization: "triangular build-up" -- at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
         Tmax = 5 # min(5, PlotT)                                  # show periods 1..5
         Hmax = 6             # up to 6 horizons/columns (=> up to 6 stars)
         alphas = collect(range(1.0, 0.15, length=Hmax))        # longer horizon => more transparent
@@ -893,7 +904,7 @@ end
 plot!(p)
 
 pdf_path = joinpath(saveroot,"Final Paper","figures","interest_rate_peg_with_contemporaneous_innovation_0_and_rest_FG.pdf")
-savefig(pdf_path)
+# savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
 export_series_xlsx(
@@ -915,7 +926,7 @@ export_series_xlsx(
 
 # Store scenario 2 for combined figure
 comb_s2_weights = copy(shk_weights_store[:, peg_horizon-1])
-comb_s2_paths   = copy(FGplotmat[:, :, peg_horizon-1])
+comb_s2_paths   = annualize_inflation_paths(copy(FGplotmat[:, :, peg_horizon-1]))
 comb_s2_mp0     = irfmatR[1, 1, 1]
 
 
@@ -1031,7 +1042,7 @@ for i = 1:nvars+1
     if i == 1
         # shk_weights_store[t, h] = weight on the t-th shock (MP/news shock at that timing)
         # for the forward-guidance implementation of length FGdur = h+1 (i.e., horizon h uses 2..(h+1) shocks).
-        # Visualization: "triangular build-up" — at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
+        # Visualization: "triangular build-up" -- at t=1 plot 2 stars, at t=2 plot 3, ..., at t=5 plot 6.
         Tmax = 5 # min(5, PlotT)                                  # show periods 1..5
         Hmax = 6             # up to 6 horizons/columns (=> up to 6 stars)
         alphas = collect(range(1.0, 0.15, length=Hmax))        # longer horizon => more transparent
@@ -1091,7 +1102,7 @@ end
 plot!(p)
 
 pdf_path = joinpath(saveroot,"Final Paper","figures","interest_rate_peg_with_contemporaneous_innovation_1_and_rest_FG.pdf")
-savefig(pdf_path)
+# savefig(pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
 export_series_xlsx(
@@ -1113,7 +1124,7 @@ export_series_xlsx(
 
 # Store scenario 3 for combined figure
 comb_s3_weights = copy(shk_weights_store[:, peg_horizon-1])
-comb_s3_paths   = copy(FGplotmat[:, :, peg_horizon-1])
+comb_s3_paths   = annualize_inflation_paths(copy(FGplotmat[:, :, peg_horizon-1]))
 comb_s3_mp0     = irfmatR[1, 1, 1]
 
 
@@ -1149,6 +1160,17 @@ scenario_paths = [
 
 TT0 = 0:(PlotT-1)
 my_xticks_comb = 0:4:20
+panel1_xticks_comb = 0:2:10
+
+shared_response_titles = [
+    "Policy rate (APR)",
+    "Inflation (%, qoq annualized)",
+    "Output (% dev from SS)",
+    "r* (Forward 5-year real natural rate, APR)",
+    "Ex-ante real rate (APR)"
+]
+combined_titles = vcat(["Policy Innovations (APR)"], shared_response_titles)
+perm_liq_titles = vcat(["Permanent Liquidity Innovations (APR)"], shared_response_titles)
 
 p_comb = plot(layout=(3,2), size=(1200,800), legend=false)
 
@@ -1169,7 +1191,7 @@ plot!(p_comb[1], 0:(peg_horizon-1), comb_s4_weights[1:peg_horizon];
     markerstrokecolor = :black,
     markerstrokewidth = 1.4,
     label = "",
-    xticks = my_xticks_comb
+    xticks = panel1_xticks_comb
 )
 
 # Scenario 2: only anticipated policy shocks
@@ -1182,7 +1204,7 @@ plot!(p_comb[1], [0], [comb_s2_mp0];
     markerstrokecolor = :black,
     markerstrokewidth = 1.4,
     label = "",
-    xticks = my_xticks_comb
+    xticks = panel1_xticks_comb
 )
 
 plot!(p_comb[1], 1:peg_horizon, comb_s2_weights[1:peg_horizon];
@@ -1193,7 +1215,7 @@ plot!(p_comb[1], 1:peg_horizon, comb_s2_weights[1:peg_horizon];
     markerstrokecolor = scenario_colors[2],
     markerstrokewidth = 1.0,
     label = "",
-    xticks = my_xticks_comb
+    xticks = panel1_xticks_comb
 )
 
 # Scenario 3: contemporaneous -1 APR policy shock + anticipated shocks
@@ -1205,7 +1227,7 @@ plot!(p_comb[1], [0], [comb_s3_mp0];
     markerstrokecolor = :black,
     markerstrokewidth = 1.4,
     label = "",
-    xticks = my_xticks_comb
+    xticks = panel1_xticks_comb
 )
 
 plot!(p_comb[1], 1:peg_horizon, comb_s3_weights[1:peg_horizon];
@@ -1216,15 +1238,16 @@ plot!(p_comb[1], 1:peg_horizon, comb_s3_weights[1:peg_horizon];
     markerstrokecolor = scenario_colors[3],
     markerstrokewidth = 1.0,
     label = "",
-    xticks = my_xticks_comb
+    xticks = panel1_xticks_comb
 )
 
 plot!(p_comb[1], TT0, zeros(length(TT0)), lc=:black, lw=1, label="")
-title!(p_comb[1], titles[1])
+title!(p_comb[1], combined_titles[1])
 ylabel!(p_comb[1], "%")
 xlabel!(p_comb[1], "Quarter")
 ylims!(p_comb[1], panel_ylim(1))
-xlims!(p_comb[1], (0, 20))
+xlims!(p_comb[1], (0, 10))
+xticks!(p_comb[1], panel1_xticks_comb)
 
 # ------------------------------------------------------------------
 # Panels 2-6: overlay the requested three scenario paths
@@ -1240,7 +1263,7 @@ for i = 2:(nvars+1)
     end
 
     plot!(p_comb[i], TT0, zeros(length(TT0)), lc=:black, lw=1, label="")
-    title!(p_comb[i], titles[i])
+    title!(p_comb[i], combined_titles[i])
     ylabel!(p_comb[i], "%")
     xlabel!(p_comb[i], "Quarter")
     ylims!(p_comb[i], panel_ylim(i))
@@ -1249,18 +1272,18 @@ end
 
 plot!(p_comb)
 
-pdf_path = joinpath(
-    saveroot,
-    "Final Paper",
-    "figures",
+figures_dir = joinpath(saveroot, "Final Paper", "figures")
+mkpath(figures_dir)
+combined_pdf_path = joinpath(
+    figures_dir,
     "interest_rate_peg_combined_mit_vs_fg_vs_mpplusfg.pdf"
 )
-savefig(pdf_path)
+# savefig(p_comb, combined_pdf_path)
 
 # ===== ADDED ONLY: export underlying plotted data =====
 export_series_xlsx(
     xlsx_out,
-    sheet_from_pdf(pdf_path),
+    sheet_from_pdf(combined_pdf_path),
     collect(0:(PlotT-1)),
     Dict(
         "MIT sequence stars"                 => vcat(vec(comb_s4_weights[1:peg_horizon]), zeros(PlotT-peg_horizon)),
@@ -1361,6 +1384,21 @@ end
 x0 = 0:(horizon-1)
 idx_plot = 1:7
 idx_plot_x = 0:6
+perm_liq_xticks = 0:2:10
+
+permanent_liquidity_inflation_path = obs[m.observables[:obs_corepce], :, m.exogenous_shocks[:b_liqp_sh]] .* 4
+inflation_values_for_limits = vcat(
+    vec(comb_s4_paths[:, 2]),
+    vec(comb_s2_paths[:, 2]),
+    vec(comb_s3_paths[:, 2]),
+    vec(permanent_liquidity_inflation_path),
+    [0.0]
+)
+inflation_min = minimum(inflation_values_for_limits)
+inflation_max = maximum(inflation_values_for_limits)
+inflation_pad = max(0.01, 0.10 * (inflation_max - inflation_min))
+inflation_ylim_shared = (inflation_min - inflation_pad, inflation_max + inflation_pad)
+ylims!(p_comb[3], inflation_ylim_shared)
 
 p1 = plot(
     idx_plot_x,
@@ -1370,59 +1408,61 @@ p1 = plot(
     markersize = 6,
     markercolor = :blue,
     markerstrokecolor = :blue,
-    title = "Permanent Liquidity Innovations (APR)",
+    title = perm_liq_titles[1],
     label = "",
-    xticks = my_xticks,
+    xticks = perm_liq_xticks,
     ylims = panel_ylim(1)
 )
 ylabel!(p1, "%")
 xlabel!(p1, "Quarter")
 plot!(p1, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p1, (0, 20))
+xlims!(p1, (0, 10))
 
 p2 = plot(x0, obs[m.observables[:obs_nominalrate], :, m.exogenous_shocks[:b_liqp_sh]] .* 4,
-    title="Policy rate (APR)", xticks=my_xticks, ylims=panel_ylim(2), label="")
+    title=perm_liq_titles[2], xticks=perm_liq_xticks, ylims=panel_ylim(2), label="")
 ylabel!(p2, "%")
 xlabel!(p2, "Quarter")
 plot!(p2, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p2, (0, 20))
+xlims!(p2, (0, 10))
 
-p3 = plot(x0, obs[m.observables[:obs_corepce], :, m.exogenous_shocks[:b_liqp_sh]] .* 4,
-    title="Inflation (%, qoq annualized)", xticks=my_xticks, ylims=panel_ylim(3).*4, label="")
+p3 = plot(x0, permanent_liquidity_inflation_path,
+    title=perm_liq_titles[3], xticks=perm_liq_xticks, ylims=inflation_ylim_shared, label="")
 ylabel!(p3, "%")
 xlabel!(p3, "Quarter")
 plot!(p3, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p3, (0, 20))
+xlims!(p3, (0, 10))
 
 p4 = plot(x0, states[m.endogenous_states[:y_t], :, m.exogenous_shocks[:b_liqp_sh]]*4,
-    title="Output (% dev from SS)", xticks=my_xticks, ylims=panel_ylim(4), label="")
+    title=perm_liq_titles[4], xticks=perm_liq_xticks, ylims=panel_ylim(4), label="")
 ylabel!(p4, "%")
 xlabel!(p4, "Quarter")
 plot!(p4, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p4, (0, 20))
+xlims!(p4, (0, 10))
 
 p5 = plot(x0, pseudo[m.pseudo_observables[:Forward5YearRealNaturalRate], :, m.exogenous_shocks[:b_liqp_sh]] .* 4,
-    title="r* (Forward 5-year real natural rate, APR)", xticks=my_xticks, ylims=panel_ylim(6), label="")
+    title=perm_liq_titles[5], xticks=perm_liq_xticks, ylims=panel_ylim(6), label="")
 ylabel!(p5, "%")
 xlabel!(p5, "Quarter")
 plot!(p5, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p5, (0, 20))
+xlims!(p5, (0, 10))
 
 p6 = plot(x0, pseudo[m.pseudo_observables[:ExAnteRealRate], :, m.exogenous_shocks[:b_liqp_sh]] .* 4,
-    title="Ex-ante real rate (APR)", xticks=my_xticks, ylims=panel_ylim(6), label="")
+    title=perm_liq_titles[6], xticks=perm_liq_xticks, ylims=panel_ylim(6), label="")
 ylabel!(p6, "%")
 xlabel!(p6, "Quarter")
 plot!(p6, x0, zeros(horizon), lc=:black, lw=2, label="")
-xlims!(p6, (0, 20))
+xlims!(p6, (0, 10))
 
 p_cy = plot(p1, p2, p3, p4, p5, p6, layout=(3,2), legend=false, size=(960,540))
 
-pdf_path = joinpath(saveroot, "Final Paper", "figures", "IRF_rate_peg_with_permanent_liquidity_shock_period0.pdf")
-savefig(p_cy, pdf_path)
+savefig(p_comb, combined_pdf_path)
+
+permanent_liquidity_pdf_path = joinpath(figures_dir, "IRF_rate_peg_with_permanent_liquidity_shock_period0.pdf")
+savefig(p_cy, permanent_liquidity_pdf_path)
 
 export_series_xlsx(
     xlsx_out,
-    sheet_from_pdf(pdf_path),
+    sheet_from_pdf(permanent_liquidity_pdf_path),
     collect(0:(horizon-1)),
     Dict(
         "Permanent liquidity innovations"          => vec(shocks[m.exogenous_shocks[:b_liqp_sh], :]),
@@ -1434,3 +1474,5 @@ export_series_xlsx(
         "Zero line"                                => zeros(horizon),
     )
 )
+
+

@@ -4,6 +4,19 @@
 using DSGE, ClusterManagers, HDF5, Plots, StatsPlots
 using DataFrames, CSV, Dates
 
+default(
+    titlefontsize = 18,
+    guidefontsize = 13,
+    tickfontsize = 13,
+    legendfontsize = 12,
+    foreground_color_text = :black,
+    foreground_color_axis = :black,
+    foreground_color_guide = :black,
+    foreground_color_border = :black,
+)
+
+first_panel_legend_pos = (0.25, 0.17)
+
 
 
 ##############
@@ -350,7 +363,7 @@ plot!(
     label = "Counterfactual",
     xticks = (year_tick_dates, year_tick_labels)
 )
-plot!(p_cy, legend = :bottomleft)
+plot!(p_cy, legend = first_panel_legend_pos)
 
 p_long = plot(
     dates[mask_CF], longrate_CF[mask_CF],
@@ -728,7 +741,7 @@ plot!(
     color = :blue, lw = 2, linestyle = :dash,
     label = "Counterfactual"
 )
-plot!(p_cy_ep, legend = :bottomleft)
+plot!(p_cy_ep, legend = first_panel_legend_pos)
 
 p_long_ep = plot(
     dates_plot_ep[mask_plot_ep], long_base_ep[mask_plot_ep],
