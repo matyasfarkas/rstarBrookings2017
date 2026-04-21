@@ -3,6 +3,7 @@
 ##########################################################################################
 using DSGE, ClusterManagers, HDF5, Plots, StatsPlots
 using DataFrames, CSV, Dates
+using Statistics
 
 default(
     titlefontsize = 18,
@@ -252,33 +253,20 @@ function _find_first_symbol(m, candidates::Vector{Symbol})
     return nothing
 end
 
+const convenience_yield_state_names = [:b_liqtil_t, :b_liqp_t, :b_safetil_t, :b_safep_t]
+
 function _get_convenience_yield_series(m, states_mat, obs_mat, pseudo_mat)
-    # First try a total convenience-yield variable
-    total_candidates = [
-        :ConvenienceYield, :convenience_yield, :convenienceyield,
-        :cy, :cy_t, :privilege, :privilege_t
+    missing_states = [
+        sym for sym in convenience_yield_state_names
+        if !(haskey(m.endogenous_states, sym) || haskey(m.endogenous_states_augmented, sym))
     ]
-    total_sym = _find_first_symbol(m, total_candidates)
-    if total_sym !== nothing
-        return _get_series(m, states_mat, obs_mat, pseudo_mat, total_sym)
+    isempty(missing_states) || error("Convenience-yield state(s) not found in model: $(missing_states)")
+
+    cy_series = _get_series(m, states_mat, obs_mat, pseudo_mat, convenience_yield_state_names[1])
+    for sym in convenience_yield_state_names[2:end]
+        cy_series = cy_series .+ _get_series(m, states_mat, obs_mat, pseudo_mat, sym)
     end
-
-    # Otherwise try summing liquid + safety components
-    liq_candidates  = [:lnb_liq, :lnb_liq_t, :b_liq, :b_liq_t, :liq_convenience_yield]
-    safe_candidates = [:lnb_safe, :lnb_safe_t, :b_safe, :b_safe_t, :safe_convenience_yield]
-
-    liq_sym  = _find_first_symbol(m, liq_candidates)
-    safe_sym = _find_first_symbol(m, safe_candidates)
-
-    if liq_sym !== nothing && safe_sym !== nothing
-        return _get_series(m, states_mat, obs_mat, pseudo_mat, liq_sym) .+
-               _get_series(m, states_mat, obs_mat, pseudo_mat, safe_sym)
-    end
-
-    error("""
-Could not locate a convenience yield series automatically.
-Please update candidate names in _get_convenience_yield_series(...) to match your model.
-""")
+    return cy_series
 end
 
 function _get_long_rate_series(m, states_mat, obs_mat, pseudo_mat)
@@ -653,29 +641,29 @@ function _ep_get_delta_series(m, states_delta, obs_delta, pseudo_delta, sym::Sym
 end
 
 function _ep_resolve_convenience_yield(m)
-    total_candidates = [
-        :ConvenienceYield, :convenience_yield, :convenienceyield,
-        :cy, :cy_t, :privilege, :privilege_t
+    missing_states = [
+        sym for sym in convenience_yield_state_names
+        if !(haskey(m.endogenous_states, sym) || haskey(m.endogenous_states_augmented, sym))
     ]
-    total_sym = _ep_find_first_symbol(m, total_candidates)
-    if total_sym !== nothing
-        return (:single, total_sym, nothing)
+    isempty(missing_states) || error("Convenience-yield state(s) not found in model: $(missing_states)")
+
+    return convenience_yield_state_names
+end
+
+function _ep_get_baseline_sum_series(m, df_aligned::DataFrame, states_sm, pseudo_sm, syms::Vector{Symbol})
+    sum_series = _ep_get_baseline_series(m, df_aligned, states_sm, pseudo_sm, syms[1])
+    for sym in syms[2:end]
+        sum_series = sum_series .+ _ep_get_baseline_series(m, df_aligned, states_sm, pseudo_sm, sym)
     end
+    return sum_series
+end
 
-    liq_candidates  = [:lnb_liq, :lnb_liq_t, :b_liq, :b_liq_t, :liq_convenience_yield]
-    safe_candidates = [:lnb_safe, :lnb_safe_t, :b_safe, :b_safe_t, :safe_convenience_yield]
-
-    liq_sym  = _ep_find_first_symbol(m, liq_candidates)
-    safe_sym = _ep_find_first_symbol(m, safe_candidates)
-
-    if liq_sym !== nothing && safe_sym !== nothing
-        return (:sum, liq_sym, safe_sym)
+function _ep_get_delta_sum_series(m, states_delta, obs_delta, pseudo_delta, syms::Vector{Symbol})
+    sum_series = _ep_get_delta_series(m, states_delta, obs_delta, pseudo_delta, syms[1])
+    for sym in syms[2:end]
+        sum_series = sum_series .+ _ep_get_delta_series(m, states_delta, obs_delta, pseudo_delta, sym)
     end
-
-    error("""
-Could not locate a convenience yield series automatically.
-Please update candidate names in _ep_resolve_convenience_yield(...) to match your model.
-""")
+    return sum_series
 end
 
 function _ep_resolve_long_rate(m)
@@ -742,7 +730,7 @@ privilege_shock_vals_EA_ep = convert(Matrix, shocks_df[smoother][idx_EA_ep, priv
 # -------------------------
 # Resolve plotted variables
 # -------------------------
-cy_kind_ep, cy_sym1_ep, cy_sym2_ep = _ep_resolve_convenience_yield(m1)
+cy_symbols_ep = _ep_resolve_convenience_yield(m1)
 longrate_sym_ep = _ep_resolve_long_rate(m1)
 
 # -------------------------
@@ -767,12 +755,13 @@ pseudo_US_common_ep = pseudo_US_sm_ep[:, idx_US_ep]
 # -------------------------
 
 # Convenience yield
-if cy_kind_ep == :single
-    cy_base_raw_ep = _ep_get_baseline_series(m1, df_US_common_ep, states_US_common_ep, pseudo_US_common_ep, cy_sym1_ep)
-else
-    cy_base_raw_ep = _ep_get_baseline_series(m1, df_US_common_ep, states_US_common_ep, pseudo_US_common_ep, cy_sym1_ep) .+
-                     _ep_get_baseline_series(m1, df_US_common_ep, states_US_common_ep, pseudo_US_common_ep, cy_sym2_ep)
-end
+cy_base_raw_ep = _ep_get_baseline_sum_series(
+    m1,
+    df_US_common_ep,
+    states_US_common_ep,
+    pseudo_US_common_ep,
+    cy_symbols_ep
+)
 
 # Long rate
 long_base_raw_ep = _ep_get_baseline_series(m1, df_US_common_ep, states_US_common_ep, pseudo_US_common_ep, longrate_sym_ep)
@@ -806,20 +795,11 @@ ea_privilege_tail_ep = _replace_shock_block!(
 
 states_actual_ep, obs_actual_ep, pseudo_actual_ep = _forecast_us_from_anchor(system_US, anchor_state_US_ep, us_shocks_tail_ep)
 states_remove_US_ep, obs_remove_US_ep, pseudo_remove_US_ep = _forecast_us_from_anchor(system_US, anchor_state_US_ep, zero_privilege_tail_ep)
-states_cf_ep, obs_cf_ep, pseudo_cf_ep = _forecast_us_from_anchor(system_US, anchor_state_US_ep, ea_privilege_tail_ep)
+states_cf_ep, obs_cf_ep, pseudo_cf_ep             = _forecast_us_from_anchor(system_US, anchor_state_US_ep, ea_privilege_tail_ep)
 
-if cy_kind_ep == :single
-    cy_actual_raw_tail_ep = _ep_get_delta_series(m1, states_actual_ep, obs_actual_ep, pseudo_actual_ep, cy_sym1_ep)
-    cy_remove_raw_tail_ep = _ep_get_delta_series(m1, states_remove_US_ep, obs_remove_US_ep, pseudo_remove_US_ep, cy_sym1_ep)
-    cy_cf_raw_tail_ep = _ep_get_delta_series(m1, states_cf_ep, obs_cf_ep, pseudo_cf_ep, cy_sym1_ep)
-else
-    cy_actual_raw_tail_ep = _ep_get_delta_series(m1, states_actual_ep, obs_actual_ep, pseudo_actual_ep, cy_sym1_ep) .+
-                            _ep_get_delta_series(m1, states_actual_ep, obs_actual_ep, pseudo_actual_ep, cy_sym2_ep)
-    cy_remove_raw_tail_ep = _ep_get_delta_series(m1, states_remove_US_ep, obs_remove_US_ep, pseudo_remove_US_ep, cy_sym1_ep) .+
-                            _ep_get_delta_series(m1, states_remove_US_ep, obs_remove_US_ep, pseudo_remove_US_ep, cy_sym2_ep)
-    cy_cf_raw_tail_ep = _ep_get_delta_series(m1, states_cf_ep, obs_cf_ep, pseudo_cf_ep, cy_sym1_ep) .+
-                        _ep_get_delta_series(m1, states_cf_ep, obs_cf_ep, pseudo_cf_ep, cy_sym2_ep)
-end
+cy_actual_raw_tail_ep = _ep_get_delta_sum_series(m1, states_actual_ep, obs_actual_ep, pseudo_actual_ep, cy_symbols_ep)
+cy_remove_raw_tail_ep = _ep_get_delta_sum_series(m1, states_remove_US_ep, obs_remove_US_ep, pseudo_remove_US_ep, cy_symbols_ep)
+cy_cf_raw_tail_ep = _ep_get_delta_sum_series(m1, states_cf_ep, obs_cf_ep, pseudo_cf_ep, cy_symbols_ep)
 
 cy_remove_raw_ep = _apply_counterfactual_tail(
     cy_base_raw_ep,
@@ -1089,8 +1069,8 @@ end
 ##########################################################################################
 
 # Resolve convenience-yield symbols in each model
-cy_kind_EA_ep, cy_sym1_EA_ep, cy_sym2_EA_ep = _ep_resolve_convenience_yield(m)
-cy_kind_US_ep, cy_sym1_US_ep, cy_sym2_US_ep = _ep_resolve_convenience_yield(m1)
+cy_symbols_EA_ep = _ep_resolve_convenience_yield(m)
+cy_symbols_US_ep = _ep_resolve_convenience_yield(m1)
 
 # EA full-sample convenience yield
 df_EA_full_ep = df[end-size(states[smoother], 2)+1:end, :]
@@ -1098,20 +1078,23 @@ states_EA_full_ep = states[smoother]
 pseudo_EA_full_ep = pseudo[smoother]
 dates_EA_full_ep = df_EA_full_ep.date
 
-if cy_kind_EA_ep == :single
-    cy_EA_full_ep = _ep_get_baseline_series(m, df_EA_full_ep, states_EA_full_ep, pseudo_EA_full_ep, cy_sym1_EA_ep)
-else
-    cy_EA_full_ep = _ep_get_baseline_series(m, df_EA_full_ep, states_EA_full_ep, pseudo_EA_full_ep, cy_sym1_EA_ep) .+
-                    _ep_get_baseline_series(m, df_EA_full_ep, states_EA_full_ep, pseudo_EA_full_ep, cy_sym2_EA_ep)
-end
+cy_EA_full_ep = _ep_get_baseline_sum_series(
+    m,
+    df_EA_full_ep,
+    states_EA_full_ep,
+    
+    pseudo_EA_full_ep,
+    cy_symbols_EA_ep
+)
 
 # US full-sample convenience yield
-if cy_kind_US_ep == :single
-    cy_US_full_ep = _ep_get_baseline_series(m1, df_US_aligned_ep, states_US_sm_ep, pseudo_US_sm_ep, cy_sym1_US_ep)
-else
-    cy_US_full_ep = _ep_get_baseline_series(m1, df_US_aligned_ep, states_US_sm_ep, pseudo_US_sm_ep, cy_sym1_US_ep) .+
-                    _ep_get_baseline_series(m1, df_US_aligned_ep, states_US_sm_ep, pseudo_US_sm_ep, cy_sym2_US_ep)
-end
+cy_US_full_ep = _ep_get_baseline_sum_series(
+    m1,
+    df_US_aligned_ep,
+    states_US_sm_ep,
+    pseudo_US_sm_ep,
+    cy_symbols_US_ep
+)
 
 # Optional APR versions
 cy_EA_full_apr_ep = 4 .* cy_EA_full_ep
@@ -1129,3 +1112,204 @@ df_cy_US_ep = DataFrame(Date = dates_US_ep,
 df_cy_full_ep = join(df_cy_EA_ep, df_cy_US_ep, on = :Date,  kind = :outer)
 
 CSV.write(joinpath(saveroot, "Final Paper", "Figures", "ConvenienceYield_fullsample_US_EA.csv"), df_cy_full_ep)
+
+##########################################################################################
+## APPENDED: EA MIRROR OF CASE2B NO EXORBITANT PRIVILEGE 3x2 FIGURE
+##########################################################################################
+
+function _ea_case2b_first_available_shock(m, candidates::Vector{Symbol})
+    for sym in candidates
+        haskey(m.exogenous_shocks, sym) && return sym
+    end
+    error("Could not locate any of these shocks: $(candidates)")
+end
+
+function _ea_case2b_panel(dates_plot, baseline, zero_cy, title, xticks; show_legend = false)
+    p = plot(
+        dates_plot,
+        baseline,
+        color = :black,
+        lw = 2,
+        linestyle = :solid,
+        title = title,
+        label = show_legend ? "EA baseline" : "",
+        xticks = xticks,
+    )
+    plot!(
+        p,
+        dates_plot,
+        zero_cy,
+        color = :red,
+        lw = 2,
+        linestyle = :dashdot,
+        label = show_legend ? "EA with zero CY shocks" : "",
+    )
+    show_legend && plot!(p, legend = first_panel_legend_pos)
+    return p
+end
+
+df_EA_case2b = df[end-size(states[smoother], 2)+1:end, :]
+states_EA_case2b = states[smoother]
+shocks_EA_case2b = permutedims(Float64.(Matrix(shocks_df[smoother][!, shock_labels])))
+pseudo_EA_case2b = pseudo[smoother]
+dates_EA_case2b = df_EA_case2b.date
+
+anchor_date_EA_case2b = quartertodate("1998-Q4")
+anchor_idx_EA_case2b = findfirst(==(anchor_date_EA_case2b), dates_EA_case2b)
+anchor_idx_EA_case2b === nothing && error("Anchor date 1998Q4 not found in the EA sample.")
+anchor_idx_EA_case2b < 4 && error("Need at least 3 quarters before 1998Q4 to construct y/y inflation.")
+
+mask_plot_EA_case2b = dates_EA_case2b .>= anchor_date_EA_case2b
+tail_idx_EA_case2b = anchor_idx_EA_case2b+1:length(dates_EA_case2b)
+tail_horizon_EA_case2b = length(tail_idx_EA_case2b)
+
+longrate_sym_EA_case2b = _ep_resolve_long_rate(m)
+inflation_sym_EA_case2b = _ep_find_first_symbol(m, [:obs_corepce, :obs_gdpdeflator, :pi_t])
+inflation_sym_EA_case2b === nothing && error("Could not locate the EA inflation series.")
+mu_shock_name_EA_case2b = _ea_case2b_first_available_shock(m, [:mu_sh, Symbol("\u03bc_sh")])
+mu_shock_names_EA_case2b = [mu_shock_name_EA_case2b]
+
+cy_symbols_EA_case2b = _ep_resolve_convenience_yield(m)
+cy_base_raw_EA_case2b = _ep_get_baseline_sum_series(
+    m,
+    df_EA_case2b,
+    states_EA_case2b,
+    pseudo_EA_case2b,
+    cy_symbols_EA_case2b,
+)
+long_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, longrate_sym_EA_case2b)
+policy_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, :obs_nominalrate)
+infl_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, inflation_sym_EA_case2b)
+output_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, :y_t)
+rstar_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, :Forward5YearRealNaturalRate)
+
+anchor_state_EA_case2b = states_EA_case2b[:, anchor_idx_EA_case2b]
+actual_shocks_tail_EA_case2b = copy(shocks_EA_case2b[:, tail_idx_EA_case2b])
+zero_cy_shocks_tail_EA_case2b = _replace_shock_block!(
+    copy(actual_shocks_tail_EA_case2b),
+    m,
+    privilege_shock_names,
+    zeros(tail_horizon_EA_case2b, length(privilege_shock_names)),
+)
+zero_mu_shocks_tail_EA_case2b = _replace_shock_block!(
+    copy(actual_shocks_tail_EA_case2b),
+    m,
+    mu_shock_names_EA_case2b,
+    zeros(tail_horizon_EA_case2b, length(mu_shock_names_EA_case2b)),
+)
+zero_cy_zero_mu_shocks_tail_EA_case2b = _replace_shock_block!(
+    copy(zero_cy_shocks_tail_EA_case2b),
+    m,
+    mu_shock_names_EA_case2b,
+    zeros(tail_horizon_EA_case2b, length(mu_shock_names_EA_case2b)),
+)
+
+states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b =
+    forecast(system, collect(anchor_state_EA_case2b), actual_shocks_tail_EA_case2b)
+states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b =
+    forecast(system, collect(anchor_state_EA_case2b), zero_cy_shocks_tail_EA_case2b)
+states_zero_mu_EA_case2b, obs_zero_mu_EA_case2b, pseudo_zero_mu_EA_case2b =
+    forecast(system, collect(anchor_state_EA_case2b), zero_mu_shocks_tail_EA_case2b)
+states_zero_cy_zero_mu_EA_case2b, obs_zero_cy_zero_mu_EA_case2b, pseudo_zero_cy_zero_mu_EA_case2b =
+    forecast(system, collect(anchor_state_EA_case2b), zero_cy_zero_mu_shocks_tail_EA_case2b)
+
+cy_actual_tail_EA_case2b = _ep_get_delta_sum_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, cy_symbols_EA_case2b)
+cy_zero_cy_tail_EA_case2b = _ep_get_delta_sum_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, cy_symbols_EA_case2b)
+cy_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
+    cy_base_raw_EA_case2b,
+    cy_actual_tail_EA_case2b,
+    cy_zero_cy_tail_EA_case2b;
+    anchor_idx = anchor_idx_EA_case2b,
+)
+
+long_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
+    long_base_raw_EA_case2b,
+    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, longrate_sym_EA_case2b),
+    _ep_get_delta_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, longrate_sym_EA_case2b);
+    anchor_idx = anchor_idx_EA_case2b,
+)
+policy_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
+    policy_base_raw_EA_case2b,
+    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, :obs_nominalrate),
+    _ep_get_delta_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, :obs_nominalrate);
+    anchor_idx = anchor_idx_EA_case2b,
+)
+infl_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
+    infl_base_raw_EA_case2b,
+    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, inflation_sym_EA_case2b),
+    _ep_get_delta_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, inflation_sym_EA_case2b);
+    anchor_idx = anchor_idx_EA_case2b,
+)
+output_base_ex_mu_raw_EA_case2b = _apply_counterfactual_tail(
+    output_base_raw_EA_case2b,
+    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, :y_t),
+    _ep_get_delta_series(m, states_zero_mu_EA_case2b, obs_zero_mu_EA_case2b, pseudo_zero_mu_EA_case2b, :y_t);
+    anchor_idx = anchor_idx_EA_case2b,
+)
+output_zero_cy_ex_mu_raw_EA_case2b = _apply_counterfactual_tail(
+    output_base_raw_EA_case2b,
+    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, :y_t),
+    _ep_get_delta_series(m, states_zero_cy_zero_mu_EA_case2b, obs_zero_cy_zero_mu_EA_case2b, pseudo_zero_cy_zero_mu_EA_case2b, :y_t);
+    anchor_idx = anchor_idx_EA_case2b,
+)
+rstar_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
+    rstar_base_raw_EA_case2b,
+    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, :Forward5YearRealNaturalRate),
+    _ep_get_delta_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, :Forward5YearRealNaturalRate);
+    anchor_idx = anchor_idx_EA_case2b,
+)
+
+cy_base_EA_case2b = 4 .* cy_base_raw_EA_case2b
+cy_zero_cy_EA_case2b = 4 .* cy_zero_cy_raw_EA_case2b
+long_base_EA_case2b = 4 .* long_base_raw_EA_case2b
+long_zero_cy_EA_case2b = 4 .* long_zero_cy_raw_EA_case2b
+policy_base_EA_case2b = 4 .* policy_base_raw_EA_case2b
+policy_zero_cy_EA_case2b = 4 .* policy_zero_cy_raw_EA_case2b
+infl_base_EA_case2b = _ep_four_quarter_sum(infl_base_raw_EA_case2b)
+infl_zero_cy_EA_case2b = _ep_four_quarter_sum(infl_zero_cy_raw_EA_case2b)
+output_level_shift_EA_case2b = -mean(output_base_ex_mu_raw_EA_case2b[mask_plot_EA_case2b])
+output_base_EA_case2b = output_base_ex_mu_raw_EA_case2b .+ output_level_shift_EA_case2b
+output_zero_cy_EA_case2b = output_zero_cy_ex_mu_raw_EA_case2b .+ output_level_shift_EA_case2b
+rstar_base_EA_case2b = 4 .* rstar_base_raw_EA_case2b
+rstar_zero_cy_EA_case2b = 4 .* rstar_zero_cy_raw_EA_case2b
+
+first_tick_year_EA_case2b = Dates.year(anchor_date_EA_case2b)
+last_tick_year_EA_case2b = Dates.year(dates_EA_case2b[end])
+tick_step_EA_case2b = 5
+year_tick_years_EA_case2b = collect(first_tick_year_EA_case2b:tick_step_EA_case2b:last_tick_year_EA_case2b)
+year_tick_dates_EA_case2b = [quartertodate("$(y)-Q1") for y in year_tick_years_EA_case2b]
+year_tick_labels_EA_case2b = string.(year_tick_years_EA_case2b)
+xticks_EA_case2b = (year_tick_dates_EA_case2b, year_tick_labels_EA_case2b)
+plot_dates_EA_case2b = dates_EA_case2b[mask_plot_EA_case2b]
+
+p_cy_EA_case2b = _ea_case2b_panel(
+    plot_dates_EA_case2b,
+    cy_base_EA_case2b[mask_plot_EA_case2b],
+    cy_zero_cy_EA_case2b[mask_plot_EA_case2b],
+    "EA convenience yield (APR)",
+    xticks_EA_case2b;
+    show_legend = true,
+)
+p_long_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, long_base_EA_case2b[mask_plot_EA_case2b], long_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA long-term interest rate (APR)", xticks_EA_case2b)
+p_pol_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, policy_base_EA_case2b[mask_plot_EA_case2b], policy_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA policy rate (APR)", xticks_EA_case2b)
+p_inf_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, infl_base_EA_case2b[mask_plot_EA_case2b], infl_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA inflation (%, yoy)", xticks_EA_case2b)
+p_out_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, output_base_EA_case2b[mask_plot_EA_case2b], output_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA output deviation from trend, excl. mu shock (%)", xticks_EA_case2b)
+p_rstar_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, rstar_base_EA_case2b[mask_plot_EA_case2b], rstar_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA r* (APR)", xticks_EA_case2b)
+
+p_3x2_EA_case2b = plot(
+    p_cy_EA_case2b, p_long_EA_case2b,
+    p_pol_EA_case2b, p_inf_EA_case2b,
+    p_out_EA_case2b, p_rstar_EA_case2b,
+    layout = (3, 2),
+    size = (1100, 1200)
+)
+
+display(p_3x2_EA_case2b)
+
+if use_FG_in_EA
+    savefig(p_3x2_EA_case2b, joinpath(saveroot, "Final Paper", "Figures", "EA Case2B no exorbitant privilege 3x2.pdf"))
+    savefig(p_3x2_EA_case2b, joinpath(saveroot, "Final Paper", "Figures", "EA Case2B no exorbitant privilege 3x2.png"))
+else
+    savefig(p_3x2_EA_case2b, joinpath(saveroot, "Final Paper", "Figures", "EA Case2B no exorbitant privilege without FG 3x2.pdf"))
+    savefig(p_3x2_EA_case2b, joinpath(saveroot, "Final Paper", "Figures", "EA Case2B no exorbitant privilege without FG 3x2.png"))
+end
