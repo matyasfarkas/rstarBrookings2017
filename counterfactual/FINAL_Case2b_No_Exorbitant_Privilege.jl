@@ -3,7 +3,6 @@
 ##########################################################################################
 using DSGE, ClusterManagers, HDF5, Plots, StatsPlots
 using DataFrames, CSV, Dates
-using Statistics
 
 default(
     titlefontsize = 18,
@@ -16,7 +15,7 @@ default(
     foreground_color_border = :black,
 )
 
-first_panel_legend_pos = (0.25, 0.25) # relative position within the first panel (convenience yield)
+first_panel_legend_pos = (0.22, 0.25) # relative position within the first panel (convenience yield)
 
 
 
@@ -1027,6 +1026,96 @@ else
     savefig(joinpath(saveroot, "Final Paper", "Figures", "Exorbitant privilege without FG shocks in EA 3x2 baseline_plus_delta.png"))
 end
 
+##########################################################################################
+## APPENDED: US ONLY 3x2 PANEL, BLACK AND RED LINES
+##########################################################################################
+
+function _us_black_red_panel(dates_plot, baseline, no_cy, title, xticks; show_legend = false)
+    p = plot(
+        dates_plot,
+        baseline,
+        color = :black,
+        lw = 2,
+        linestyle = :solid,
+        title = title,
+        label = show_legend ? "US baseline" : "",
+        xticks = xticks,
+    )
+    plot!(
+        p,
+        dates_plot,
+        no_cy,
+        color = :red,
+        lw = 2,
+        linestyle = :dashdot,
+        label = show_legend ? "US - No CY shocks" : "",
+    )
+    show_legend && plot!(p, legend = first_panel_legend_pos)
+    return p
+end
+
+p_cy_us_only = _us_black_red_panel(
+    dates_plot_ep[mask_plot_ep],
+    cy_base_ep[mask_plot_ep],
+    cy_remove_cf_ep[mask_plot_ep],
+    "Convenience yield (APR)",
+    (year_tick_dates_ep, year_tick_labels_ep);
+    show_legend = true,
+)
+p_long_us_only = _us_black_red_panel(
+    dates_plot_ep[mask_plot_ep],
+    long_base_ep[mask_plot_ep],
+    long_remove_cf_ep[mask_plot_ep],
+    "Long-term interest rate (APR)",
+    (year_tick_dates_ep, year_tick_labels_ep),
+)
+p_pol_us_only = _us_black_red_panel(
+    dates_plot_ep[mask_plot_ep],
+    policy_base_ep[mask_plot_ep],
+    policy_remove_cf_ep[mask_plot_ep],
+    "Policy rate (APR)",
+    (year_tick_dates_ep, year_tick_labels_ep),
+)
+p_inf_us_only = _us_black_red_panel(
+    dates_plot_ep[mask_plot_ep],
+    infl_base_ep[mask_plot_ep],
+    infl_remove_cf_ep[mask_plot_ep],
+    "Core PCE inflation (%, yoy)",
+    (year_tick_dates_ep, year_tick_labels_ep),
+)
+p_out_us_only = _us_black_red_panel(
+    dates_plot_ep[mask_plot_ep],
+    output_base_ep[mask_plot_ep] .+ 2,
+    output_remove_cf_ep[mask_plot_ep] .+ 2,
+    "Output deviation from trend (%)",
+    (year_tick_dates_ep, year_tick_labels_ep),
+)
+p_rstar_us_only = _us_black_red_panel(
+    dates_plot_ep[mask_plot_ep],
+    rstar_base_ep[mask_plot_ep],
+    rstar_remove_cf_ep[mask_plot_ep],
+    "r* (APR)",
+    (year_tick_dates_ep, year_tick_labels_ep),
+)
+
+p_3x2_us_only = plot(
+    p_cy_us_only, p_long_us_only,
+    p_pol_us_only, p_inf_us_only,
+    p_out_us_only, p_rstar_us_only,
+    layout = (3, 2),
+    size = (1100, 1200)
+)
+
+display(p_3x2_us_only)
+
+if use_FG_in_EA
+    savefig(p_3x2_us_only, joinpath(saveroot, "Final Paper", "Figures", "US no exorbitant privilege 3x2 baseline_plus_delta.pdf"))
+    savefig(p_3x2_us_only, joinpath(saveroot, "Final Paper", "Figures", "US no exorbitant privilege 3x2 baseline_plus_delta.png"))
+else
+    savefig(p_3x2_us_only, joinpath(saveroot, "Final Paper", "Figures", "US no exorbitant privilege without FG shocks in EA 3x2 baseline_plus_delta.pdf"))
+    savefig(p_3x2_us_only, joinpath(saveroot, "Final Paper", "Figures", "US no exorbitant privilege without FG shocks in EA 3x2 baseline_plus_delta.png"))
+end
+
 # -------------------------
 # Export plotted series
 # -------------------------
@@ -1112,204 +1201,3 @@ df_cy_US_ep = DataFrame(Date = dates_US_ep,
 df_cy_full_ep = join(df_cy_EA_ep, df_cy_US_ep, on = :Date,  kind = :outer)
 
 CSV.write(joinpath(saveroot, "Final Paper", "Figures", "ConvenienceYield_fullsample_US_EA.csv"), df_cy_full_ep)
-
-##########################################################################################
-## APPENDED: EA MIRROR OF CASE2B NO EXORBITANT PRIVILEGE 3x2 FIGURE
-##########################################################################################
-
-function _ea_case2b_first_available_shock(m, candidates::Vector{Symbol})
-    for sym in candidates
-        haskey(m.exogenous_shocks, sym) && return sym
-    end
-    error("Could not locate any of these shocks: $(candidates)")
-end
-
-function _ea_case2b_panel(dates_plot, baseline, zero_cy, title, xticks; show_legend = false)
-    p = plot(
-        dates_plot,
-        baseline,
-        color = :black,
-        lw = 2,
-        linestyle = :solid,
-        title = title,
-        label = show_legend ? "EA baseline" : "",
-        xticks = xticks,
-    )
-    plot!(
-        p,
-        dates_plot,
-        zero_cy,
-        color = :red,
-        lw = 2,
-        linestyle = :dashdot,
-        label = show_legend ? "EA with zero CY shocks" : "",
-    )
-    show_legend && plot!(p, legend = first_panel_legend_pos)
-    return p
-end
-
-df_EA_case2b = df[end-size(states[smoother], 2)+1:end, :]
-states_EA_case2b = states[smoother]
-shocks_EA_case2b = permutedims(Float64.(Matrix(shocks_df[smoother][!, shock_labels])))
-pseudo_EA_case2b = pseudo[smoother]
-dates_EA_case2b = df_EA_case2b.date
-
-anchor_date_EA_case2b = quartertodate("1998-Q4")
-anchor_idx_EA_case2b = findfirst(==(anchor_date_EA_case2b), dates_EA_case2b)
-anchor_idx_EA_case2b === nothing && error("Anchor date 1998Q4 not found in the EA sample.")
-anchor_idx_EA_case2b < 4 && error("Need at least 3 quarters before 1998Q4 to construct y/y inflation.")
-
-mask_plot_EA_case2b = dates_EA_case2b .>= anchor_date_EA_case2b
-tail_idx_EA_case2b = anchor_idx_EA_case2b+1:length(dates_EA_case2b)
-tail_horizon_EA_case2b = length(tail_idx_EA_case2b)
-
-longrate_sym_EA_case2b = _ep_resolve_long_rate(m)
-inflation_sym_EA_case2b = _ep_find_first_symbol(m, [:obs_corepce, :obs_gdpdeflator, :pi_t])
-inflation_sym_EA_case2b === nothing && error("Could not locate the EA inflation series.")
-mu_shock_name_EA_case2b = _ea_case2b_first_available_shock(m, [:mu_sh, Symbol("\u03bc_sh")])
-mu_shock_names_EA_case2b = [mu_shock_name_EA_case2b]
-
-cy_symbols_EA_case2b = _ep_resolve_convenience_yield(m)
-cy_base_raw_EA_case2b = _ep_get_baseline_sum_series(
-    m,
-    df_EA_case2b,
-    states_EA_case2b,
-    pseudo_EA_case2b,
-    cy_symbols_EA_case2b,
-)
-long_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, longrate_sym_EA_case2b)
-policy_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, :obs_nominalrate)
-infl_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, inflation_sym_EA_case2b)
-output_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, :y_t)
-rstar_base_raw_EA_case2b = _ep_get_baseline_series(m, df_EA_case2b, states_EA_case2b, pseudo_EA_case2b, :Forward5YearRealNaturalRate)
-
-anchor_state_EA_case2b = states_EA_case2b[:, anchor_idx_EA_case2b]
-actual_shocks_tail_EA_case2b = copy(shocks_EA_case2b[:, tail_idx_EA_case2b])
-zero_cy_shocks_tail_EA_case2b = _replace_shock_block!(
-    copy(actual_shocks_tail_EA_case2b),
-    m,
-    privilege_shock_names,
-    zeros(tail_horizon_EA_case2b, length(privilege_shock_names)),
-)
-zero_mu_shocks_tail_EA_case2b = _replace_shock_block!(
-    copy(actual_shocks_tail_EA_case2b),
-    m,
-    mu_shock_names_EA_case2b,
-    zeros(tail_horizon_EA_case2b, length(mu_shock_names_EA_case2b)),
-)
-zero_cy_zero_mu_shocks_tail_EA_case2b = _replace_shock_block!(
-    copy(zero_cy_shocks_tail_EA_case2b),
-    m,
-    mu_shock_names_EA_case2b,
-    zeros(tail_horizon_EA_case2b, length(mu_shock_names_EA_case2b)),
-)
-
-states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b =
-    forecast(system, collect(anchor_state_EA_case2b), actual_shocks_tail_EA_case2b)
-states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b =
-    forecast(system, collect(anchor_state_EA_case2b), zero_cy_shocks_tail_EA_case2b)
-states_zero_mu_EA_case2b, obs_zero_mu_EA_case2b, pseudo_zero_mu_EA_case2b =
-    forecast(system, collect(anchor_state_EA_case2b), zero_mu_shocks_tail_EA_case2b)
-states_zero_cy_zero_mu_EA_case2b, obs_zero_cy_zero_mu_EA_case2b, pseudo_zero_cy_zero_mu_EA_case2b =
-    forecast(system, collect(anchor_state_EA_case2b), zero_cy_zero_mu_shocks_tail_EA_case2b)
-
-cy_actual_tail_EA_case2b = _ep_get_delta_sum_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, cy_symbols_EA_case2b)
-cy_zero_cy_tail_EA_case2b = _ep_get_delta_sum_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, cy_symbols_EA_case2b)
-cy_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
-    cy_base_raw_EA_case2b,
-    cy_actual_tail_EA_case2b,
-    cy_zero_cy_tail_EA_case2b;
-    anchor_idx = anchor_idx_EA_case2b,
-)
-
-long_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
-    long_base_raw_EA_case2b,
-    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, longrate_sym_EA_case2b),
-    _ep_get_delta_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, longrate_sym_EA_case2b);
-    anchor_idx = anchor_idx_EA_case2b,
-)
-policy_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
-    policy_base_raw_EA_case2b,
-    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, :obs_nominalrate),
-    _ep_get_delta_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, :obs_nominalrate);
-    anchor_idx = anchor_idx_EA_case2b,
-)
-infl_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
-    infl_base_raw_EA_case2b,
-    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, inflation_sym_EA_case2b),
-    _ep_get_delta_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, inflation_sym_EA_case2b);
-    anchor_idx = anchor_idx_EA_case2b,
-)
-output_base_ex_mu_raw_EA_case2b = _apply_counterfactual_tail(
-    output_base_raw_EA_case2b,
-    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, :y_t),
-    _ep_get_delta_series(m, states_zero_mu_EA_case2b, obs_zero_mu_EA_case2b, pseudo_zero_mu_EA_case2b, :y_t);
-    anchor_idx = anchor_idx_EA_case2b,
-)
-output_zero_cy_ex_mu_raw_EA_case2b = _apply_counterfactual_tail(
-    output_base_raw_EA_case2b,
-    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, :y_t),
-    _ep_get_delta_series(m, states_zero_cy_zero_mu_EA_case2b, obs_zero_cy_zero_mu_EA_case2b, pseudo_zero_cy_zero_mu_EA_case2b, :y_t);
-    anchor_idx = anchor_idx_EA_case2b,
-)
-rstar_zero_cy_raw_EA_case2b = _apply_counterfactual_tail(
-    rstar_base_raw_EA_case2b,
-    _ep_get_delta_series(m, states_actual_EA_case2b, obs_actual_EA_case2b, pseudo_actual_EA_case2b, :Forward5YearRealNaturalRate),
-    _ep_get_delta_series(m, states_zero_cy_EA_case2b, obs_zero_cy_EA_case2b, pseudo_zero_cy_EA_case2b, :Forward5YearRealNaturalRate);
-    anchor_idx = anchor_idx_EA_case2b,
-)
-
-cy_base_EA_case2b = 4 .* cy_base_raw_EA_case2b
-cy_zero_cy_EA_case2b = 4 .* cy_zero_cy_raw_EA_case2b
-long_base_EA_case2b = 4 .* long_base_raw_EA_case2b
-long_zero_cy_EA_case2b = 4 .* long_zero_cy_raw_EA_case2b
-policy_base_EA_case2b = 4 .* policy_base_raw_EA_case2b
-policy_zero_cy_EA_case2b = 4 .* policy_zero_cy_raw_EA_case2b
-infl_base_EA_case2b = _ep_four_quarter_sum(infl_base_raw_EA_case2b)
-infl_zero_cy_EA_case2b = _ep_four_quarter_sum(infl_zero_cy_raw_EA_case2b)
-output_level_shift_EA_case2b = -mean(output_base_ex_mu_raw_EA_case2b[mask_plot_EA_case2b])
-output_base_EA_case2b = output_base_ex_mu_raw_EA_case2b .+ output_level_shift_EA_case2b
-output_zero_cy_EA_case2b = output_zero_cy_ex_mu_raw_EA_case2b .+ output_level_shift_EA_case2b
-rstar_base_EA_case2b = 4 .* rstar_base_raw_EA_case2b
-rstar_zero_cy_EA_case2b = 4 .* rstar_zero_cy_raw_EA_case2b
-
-first_tick_year_EA_case2b = Dates.year(anchor_date_EA_case2b)
-last_tick_year_EA_case2b = Dates.year(dates_EA_case2b[end])
-tick_step_EA_case2b = 5
-year_tick_years_EA_case2b = collect(first_tick_year_EA_case2b:tick_step_EA_case2b:last_tick_year_EA_case2b)
-year_tick_dates_EA_case2b = [quartertodate("$(y)-Q1") for y in year_tick_years_EA_case2b]
-year_tick_labels_EA_case2b = string.(year_tick_years_EA_case2b)
-xticks_EA_case2b = (year_tick_dates_EA_case2b, year_tick_labels_EA_case2b)
-plot_dates_EA_case2b = dates_EA_case2b[mask_plot_EA_case2b]
-
-p_cy_EA_case2b = _ea_case2b_panel(
-    plot_dates_EA_case2b,
-    cy_base_EA_case2b[mask_plot_EA_case2b],
-    cy_zero_cy_EA_case2b[mask_plot_EA_case2b],
-    "EA convenience yield (APR)",
-    xticks_EA_case2b;
-    show_legend = true,
-)
-p_long_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, long_base_EA_case2b[mask_plot_EA_case2b], long_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA long-term interest rate (APR)", xticks_EA_case2b)
-p_pol_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, policy_base_EA_case2b[mask_plot_EA_case2b], policy_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA policy rate (APR)", xticks_EA_case2b)
-p_inf_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, infl_base_EA_case2b[mask_plot_EA_case2b], infl_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA inflation (%, yoy)", xticks_EA_case2b)
-p_out_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, output_base_EA_case2b[mask_plot_EA_case2b], output_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA output deviation from trend, excl. mu shock (%)", xticks_EA_case2b)
-p_rstar_EA_case2b = _ea_case2b_panel(plot_dates_EA_case2b, rstar_base_EA_case2b[mask_plot_EA_case2b], rstar_zero_cy_EA_case2b[mask_plot_EA_case2b], "EA r* (APR)", xticks_EA_case2b)
-
-p_3x2_EA_case2b = plot(
-    p_cy_EA_case2b, p_long_EA_case2b,
-    p_pol_EA_case2b, p_inf_EA_case2b,
-    p_out_EA_case2b, p_rstar_EA_case2b,
-    layout = (3, 2),
-    size = (1100, 1200)
-)
-
-display(p_3x2_EA_case2b)
-
-if use_FG_in_EA
-    savefig(p_3x2_EA_case2b, joinpath(saveroot, "Final Paper", "Figures", "EA Case2B no exorbitant privilege 3x2.pdf"))
-    savefig(p_3x2_EA_case2b, joinpath(saveroot, "Final Paper", "Figures", "EA Case2B no exorbitant privilege 3x2.png"))
-else
-    savefig(p_3x2_EA_case2b, joinpath(saveroot, "Final Paper", "Figures", "EA Case2B no exorbitant privilege without FG 3x2.pdf"))
-    savefig(p_3x2_EA_case2b, joinpath(saveroot, "Final Paper", "Figures", "EA Case2B no exorbitant privilege without FG 3x2.png"))
-end
