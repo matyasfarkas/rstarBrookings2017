@@ -9,8 +9,10 @@
 # The output panel also removes the contribution of the EA mu shock, stored in
 # this model as the Greek-symbol shock name represented below by "\u03bc_sh".
 #
-# The convenience yield is the sum of the four convenience-yield states:
-#     b_liqtil_t + b_liqp_t + b_safetil_t + b_safep_t
+# The plotted convenience yield matches the pseudo-observable definition:
+#     b_liq_t + b_safe_t + 100*log(lnb_liq) + 100*log(lnb_safe)
+# which is equivalent to the four convenience-yield component states plus the
+# model-specific drift term.
 ##########################################################################################
 
 using DSGE, HDF5, Plots, StatsPlots
@@ -55,7 +57,7 @@ ea_mode_file = joinpath(
     "paramsmode_vint=$(ea_vintage).h5",
 )
 
-cy_state_names = [:b_liqtil_t, :b_liqp_t, :b_safetil_t, :b_safep_t]
+cy_component_state_names = [:b_liqtil_t, :b_liqp_t, :b_safetil_t, :b_safep_t]
 cy_shock_names = [:b_liqtil_sh, :b_liqp_sh, :b_safetil_sh, :b_safep_sh]
 mu_shock_candidates = [:mu_sh, Symbol("\u03bc_sh")]
 
@@ -132,18 +134,30 @@ function first_available_shock(m, candidates::Vector{Symbol})
     error("Could not locate any of these shocks: $(candidates)")
 end
 
-function convenience_yield(m, states_mat, pseudo_mat, cy_state_names)
-    missing_states = [
-        sym for sym in cy_state_names
-        if !(haskey(m.endogenous_states, sym) || haskey(m.endogenous_states_augmented, sym))
-    ]
-    isempty(missing_states) || error("Convenience-yield state(s) not found: $(missing_states)")
+has_model_series(m, sym::Symbol) =
+    haskey(m.endogenous_states, sym) || haskey(m.endogenous_states_augmented, sym)
 
-    cy = model_series(m, states_mat, nothing, pseudo_mat, cy_state_names[1])
-    for sym in cy_state_names[2:end]
-        cy = cy .+ model_series(m, states_mat, nothing, pseudo_mat, sym)
+function convenience_yield_drift(m)
+    return 100 * log(m[:lnb_liq]) + 100 * log(m[:lnb_safe])
+end
+
+function convenience_yield(m, states_mat, pseudo_mat)
+    if has_model_series(m, :b_liq_t) && has_model_series(m, :b_safe_t)
+        cy = model_series(m, states_mat, nothing, pseudo_mat, :b_liq_t)
+        cy .+= model_series(m, states_mat, nothing, pseudo_mat, :b_safe_t)
+    else
+        missing_states = [
+            sym for sym in cy_component_state_names if !has_model_series(m, sym)
+        ]
+        isempty(missing_states) || error("Convenience-yield state(s) not found: $(missing_states)")
+
+        cy = model_series(m, states_mat, nothing, pseudo_mat, cy_component_state_names[1])
+        for sym in cy_component_state_names[2:end]
+            cy .+= model_series(m, states_mat, nothing, pseudo_mat, sym)
+        end
     end
-    return cy
+
+    return cy .+ convenience_yield_drift(m)
 end
 
 function replace_shock_block(base_shocks, m, shock_names, shock_vals)
@@ -223,7 +237,7 @@ inflation_sym = first_available_series(m_EA, df_EA, [:obs_corepce, :obs_gdpdefla
 mu_shock_name = first_available_shock(m_EA, mu_shock_candidates)
 mu_shock_names = [mu_shock_name]
 
-cy_base_raw = convenience_yield(m_EA, states_EA, pseudo_EA, cy_state_names)
+cy_base_raw = convenience_yield(m_EA, states_EA, pseudo_EA)
 long_base_raw = baseline_series(m_EA, df_EA, states_EA, pseudo_EA, longrate_sym)
 policy_base_raw = baseline_series(m_EA, df_EA, states_EA, pseudo_EA, :obs_nominalrate)
 infl_base_raw = baseline_series(m_EA, df_EA, states_EA, pseudo_EA, inflation_sym)
@@ -260,8 +274,8 @@ states_zero_mu, obs_zero_mu, pseudo_zero_mu =
 states_zero_cy_zero_mu, obs_zero_cy_zero_mu, pseudo_zero_cy_zero_mu =
     forecast(system_EA, collect(anchor_state), zero_cy_zero_mu_shocks_tail)
 
-cy_actual_tail = convenience_yield(m_EA, states_actual, pseudo_actual, cy_state_names)
-cy_zero_cy_tail = convenience_yield(m_EA, states_zero_cy, pseudo_zero_cy, cy_state_names)
+cy_actual_tail = convenience_yield(m_EA, states_actual, pseudo_actual)
+cy_zero_cy_tail = convenience_yield(m_EA, states_zero_cy, pseudo_zero_cy)
 cy_zero_cy_raw = apply_counterfactual_tail(cy_base_raw, cy_actual_tail, cy_zero_cy_tail; anchor_idx = anchor_idx)
 
 long_zero_cy_raw = apply_counterfactual_tail(

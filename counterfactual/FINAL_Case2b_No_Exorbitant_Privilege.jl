@@ -254,18 +254,34 @@ end
 
 const convenience_yield_state_names = [:b_liqtil_t, :b_liqp_t, :b_safetil_t, :b_safep_t]
 
-function _get_convenience_yield_series(m, states_mat, obs_mat, pseudo_mat)
-    missing_states = [
-        sym for sym in convenience_yield_state_names
-        if !(haskey(m.endogenous_states, sym) || haskey(m.endogenous_states_augmented, sym))
-    ]
-    isempty(missing_states) || error("Convenience-yield state(s) not found in model: $(missing_states)")
+_has_state_series(m, sym::Symbol) =
+    haskey(m.endogenous_states, sym) || haskey(m.endogenous_states_augmented, sym)
 
-    cy_series = _get_series(m, states_mat, obs_mat, pseudo_mat, convenience_yield_state_names[1])
-    for sym in convenience_yield_state_names[2:end]
-        cy_series = cy_series .+ _get_series(m, states_mat, obs_mat, pseudo_mat, sym)
+function _get_convenience_yield_drift(m)
+    return 100 * log(m[:lnb_liq]) + 100 * log(m[:lnb_safe])
+end
+
+function _sum_state_series(m, states_mat, obs_mat, pseudo_mat, syms::Vector{Symbol})
+    sum_series = _get_series(m, states_mat, obs_mat, pseudo_mat, syms[1])
+    for sym in syms[2:end]
+        sum_series .+= _get_series(m, states_mat, obs_mat, pseudo_mat, sym)
     end
-    return cy_series
+    return sum_series
+end
+
+function _get_convenience_yield_series(m, states_mat, obs_mat, pseudo_mat)
+    if _has_state_series(m, :b_liq_t) && _has_state_series(m, :b_safe_t)
+        cy_series = _get_series(m, states_mat, obs_mat, pseudo_mat, :b_liq_t)
+        cy_series .+= _get_series(m, states_mat, obs_mat, pseudo_mat, :b_safe_t)
+    else
+        missing_states = [
+            sym for sym in convenience_yield_state_names if !_has_state_series(m, sym)
+        ]
+        isempty(missing_states) || error("Convenience-yield state(s) not found in model: $(missing_states)")
+
+        cy_series = _sum_state_series(m, states_mat, obs_mat, pseudo_mat, convenience_yield_state_names)
+    end
+    return cy_series .+ _get_convenience_yield_drift(m)
 end
 
 function _get_long_rate_series(m, states_mat, obs_mat, pseudo_mat)
@@ -639,32 +655,6 @@ function _ep_get_delta_series(m, states_delta, obs_delta, pseudo_delta, sym::Sym
     end
 end
 
-function _ep_resolve_convenience_yield(m)
-    missing_states = [
-        sym for sym in convenience_yield_state_names
-        if !(haskey(m.endogenous_states, sym) || haskey(m.endogenous_states_augmented, sym))
-    ]
-    isempty(missing_states) || error("Convenience-yield state(s) not found in model: $(missing_states)")
-
-    return convenience_yield_state_names
-end
-
-function _ep_get_baseline_sum_series(m, df_aligned::DataFrame, states_sm, pseudo_sm, syms::Vector{Symbol})
-    sum_series = _ep_get_baseline_series(m, df_aligned, states_sm, pseudo_sm, syms[1])
-    for sym in syms[2:end]
-        sum_series = sum_series .+ _ep_get_baseline_series(m, df_aligned, states_sm, pseudo_sm, sym)
-    end
-    return sum_series
-end
-
-function _ep_get_delta_sum_series(m, states_delta, obs_delta, pseudo_delta, syms::Vector{Symbol})
-    sum_series = _ep_get_delta_series(m, states_delta, obs_delta, pseudo_delta, syms[1])
-    for sym in syms[2:end]
-        sum_series = sum_series .+ _ep_get_delta_series(m, states_delta, obs_delta, pseudo_delta, sym)
-    end
-    return sum_series
-end
-
 function _ep_resolve_long_rate(m)
     candidates = [
         :obs_longrate, :obs_long_rate, :longrate, :LongRate,
@@ -729,7 +719,6 @@ privilege_shock_vals_EA_ep = convert(Matrix, shocks_df[smoother][idx_EA_ep, priv
 # -------------------------
 # Resolve plotted variables
 # -------------------------
-cy_symbols_ep = _ep_resolve_convenience_yield(m1)
 longrate_sym_ep = _ep_resolve_long_rate(m1)
 
 # -------------------------
@@ -754,13 +743,7 @@ pseudo_US_common_ep = pseudo_US_sm_ep[:, idx_US_ep]
 # -------------------------
 
 # Convenience yield
-cy_base_raw_ep = _ep_get_baseline_sum_series(
-    m1,
-    df_US_common_ep,
-    states_US_common_ep,
-    pseudo_US_common_ep,
-    cy_symbols_ep
-)
+cy_base_raw_ep = _get_convenience_yield_series(m1, states_US_common_ep, nothing, pseudo_US_common_ep)
 
 # Long rate
 long_base_raw_ep = _ep_get_baseline_series(m1, df_US_common_ep, states_US_common_ep, pseudo_US_common_ep, longrate_sym_ep)
@@ -796,9 +779,9 @@ states_actual_ep, obs_actual_ep, pseudo_actual_ep = _forecast_us_from_anchor(sys
 states_remove_US_ep, obs_remove_US_ep, pseudo_remove_US_ep = _forecast_us_from_anchor(system_US, anchor_state_US_ep, zero_privilege_tail_ep)
 states_cf_ep, obs_cf_ep, pseudo_cf_ep             = _forecast_us_from_anchor(system_US, anchor_state_US_ep, ea_privilege_tail_ep)
 
-cy_actual_raw_tail_ep = _ep_get_delta_sum_series(m1, states_actual_ep, obs_actual_ep, pseudo_actual_ep, cy_symbols_ep)
-cy_remove_raw_tail_ep = _ep_get_delta_sum_series(m1, states_remove_US_ep, obs_remove_US_ep, pseudo_remove_US_ep, cy_symbols_ep)
-cy_cf_raw_tail_ep = _ep_get_delta_sum_series(m1, states_cf_ep, obs_cf_ep, pseudo_cf_ep, cy_symbols_ep)
+cy_actual_raw_tail_ep = _get_convenience_yield_series(m1, states_actual_ep, obs_actual_ep, pseudo_actual_ep)
+cy_remove_raw_tail_ep = _get_convenience_yield_series(m1, states_remove_US_ep, obs_remove_US_ep, pseudo_remove_US_ep)
+cy_cf_raw_tail_ep = _get_convenience_yield_series(m1, states_cf_ep, obs_cf_ep, pseudo_cf_ep)
 
 cy_remove_raw_ep = _apply_counterfactual_tail(
     cy_base_raw_ep,
@@ -1157,47 +1140,103 @@ end
 ## APPENDED: EXPORT FULL-SAMPLE CONVENIENCE YIELD SERIES FOR US AND EA
 ##########################################################################################
 
-# Resolve convenience-yield symbols in each model
-cy_symbols_EA_ep = _ep_resolve_convenience_yield(m)
-cy_symbols_US_ep = _ep_resolve_convenience_yield(m1)
-
 # EA full-sample convenience yield
 df_EA_full_ep = df[end-size(states[smoother], 2)+1:end, :]
 states_EA_full_ep = states[smoother]
 pseudo_EA_full_ep = pseudo[smoother]
 dates_EA_full_ep = df_EA_full_ep.date
 
-cy_EA_full_ep = _ep_get_baseline_sum_series(
-    m,
-    df_EA_full_ep,
-    states_EA_full_ep,
-    
-    pseudo_EA_full_ep,
-    cy_symbols_EA_ep
-)
+cy_EA_full_ep = _get_convenience_yield_series(m, states_EA_full_ep, nothing, pseudo_EA_full_ep)
+ea_b_liqtil_full_ep  = _get_series(m, states_EA_full_ep, nothing, nothing, :b_liqtil_t)
+ea_b_liqp_full_ep    = _get_series(m, states_EA_full_ep, nothing, nothing, :b_liqp_t)
+ea_b_safetil_full_ep = _get_series(m, states_EA_full_ep, nothing, nothing, :b_safetil_t)
+ea_b_safep_full_ep   = _get_series(m, states_EA_full_ep, nothing, nothing, :b_safep_t)
+ea_liquidity_state_total_full_ep = ea_b_liqtil_full_ep .+ ea_b_liqp_full_ep
+ea_safety_state_total_full_ep = ea_b_safetil_full_ep .+ ea_b_safep_full_ep
+ea_cy_state_total_full_ep = ea_liquidity_state_total_full_ep .+ ea_safety_state_total_full_ep
+ea_liquidity_trend_full_ep = fill(100 * log(m[:lnb_liq]), length(dates_EA_full_ep))
+ea_safety_trend_full_ep = fill(100 * log(m[:lnb_safe]), length(dates_EA_full_ep))
+ea_cy_trend_full_ep = ea_liquidity_trend_full_ep .+ ea_safety_trend_full_ep
+ea_liquidity_cy_full_ep = ea_liquidity_state_total_full_ep .+ ea_liquidity_trend_full_ep
+ea_safety_cy_full_ep = ea_safety_state_total_full_ep .+ ea_safety_trend_full_ep
 
 # US full-sample convenience yield
-cy_US_full_ep = _ep_get_baseline_sum_series(
-    m1,
-    df_US_aligned_ep,
-    states_US_sm_ep,
-    pseudo_US_sm_ep,
-    cy_symbols_US_ep
-)
+cy_US_full_ep = _get_convenience_yield_series(m1, states_US_sm_ep, nothing, pseudo_US_sm_ep)
+us_b_liqtil_full_ep  = _get_series(m1, states_US_sm_ep, nothing, nothing, :b_liqtil_t)
+us_b_liqp_full_ep    = _get_series(m1, states_US_sm_ep, nothing, nothing, :b_liqp_t)
+us_b_safetil_full_ep = _get_series(m1, states_US_sm_ep, nothing, nothing, :b_safetil_t)
+us_b_safep_full_ep   = _get_series(m1, states_US_sm_ep, nothing, nothing, :b_safep_t)
+us_liquidity_state_total_full_ep = us_b_liqtil_full_ep .+ us_b_liqp_full_ep
+us_safety_state_total_full_ep = us_b_safetil_full_ep .+ us_b_safep_full_ep
+us_cy_state_total_full_ep = us_liquidity_state_total_full_ep .+ us_safety_state_total_full_ep
+us_liquidity_trend_full_ep = fill(100 * log(m1[:lnb_liq]), length(dates_US_ep))
+us_safety_trend_full_ep = fill(100 * log(m1[:lnb_safe]), length(dates_US_ep))
+us_cy_trend_full_ep = us_liquidity_trend_full_ep .+ us_safety_trend_full_ep
+us_liquidity_cy_full_ep = us_liquidity_state_total_full_ep .+ us_liquidity_trend_full_ep
+us_safety_cy_full_ep = us_safety_state_total_full_ep .+ us_safety_trend_full_ep
 
 # Optional APR versions
 cy_EA_full_apr_ep = 4 .* cy_EA_full_ep
 cy_US_full_apr_ep = 4 .* cy_US_full_ep
+ea_cy_state_total_full_apr_ep = 4 .* ea_cy_state_total_full_ep
+us_cy_state_total_full_apr_ep = 4 .* us_cy_state_total_full_ep
+ea_cy_trend_full_apr_ep = 4 .* ea_cy_trend_full_ep
+us_cy_trend_full_apr_ep = 4 .* us_cy_trend_full_ep
+ea_liquidity_cy_full_apr_ep = 4 .* ea_liquidity_cy_full_ep
+ea_safety_cy_full_apr_ep = 4 .* ea_safety_cy_full_ep
+us_liquidity_cy_full_apr_ep = 4 .* us_liquidity_cy_full_ep
+us_safety_cy_full_apr_ep = 4 .* us_safety_cy_full_ep
+ea_liquidity_state_total_full_apr_ep = 4 .* ea_liquidity_state_total_full_ep
+us_liquidity_state_total_full_apr_ep = 4 .* us_liquidity_state_total_full_ep
+ea_liquidity_trend_full_apr_ep = 4 .* ea_liquidity_trend_full_ep
+us_liquidity_trend_full_apr_ep = 4 .* us_liquidity_trend_full_ep
+ea_b_liqtil_full_apr_ep = 4 .* ea_b_liqtil_full_ep
+us_b_liqtil_full_apr_ep = 4 .* us_b_liqtil_full_ep
+ea_b_liqp_full_apr_ep = 4 .* ea_b_liqp_full_ep
+us_b_liqp_full_apr_ep = 4 .* us_b_liqp_full_ep
+ea_safety_state_total_full_apr_ep = 4 .* ea_safety_state_total_full_ep
+us_safety_state_total_full_apr_ep = 4 .* us_safety_state_total_full_ep
+ea_safety_trend_full_apr_ep = 4 .* ea_safety_trend_full_ep
+us_safety_trend_full_apr_ep = 4 .* us_safety_trend_full_ep
+ea_b_safetil_full_apr_ep = 4 .* ea_b_safetil_full_ep
+us_b_safetil_full_apr_ep = 4 .* us_b_safetil_full_ep
+ea_b_safep_full_apr_ep = 4 .* ea_b_safep_full_ep
+us_b_safep_full_apr_ep = 4 .* us_b_safep_full_ep
 
-# Export as one CSV with full samples preserved
+# Export as one CSV with full samples preserved, APR-only. Within each model
+# block, the grouped columns add up cleanly and the overall total is last.
 df_cy_EA_ep = DataFrame(Date = dates_EA_full_ep,
-                        ConvenienceYield_EA = cy_EA_full_ep,
+                        LiquidityTransitory_EA_APR = ea_b_liqtil_full_apr_ep,
+                        LiquidityPermanent_EA_APR = ea_b_liqp_full_apr_ep,
+                        LiquidityStateTotal_EA_APR = ea_liquidity_state_total_full_apr_ep,
+                        LiquidityTrend_EA_APR = ea_liquidity_trend_full_apr_ep,
+                        LiquidityConvenienceYield_EA_APR = ea_liquidity_cy_full_apr_ep,
+                        SafetyTransitory_EA_APR = ea_b_safetil_full_apr_ep,
+                        SafetyPermanent_EA_APR = ea_b_safep_full_apr_ep,
+                        SafetyStateTotal_EA_APR = ea_safety_state_total_full_apr_ep,
+                        SafetyTrend_EA_APR = ea_safety_trend_full_apr_ep,
+                        SafetyConvenienceYield_EA_APR = ea_safety_cy_full_apr_ep,
+                        ConvenienceYieldStateTotal_EA_APR = ea_cy_state_total_full_apr_ep,
+                        ConvenienceYieldTrend_EA_APR = ea_cy_trend_full_apr_ep,
                         ConvenienceYield_EA_APR = cy_EA_full_apr_ep)
 
 df_cy_US_ep = DataFrame(Date = dates_US_ep,
-                        ConvenienceYield_US = cy_US_full_ep,
+                        LiquidityTransitory_US_APR = us_b_liqtil_full_apr_ep,
+                        LiquidityPermanent_US_APR = us_b_liqp_full_apr_ep,
+                        LiquidityStateTotal_US_APR = us_liquidity_state_total_full_apr_ep,
+                        LiquidityTrend_US_APR = us_liquidity_trend_full_apr_ep,
+                        LiquidityConvenienceYield_US_APR = us_liquidity_cy_full_apr_ep,
+                        SafetyTransitory_US_APR = us_b_safetil_full_apr_ep,
+                        SafetyPermanent_US_APR = us_b_safep_full_apr_ep,
+                        SafetyStateTotal_US_APR = us_safety_state_total_full_apr_ep,
+                        SafetyTrend_US_APR = us_safety_trend_full_apr_ep,
+                        SafetyConvenienceYield_US_APR = us_safety_cy_full_apr_ep,
+                        ConvenienceYieldStateTotal_US_APR = us_cy_state_total_full_apr_ep,
+                        ConvenienceYieldTrend_US_APR = us_cy_trend_full_apr_ep,
                         ConvenienceYield_US_APR = cy_US_full_apr_ep)
 
 df_cy_full_ep = join(df_cy_EA_ep, df_cy_US_ep, on = :Date,  kind = :outer)
 
 CSV.write(joinpath(saveroot, "Final Paper", "Figures", "ConvenienceYield_fullsample_US_EA.csv"), df_cy_full_ep)
+
+

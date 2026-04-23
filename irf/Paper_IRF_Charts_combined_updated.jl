@@ -1482,6 +1482,223 @@ export_series_xlsx(
     )
 )
 
+#########################################################################
+# ADDED: Permanent vs transitory liquidity/safety interest-rate-peg charts
+# These are appended versions only; the existing charts above are unchanged.
+# The comparison figures below constrain the policy rate only during the
+# peg window and leave it unconstrained afterward.
+#########################################################################
+
+function build_ss20_mode_model()
+    m_local = Model1010("ss20")
+    m_local <= DSGE.Setting(:data_vintage, "250825")
+    params_mode_local = load_draws(m_local, :mode)
+    DSGE.update!(m_local, params_mode_local)
+    DSGE.steadystate!(m_local)
+    mode_file_local = joinpath(datafolder, "m1010", "ss20", "estimate", "raw", "paramsmode_vint=250825.h5")
+    specify_mode!(m_local, mode_file_local)
+    return m_local
+end
+
+function compute_single_shock_interest_rate_peg(shock_name::Symbol; solve_periods::Int=peg_horizon)
+    m_local = build_ss20_mode_model()
+    system_local = DSGE.zero_system_constants(compute_system(m_local))
+
+    desired_path = fill(-1.0 / 4, solve_periods)
+    exo = m_local.exogenous_shocks
+
+    nstates = size(system_local[:TTT], 1)
+    nobs = size(system_local[:ZZ], 1)
+    npseudo = size(system_local[:ZZ_pseudo], 1)
+    nshocks = size(system_local[:RRR], 2)
+
+    states_local = zeros(nstates, horizon, nshocks)
+    obs_local = zeros(nobs, horizon, nshocks)
+    pseudo_local = zeros(npseudo, horizon, nshocks)
+    shocks_local = zeros(nshocks, horizon)
+    s_0_local = zeros(nstates)
+
+    for t = 1:solve_periods
+        var_value_att = desired_path[t] - obs_local[m_local.observables[:obs_nominalrate], t, exo[shock_name]]
+        shocks_local[exo[shock_name], t] = DSGE.obtain_shock_from_desired_obs_value(
+            var_value_att,
+            m_local.observables[:obs_nominalrate],
+            exo[shock_name],
+            system_local[:ZZ],
+            system_local[:RRR]
+        )
+
+        states_local[:, :, exo[shock_name]], obs_local[:, :, exo[shock_name]], pseudo_local[:, :, exo[shock_name]], _ =
+            forecast(system_local, s_0_local, shocks_local)
+    end
+
+    return (
+        model = m_local,
+        shock_name = shock_name,
+        shocks = shocks_local,
+        states = states_local,
+        obs = obs_local,
+        pseudo = pseudo_local,
+    )
+end
+
+function padded_ylim(values; min_pad::Float64=0.01)
+    vmin = minimum(values)
+    vmax = maximum(values)
+    pad = max(min_pad, 0.10 * (vmax - vmin))
+    return (vmin - pad, vmax + pad)
+end
+
+function add_two_line_panel!(p, xvals, perm_vals, trans_vals, title_text, ylims_value)
+    plot!(p, xvals, perm_vals,
+        color = excel_dark_red,
+        lw = 2,
+        label = "")
+    plot!(p, xvals, trans_vals,
+        color = excel_orange,
+        lw = 2,
+        label = "")
+    plot!(p, xvals, zeros(length(xvals)),
+        lc = :black,
+        lw = 2,
+        label = "")
+    title!(p, title_text)
+    ylabel!(p, "%")
+    xlabel!(p, "Quarter")
+    ylims!(p, ylims_value)
+    xticks!(p, my_xticks)
+    xlims!(p, (1, 20))
+    return p
+end
+
+function make_perm_trans_interest_rate_peg_figure(
+    perm_bundle,
+    trans_bundle;
+    first_panel_title::String,
+    pdf_filename::String,
+)
+    x0 = 1:horizon
+    idx_plot = 1:7
+    idx_plot_x = 1:7
+    panel1_xticks = [1, 2, 4, 6, 8, 10]
+
+    perm_shock_path = perm_bundle.shocks[perm_bundle.model.exogenous_shocks[perm_bundle.shock_name], idx_plot] .* 4
+    trans_shock_path = trans_bundle.shocks[trans_bundle.model.exogenous_shocks[trans_bundle.shock_name], idx_plot] .* 4
+    shock_ylim = padded_ylim(vcat(perm_shock_path, trans_shock_path, [0.0]); min_pad=0.05)
+
+    perm_inflation_path = perm_bundle.obs[perm_bundle.model.observables[:obs_corepce], :, perm_bundle.model.exogenous_shocks[perm_bundle.shock_name]] .* 4
+    trans_inflation_path = trans_bundle.obs[trans_bundle.model.observables[:obs_corepce], :, trans_bundle.model.exogenous_shocks[trans_bundle.shock_name]] .* 4
+    inflation_ylim = padded_ylim(vcat(perm_inflation_path, trans_inflation_path, [0.0]); min_pad=0.01)
+
+    p1 = plot(
+        idx_plot_x,
+        perm_shock_path,
+        seriestype = :scatter,
+        marker = :star5,
+        markersize = 6,
+        markercolor = excel_dark_red,
+        markerstrokecolor = excel_dark_red,
+        title = first_panel_title,
+        label = "Permanent",
+        xticks = panel1_xticks,
+        ylims = shock_ylim,
+    )
+    plot!(p1,
+        idx_plot_x,
+        trans_shock_path,
+        seriestype = :scatter,
+        marker = :star5,
+        markersize = 6,
+        markercolor = excel_orange,
+        markerstrokecolor = excel_orange,
+        label = "Transitory")
+    plot!(p1, x0, zeros(horizon), lc = :black, lw = 2, label = "")
+    ylabel!(p1, "%")
+    xlabel!(p1, "Quarter")
+    xlims!(p1, (1, 10))
+    plot!(p1, legend = first_panel_legend_pos)
+
+    p2 = plot()
+    add_two_line_panel!(
+        p2,
+        x0,
+        perm_bundle.obs[perm_bundle.model.observables[:obs_nominalrate], :, perm_bundle.model.exogenous_shocks[perm_bundle.shock_name]] .* 4,
+        trans_bundle.obs[trans_bundle.model.observables[:obs_nominalrate], :, trans_bundle.model.exogenous_shocks[trans_bundle.shock_name]] .* 4,
+        shared_response_titles[1],
+        panel_ylim(2),
+    )
+
+    p3 = plot()
+    add_two_line_panel!(
+        p3,
+        x0,
+        perm_inflation_path,
+        trans_inflation_path,
+        shared_response_titles[2],
+        inflation_ylim,
+    )
+
+    p4 = plot()
+    add_two_line_panel!(
+        p4,
+        x0,
+        perm_bundle.states[perm_bundle.model.endogenous_states[:y_t], :, perm_bundle.model.exogenous_shocks[perm_bundle.shock_name]] .* 4,
+        trans_bundle.states[trans_bundle.model.endogenous_states[:y_t], :, trans_bundle.model.exogenous_shocks[trans_bundle.shock_name]] .* 4,
+        shared_response_titles[3],
+        panel_ylim(4),
+    )
+
+    p5 = plot()
+    add_two_line_panel!(
+        p5,
+        x0,
+        perm_bundle.pseudo[perm_bundle.model.pseudo_observables[:Forward5YearRealNaturalRate], :, perm_bundle.model.exogenous_shocks[perm_bundle.shock_name]] .* 4,
+        trans_bundle.pseudo[trans_bundle.model.pseudo_observables[:Forward5YearRealNaturalRate], :, trans_bundle.model.exogenous_shocks[trans_bundle.shock_name]] .* 4,
+        shared_response_titles[4],
+        panel_ylim(6),
+    )
+
+    p6 = plot()
+    add_two_line_panel!(
+        p6,
+        x0,
+        perm_bundle.pseudo[perm_bundle.model.pseudo_observables[:ExAnteRealRate], :, perm_bundle.model.exogenous_shocks[perm_bundle.shock_name]] .* 4,
+        trans_bundle.pseudo[trans_bundle.model.pseudo_observables[:ExAnteRealRate], :, trans_bundle.model.exogenous_shocks[trans_bundle.shock_name]] .* 4,
+        shared_response_titles[5],
+        panel_ylim(6),
+    )
+
+    p_compare = plot(
+        p1, p2, p3, p4, p5, p6,
+        layout = shared_figure_layout,
+        size = shared_figure_size,
+    )
+
+    pdf_path = joinpath(figures_dir, pdf_filename)
+    savefig(p_compare, pdf_path)
+    return p_compare
+end
+
+perm_liq_bundle = compute_single_shock_interest_rate_peg(:b_liqp_sh)
+trans_liq_bundle = compute_single_shock_interest_rate_peg(:b_liqtil_sh)
+
+p_perm_trans_liq = make_perm_trans_interest_rate_peg_figure(
+    perm_liq_bundle,
+    trans_liq_bundle;
+    first_panel_title = "Permanent and Transitory Liquidity Innovations (APR)",
+    pdf_filename = "IRF_rate_peg_with_permanent_and_transitory_liquidity_shocks_period0.pdf",
+)
+
+perm_safe_bundle = compute_single_shock_interest_rate_peg(:b_safep_sh)
+trans_safe_bundle = compute_single_shock_interest_rate_peg(:b_safetil_sh)
+
+p_perm_trans_safe = make_perm_trans_interest_rate_peg_figure(
+    perm_safe_bundle,
+    trans_safe_bundle;
+    first_panel_title = "Permanent and Transitory Safety Innovations (APR)",
+    pdf_filename = "IRF_rate_peg_with_permanent_and_transitory_safety_shocks_period0.pdf",
+)
+
 
 
 
