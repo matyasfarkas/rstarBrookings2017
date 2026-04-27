@@ -3,7 +3,7 @@
 1 0 obj
 <<
 /Creator (GKS)
-/CreationDate (D:20260423153050)
+/CreationDate (D:20260427110958)
 /Producer (GKS 5 PDF driver)
 >>
 endobj
@@ -55,7 +55,7 @@ endstream
 endobj
 6 0 obj
 <<
-/Length 53845
+/Length 53865
 >>
 stream
 0.00 0.00 m
@@ -762,7 +762,7 @@ S
 BT
 /F4 18 Tf
 175.73 918.63 Td
-(US baseline) Tj
+(US - Actual) Tj
 ET
 [16 8 2 8] 0 d
 2 w
@@ -796,7 +796,7 @@ S
 BT
 /F4 18 Tf
 175.73 873.27 Td
-(Counterfactual) Tj
+(Counterfactual - EA CY innovations) Tj
 ET
 /GS255 gs
 1 1 1 rg
@@ -3966,8 +3966,8 @@ xref
 0000000224 00000 n 
 0000000359 00000 n 
 0000000599 00000 n 
-0000054496 00000 n 
-0000055688 00000 n 
+0000054516 00000 n 
+0000055708 00000 n 
 0000000281 00000 n 
 trailer
 <<
@@ -3976,5 +3976,5 @@ trailer
 /Info 1 0 R
 >>
 startxref
-55861
+55881
 %%EOF

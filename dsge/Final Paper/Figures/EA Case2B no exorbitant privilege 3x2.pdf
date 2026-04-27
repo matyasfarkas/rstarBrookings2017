@@ -3,7 +3,7 @@
 1 0 obj
 <<
 /Creator (GKS)
-/CreationDate (D:20260423152821)
+/CreationDate (D:20260427111100)
 /Producer (GKS 5 PDF driver)
 >>
 endobj
@@ -521,8 +521,8 @@ q
 h
 W n
 73.93 879.77 m
-386.53 879.77 l
-386.53 947.81 l
+388.06 879.77 l
+388.06 947.81 l
 73.93 947.81 l
 f*
 Q
@@ -531,8 +531,8 @@ Q
 /GS255 gs
 0 0 0 RG
 73.93 879.77 m
-386.53 879.77 l
-386.53 947.81 l
+388.06 879.77 l
+388.06 947.81 l
 73.93 947.81 l
 73.93 879.77 l
 S
@@ -551,7 +551,7 @@ S
 BT
 /F4 18 Tf
 169.93 918.63 Td
-(EA baseline) Tj
+(EA - Actual) Tj
 ET
 [16 8 2 8] 0 d
 2 w
@@ -568,7 +568,7 @@ S
 BT
 /F4 18 Tf
 169.93 895.95 Td
-(EA with zero CY shocks) Tj
+(EA - No CY innovations) Tj
 ET
 /GS255 gs
 1 1 1 rg

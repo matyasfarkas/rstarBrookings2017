@@ -476,7 +476,7 @@ p_cy = plot(
     dates_plot, cy_US,
     color = :black, lw = 2, linestyle = :solid,
     title = "Convenience yield",
-    label = "US baseline",
+    label = "US - Actual",
     xticks = (year_tick_dates, year_tick_labels)
 )
 plot!(p_cy, dates_plot, cy_remove_US, color = :red, lw = 2, linestyle = :dashdot, label = "US excluding matched privilege shocks")
@@ -486,7 +486,7 @@ plot!(
     p_cy,
     dates_plot, cy_CF,
     color = :blue, lw = 2,
-    label = "Counterfactual",
+    label = "Counterfactual - EA CY innovations",
     xticks = (year_tick_dates, year_tick_labels)
 )
 plot!(p_cy, legend = first_panel_legend_pos)
@@ -874,20 +874,20 @@ p_cy_ep = plot(
     dates_plot_ep[mask_plot_ep], cy_base_ep[mask_plot_ep],
     color = :black, lw = 2, linestyle = :solid,
     title = "Convenience yield (APR)",
-    label = "US baseline",
+    label = "US - Actual",
     xticks = (year_tick_dates_ep, year_tick_labels_ep)
 )
 plot!(
     p_cy_ep,
     dates_plot_ep[mask_plot_ep], cy_remove_cf_ep[mask_plot_ep],
     color = :red, lw = 2, linestyle = :dashdot,
-    label = "US - No CY shocks"
+    label = "US - No CY innovations"
 )
 plot!(
     p_cy_ep,
     dates_plot_ep[mask_plot_ep], cy_cf_ep[mask_plot_ep],
     color = :blue, lw = 2, linestyle = :dash,
-    label = "Counterfactual"
+    label = "Counterfactual - EA CY innovations"
 )
 plot!(p_cy_ep, legend = first_panel_legend_pos)
 

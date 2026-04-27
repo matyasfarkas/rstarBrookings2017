@@ -197,7 +197,7 @@ function make_panel(dates_plot, baseline, zero_cy, title, xticks; show_legend = 
         lw = 2,
         linestyle = :solid,
         title = title,
-        label = show_legend ? "EA baseline" : "",
+        label = show_legend ? "EA - Actual" : "",
         xticks = xticks,
     )
     plot!(
@@ -207,7 +207,7 @@ function make_panel(dates_plot, baseline, zero_cy, title, xticks; show_legend = 
         color = :red,
         lw = 2,
         linestyle = :dashdot,
-        label = show_legend ? "EA with zero CY shocks" : "",
+        label = show_legend ? "EA - No CY innovations" : "",
     )
     show_legend && plot!(p, legend = first_panel_legend_pos)
     return p
