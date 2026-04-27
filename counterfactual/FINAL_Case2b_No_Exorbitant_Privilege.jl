@@ -889,7 +889,12 @@ plot!(
     color = :blue, lw = 2, linestyle = :dash,
     label = "Counterfactual - EA CY innovations"
 )
-plot!(p_cy_ep, legend = first_panel_legend_pos)
+plot!(
+    p_cy_ep,
+    legend = first_panel_legend_pos,
+    background_color_legend = :transparent,
+    foreground_color_legend = :transparent,
+)
 
 p_long_ep = plot(
     dates_plot_ep[mask_plot_ep], long_base_ep[mask_plot_ep],
