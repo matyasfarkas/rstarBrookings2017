@@ -1243,5 +1243,3 @@ df_cy_US_ep = DataFrame(Date = dates_US_ep,
 df_cy_full_ep = join(df_cy_EA_ep, df_cy_US_ep, on = :Date,  kind = :outer)
 
 CSV.write(joinpath(saveroot, "Final Paper", "Figures", "ConvenienceYield_fullsample_US_EA.csv"), df_cy_full_ep)
-
-
