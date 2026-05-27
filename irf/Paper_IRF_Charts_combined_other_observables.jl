@@ -16,6 +16,8 @@ peg_horizon = 6
 target_policy_rate = -1.0 / 4.0
 plot_quarters = 1:horizon
 xticks_20q = [1, 4, 8, 12, 16, 20]
+policy_legend_pos = (0.70, 0.96)
+liquidity_legend_pos = (0.70, 0.08)
 
 plotvars = [
     :obs_nominalrate,
@@ -184,7 +186,7 @@ function compute_liquidity_instrument_paths(m, system)
     ]
 end
 
-function make_2x2_other_observables_figure(series_specs; title_prefix::String = "")
+function make_2x2_other_observables_figure(series_specs; legend_pos, title_prefix::String = "")
     p = plot(layout = (2, 2), size = (1150, 760))
 
     for panel in 1:length(plotvars)
@@ -197,7 +199,7 @@ function make_2x2_other_observables_figure(series_specs; title_prefix::String = 
                 color = spec.color,
                 lw = 2.5,
                 label = panel == 1 ? spec.label : "",
-                legend = panel == 1 ? :topright : false,
+                legend = panel == 1 ? legend_pos : false,
                 xticks = xticks_20q,
             )
         end
@@ -206,7 +208,7 @@ function make_2x2_other_observables_figure(series_specs; title_prefix::String = 
             color = :black,
             lw = 1,
             label = "",
-            legend = panel == 1 ? :topright : false,
+            legend = panel == 1 ? legend_pos : false,
             xticks = xticks_20q,
         )
 
@@ -218,7 +220,7 @@ function make_2x2_other_observables_figure(series_specs; title_prefix::String = 
         ylims!(p[panel], padded_ylim(vcat(panel_values, [0.0])))
     end
 
-    plot!(p[1]; legend = :topright)
+    plot!(p[1]; legend = legend_pos)
     return p
 end
 
@@ -239,9 +241,9 @@ for var in plotvars
 end
 
 policy_series = compute_policy_instrument_paths(m, system)
-policy_fig = make_2x2_other_observables_figure(policy_series)
+policy_fig = make_2x2_other_observables_figure(policy_series; legend_pos = policy_legend_pos)
 save_pdf_and_png(policy_fig, "interest_rate_peg_combined_other_observables")
 
 liquidity_series = compute_liquidity_instrument_paths(m, system)
-liquidity_fig = make_2x2_other_observables_figure(liquidity_series)
+liquidity_fig = make_2x2_other_observables_figure(liquidity_series; legend_pos = liquidity_legend_pos)
 save_pdf_and_png(liquidity_fig, "interest_rate_peg_liquidity_other_observables")
