@@ -25,6 +25,10 @@ plotvars = [
     :obs_AAAspread,
     :obs_BBBspread,
 ]
+convenience_yield_var = :ConvenienceYield
+convenience_yield_states = [:b_liqtil_t, :b_liqp_t, :b_safetil_t, :b_safep_t]
+all_pathvars = vcat(plotvars, [convenience_yield_var])
+convenience_yield_col = length(all_pathvars)
 
 panel_titles = [
     "Policy rate (APR)",
@@ -51,6 +55,8 @@ function build_ss20_mode_model()
 end
 
 function assert_model_symbol(m, var::Symbol)
+    var == convenience_yield_var && return nothing
+
     if !(haskey(m.observables, var) || haskey(m.endogenous_states, var) || haskey(m.pseudo_observables, var))
         error("Model variable $(var) was not found in observables, states, or pseudo-observables.")
     end
@@ -60,8 +66,24 @@ function assert_shock_symbol(m, shock::Symbol)
     haskey(m.exogenous_shocks, shock) || error("Model shock $(shock) was not found in exogenous_shocks.")
 end
 
+function assert_convenience_yield_states(m)
+    for state in convenience_yield_states
+        haskey(m.endogenous_states, state) || error("Convenience-yield state $(state) was not found in endogenous_states.")
+    end
+end
+
+function convenience_yield_series(m, states)
+    cy = zeros(horizon)
+    for state in convenience_yield_states
+        cy .+= vec(states[m.endogenous_states[state], 1:horizon])
+    end
+    return cy
+end
+
 function model_series(m, states, obs, pseudo, var::Symbol)
-    if haskey(m.observables, var)
+    if var == convenience_yield_var
+        return convenience_yield_series(m, states)
+    elseif haskey(m.observables, var)
         return vec(obs[m.observables[var], 1:horizon])
     elseif haskey(m.endogenous_states, var)
         return vec(states[m.endogenous_states[var], 1:horizon])
@@ -79,14 +101,19 @@ function forecast_with_shocks(system, shocks)
 end
 
 function path_matrix(m, solution)
-    paths = zeros(horizon, length(plotvars))
-    for (i, var) in enumerate(plotvars)
+    paths = zeros(horizon, length(all_pathvars))
+    for (i, var) in enumerate(all_pathvars)
         paths[:, i] .= model_series(m, solution.states, solution.obs, solution.pseudo, var)
     end
     return paths
 end
 
 apr(paths::AbstractMatrix) = paths .* 4.0
+
+function convenience_yield_rate_loading(m)
+    habit_term = m[:h] * exp(-m[:z_star])
+    return m[:σ_c] * (1.0 + habit_term) / (1.0 - habit_term)
+end
 
 function padded_ylim(values; min_pad::Float64 = 0.05)
     vals = collect(skipmissing(vec(values)))
@@ -127,7 +154,7 @@ function unit_shock_paths(m, system, shock_names::Vector{Symbol})
     end
 
     nshocks_total = size(system[:RRR], 2)
-    paths = zeros(horizon, length(plotvars), length(shock_names))
+    paths = zeros(horizon, length(all_pathvars), length(shock_names))
 
     for (j, shock) in enumerate(shock_names)
         shocks = zeros(nshocks_total, horizon)
@@ -139,7 +166,7 @@ function unit_shock_paths(m, system, shock_names::Vector{Symbol})
     return paths
 end
 
-function solve_news_policy_peg(m, system; base_paths = zeros(horizon, length(plotvars)))
+function solve_news_policy_peg(m, system; base_paths = zeros(horizon, length(all_pathvars)))
     news_shocks = [:rm_shl1, :rm_shl2, :rm_shl3, :rm_shl4, :rm_shl5, :rm_shl6]
     irfmat = unit_shock_paths(m, system, news_shocks)
 
@@ -224,6 +251,38 @@ function make_2x2_other_observables_figure(series_specs; legend_pos, title_prefi
     return p
 end
 
+function make_convenience_yield_figure(series_specs; cy_scale, legend_pos, title_text::String)
+    p = plot(size = (850, 500))
+    panel_values = Float64[]
+
+    for spec in series_specs
+        vals = cy_scale .* spec.paths[:, convenience_yield_col]
+        append!(panel_values, vals)
+        plot!(p, plot_quarters, vals;
+            color = spec.color,
+            lw = 2.5,
+            label = spec.label,
+            legend = legend_pos,
+            xticks = xticks_20q,
+        )
+    end
+
+    plot!(p, plot_quarters, zeros(horizon);
+        color = :black,
+        lw = 1,
+        label = "",
+        legend = legend_pos,
+        xticks = xticks_20q,
+    )
+
+    title!(p, title_text)
+    ylabel!(p, "%")
+    xlabel!(p, "Quarter")
+    xlims!(p, (1, horizon))
+    ylims!(p, padded_ylim(vcat(panel_values, [0.0])))
+    return p
+end
+
 function save_pdf_and_png(p, basename_no_ext::AbstractString)
     pdf_path = joinpath(figures_dir, string(basename_no_ext, ".pdf"))
     png_path = joinpath(figures_dir, string(basename_no_ext, ".png"))
@@ -235,15 +294,31 @@ end
 
 m = build_ss20_mode_model()
 system = DSGE.zero_system_constants(compute_system(m))
+cy_scale = convenience_yield_rate_loading(m)
 
 for var in plotvars
     assert_model_symbol(m, var)
 end
+assert_convenience_yield_states(m)
 
 policy_series = compute_policy_instrument_paths(m, system)
 policy_fig = make_2x2_other_observables_figure(policy_series; legend_pos = policy_legend_pos)
 save_pdf_and_png(policy_fig, "interest_rate_peg_combined_other_observables")
+policy_cy_fig = make_convenience_yield_figure(
+    policy_series;
+    cy_scale = cy_scale,
+    legend_pos = policy_legend_pos,
+    title_text = "Convenience yield response to policy-rate peg shocks (short-rate domain, APR)",
+)
+save_pdf_and_png(policy_cy_fig, "interest_rate_peg_combined_convenience_yield")
 
 liquidity_series = compute_liquidity_instrument_paths(m, system)
 liquidity_fig = make_2x2_other_observables_figure(liquidity_series; legend_pos = liquidity_legend_pos)
 save_pdf_and_png(liquidity_fig, "interest_rate_peg_liquidity_other_observables")
+liquidity_cy_fig = make_convenience_yield_figure(
+    liquidity_series;
+    cy_scale = cy_scale,
+    legend_pos = liquidity_legend_pos,
+    title_text = "Convenience yield response to liquidity-shock peg alternatives (short-rate domain, APR)",
+)
+save_pdf_and_png(liquidity_cy_fig, "interest_rate_peg_liquidity_convenience_yield")
