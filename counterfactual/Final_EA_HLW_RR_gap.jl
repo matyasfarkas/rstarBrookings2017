@@ -185,8 +185,7 @@ end
 #------------------------------------------------------------------------------
 
 # Save paths
-idx = findlast(c -> c == '\\', mypath)
-basepath = mypath[1:idx]
+basepath = dirname(@__DIR__)
 datafolder = joinpath(basepath, "dsge", "output_data")
 
 saveroot = dirname(@__FILE__)

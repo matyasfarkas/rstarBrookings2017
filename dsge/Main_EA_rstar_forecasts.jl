@@ -1,4 +1,5 @@
-using DSGE, ClusterManagers, HDF5, Plots, StatsPlots, CSV, DataFrames, Dates,FileIO
+using DSGE, ClusterManagers, HDF5, Plots, StatsPlots, CSV, DataFrames, Dates, FileIO
+using Measures
 
 ##########################################################################################
 ## SETUP
@@ -179,7 +180,7 @@ for i_year in 2021:2025
         temp_vint_df[!, :value] = temp_vint_df.result_val
         select!(temp_vint_df, [:date, :value])
 
-        master_df = join(master_df, temp_vint_df, on = :date, makeunique = true, kind = :left)
+        global master_df = join(master_df, temp_vint_df, on = :date, makeunique = true, kind = :left)
         rename!(master_df, :value => col_name)
 
         println("Processed Vintage: $vint_label")

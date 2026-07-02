@@ -121,7 +121,6 @@ plot!(
 )
 
 display(p)
-C:\Mac\Home\Documents\GitHub\rstarBrookings2017\dsge\Final Paper\Figures    
 savepath_png = joinpath(saveroot, "Final Paper", "Figures", "USrstar_wCB_replication.png")
 savefig(p, savepath_png)
 savepath_pdf = joinpath(saveroot, "Final Paper", "Figures", "USrstar_wCB_replication.pdf")

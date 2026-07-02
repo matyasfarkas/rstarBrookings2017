@@ -186,9 +186,9 @@ df_out = DataFrame(
     Forward5YearRealNaturalRate = pseudo_privilege[m.pseudo_observables[:Forward5YearRealNaturalRate], plotstart:end]
 )
 if use_FG_in_EA
-    CSV.write("Exorbitant_privilege.csv", df_out)
+    CSV.write(joinpath(saveroot, "Final Paper", "Figures", "Exorbitant_privilege.csv"), df_out)
 else
-    CSV.write("Exorbitant_privilege_without_FG_shocks_in_EA.csv", df_out)
+    CSV.write(joinpath(saveroot, "Final Paper", "Figures", "Exorbitant_privilege_without_FG_shocks_in_EA.csv"), df_out)
 end
 
 system10 = compute_system(m)
