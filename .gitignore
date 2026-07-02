@@ -1,6 +1,52 @@
-dsge/output_data/*/*/estimate/work
-dsge/output_data/*/*/estimate/tables
-dsge/output_data/*/*/forecast/raw
-dsge/output_data/*/*/forecast/work
+# Operating-system and editor noise
+.DS_Store
+**/.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+
+# Microsoft Office and LibreOffice lock files
+~$*
+**/~$*
+.~lock.*#
+**/.~lock.*#
+
+# Julia scratch artifacts
+.julia/
+*.ji
+*.cov
+*.mem
+
+# TeX/latexmk intermediate files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+
+# Temporary local work files
+*.bak
+*.tmp
+*.temp
+*.swp
+*.swo
+tmp/
+temp/
+scratch/
+
+# Heavy generated DSGE caches. Already tracked files remain tracked; these
+# patterns only keep new regenerated caches out of future commits.
+dsge/output_data/*/*/estimate/work/
+dsge/output_data/*/*/estimate/tables/
+dsge/output_data/*/*/forecast/raw/
+dsge/output_data/*/*/forecast/work/
+
+# Legacy plotting outputs outside the final paper artifact directories
+plot/Figures*/
 plot/Tables/Bloomberg_rstar_spreads.xlsx
-plot/Figures*
