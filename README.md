@@ -5,6 +5,13 @@ Replication files for
 by Marco del Negro, Domenico Giannone, Marc Giannoni, and Andrea Tambalotti,
 *Brookings Papers on Economic Activity*, Spring 2017: 235-294.
 
+## Related IMF working paper
+
+This fork also contains replication material for *R-stars Across the Atlantic -
+The Role of Policy Expectations* by Matyas Farkas, Zoltan Jakab, and Jesper
+Linde, IMF Working Paper, June 2026. See the `replication` branch for the
+paper-specific replication guide, script map, and smoke-test checklist.
+
 
 ## Updated r* estimates
 
