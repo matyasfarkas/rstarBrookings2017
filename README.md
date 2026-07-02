@@ -1,151 +1,175 @@
-# rstarBrookings2017
+# R-stars Across the Atlantic replication package
 
-Replication files for
-[*Safety, Liquidity, and the Natural Rate of Interest*](https://www.brookings.edu/bpea-articles/safety-liquidity-and-the-natural-rate-of-interest/)
-by Marco del Negro, Domenico Giannone, Marc Giannoni, and Andrea Tambalotti,
-*Brookings Papers on Economic Activity*, Spring 2017: 235-294.
+This branch is a replication-package guide for the IMF Working Paper
+`R-stars Across the Atlantic - The Role of Policy Expectations` by Matyas
+Farkas, Zoltan Jakab, and Jesper Linde, June 2026.
 
+The repository began as the FRBNY/Brookings `rstarBrookings2017` code base and
+has been extended with United States and euro-area model runs, impulse-response
+figures, counterfactuals, Excel chart workbooks, and final paper outputs. This
+README documents the scripts and workbooks needed to reproduce the paper
+artifacts without reorganizing or deleting the existing research files.
 
-## Updated r* estimates
+For the shortest command-only guide, see `REPLICATION.md`. The quickstart was
+smoke-tested on June 30, 2026 with Julia 1.5.0 in the local Windows/Parallels
+environment; all listed scripts completed successfully after the small runtime
+path/scope fixes included on this branch.
 
-The [VAR Excel
-file](https://github.com/FRBNY-DSGE/rstarBrookings2017/blob/master/update/TVAR_Comparison.xlsx)
-contains the original as well as updated estimates of the trends in the real
-return for safe and liquid assets, the convenience yield, and its safety and
-liquidity components computed using the VAR model. The [VAR Vintages
-file](https://github.com/FRBNY-DSGE/rstarBrookings2017/blob/master/update/vintages/TVAR_Rstar_Vintages.xlsx) contains quarterly vintages of the estimates. These are the estimates shown
-in Figures 1 (black lines), 4, and 5 of the paper.  The [DSGE Excel
-file](https://github.com/FRBNY-DSGE/rstarBrookings2017/blob/master/update/DSGE_Rstar_Vintages.xls)
-contains original as well as updated estimates of the 30-year, 10-year, and
-5-year forward r* computed using the DSGE model. These are the estimates shown
-in Figures 1 (blue lines), and 12 of the paper.  The figure below shows updated
-estimates of r* and the liquidity/safety component.
+## What is in scope
 
-<img src="https://raw.githubusercontent.com/FRBNY-DSGE/rstarBrookings2017/master/update/Rstar_Figure.png" width="600">
+The replication package preserves the existing repository contents. The
+intended reproducible path is:
 
+- Run the final Julia scripts listed below to regenerate model-based CSV, PDF,
+  PNG, and XLSX outputs.
+- Use the Excel workbooks listed below for charts/tables that were composed in
+  Excel from the model outputs.
+- Treat `dsge/Final Paper/Figures`, `dsge/Final Paper/Counterfactual`,
+  `counterfactual/paper`, and `Main results` as the final paper artifact
+  directories.
 
-## Required software
+Running the scripts may overwrite existing output files in those directories.
+If exact archival preservation matters, copy the repository before rerunning the
+full sequence.
 
-- Julia v0.6.0 or above
-- [DSGE.jl](https://github.com/FRBNY-DSGE/DSGE.jl) v0.4.1
-- MATLAB 16a
+## Software
 
-**Download instructions**
+The scripts were checked on Julia 1.5.0 on Windows/Parallels paths pointing to a
+Mac-mounted working tree.
 
-1. Download Julia from `https://julialang.org/downloads/`.
-2. Open the Julia REPL and type:
+Julia packages used by the final scripts include:
 
-   a. `Pkg.add("DSGE")` to install DSGE.jl
+- `DSGE`
+- `Plots`, `StatsPlots`, `Measures`
+- `CSV`, `DataFrames`, `XLSX`
+- `HDF5`, `JLD2`, `FileIO`
+- `OrderedCollections`, `ClusterManagers`, `ModelConstructors`
+- Julia standard libraries: `Dates`, `LinearAlgebra`, `Statistics`
 
-   b. `Pkg.pin("DSGE", v"0.4.1")` to use DSGE.jl v0.4.1
+Excel is required for the workbook-composed charts and tables. There is no root
+`Project.toml` in this package; use the working Julia environment that contains
+the packages above.
 
-   c. If, after running this replication code, you would like to use the most
-      current version of DSGE.jl, type `Pkg.free("DSGE")` to un-pin the version
+## Key inputs
 
+The final scripts rely on precomputed input data, parameter modes, and forecast
+objects already stored in the repository.
 
-## Installing this repository
+Important inputs include:
 
-Git users are welcome to fork this repository or clone it for local
-use. Non-Git users will probably find it easiest to download the zip
-file by clicking on the green `Clone or download` button on the right
-hand side of this screen, and then clicking "Download ZIP".
+- `dsge/input_data`
+- `dsge/output_data/m1010/ss20/estimate/raw/paramsmode_vint=250825.h5`
+- `dsge/output_data/m1010/ss24/estimate/raw/paramsmode_vint=250115.h5`
+- `dsge/output_data/m1010/ss24/estimate/raw/paramsmode_vint=250116.h5`
+- `Main results/US/Ex_post_real_rate_gaps.csv`
+- `Main results/EA/Ex_post_real_rate_gaps.csv`
+- `counterfactual/rstarobs_mode`
+- `counterfactual/rstarobs_plus_fg`
+- `counterfactual/rstarobs_plus_convyieldobs`
 
+## Recommended run order
 
-## Directory structure
+From the repository root, run the final scripts with Julia:
 
-- `dsge/`: Julia replication code for DSGE model
+```powershell
+julia "dsge/Main_US_rstar_forecasts.jl"
+julia "dsge/Main_EA_rstar_forecasts.jl"
+julia "dsge/US_rstar_w_confidence_bands.jl"
+julia "dsge/EA_rstar_w_confidence_bands.jl"
 
-  - `spec1010_20_2016Q3_1221.jl`: main script that generates all results
+julia "irf/Paper_IRF_Charts_combined_updated.jl"
+julia "irf/Paper_IRF_Charts_combined_other_observables.jl"
 
-  - `input_data`:
-    - `data/`: transformed input data
-	- `user/`: precomputed mode and hessian files
+julia "counterfactual/Final_US_HLW_RR_gap.jl"
+julia "counterfactual/Final_EA_HLW_RR_gap.jl"
+julia "counterfactual/FINAL_Case2b_No_Exorbitant_Privilege.jl"
+julia "counterfactual/FINAL_Case2d_EA_noCY.jl"
+```
 
-  - `output_data/m1010/ss20/`:
-    - `estimate/`:
-	  - `raw/`: raw estimation outputs: parameter draws from Metropolis-Hastings
-	  - `tables/`: LaTeX tables of parameter moments
+The main estimation scripts under `dsge/Final Paper/Main_full*.jl` and
+`dsge/Final Paper/EA_Alternative_YC*.jl` are the historical-decomposition and
+forecast-generation scripts. They are heavier than the plotting/counterfactual
+scripts and may take materially longer.
 
-    - `forecast/`:
-	  - `raw/`: full distribution, raw results (in model units) from
-                all post-estimation products
-      - `work/`: means and bands from raw results, transformed into
-                 final units, in binary format
-      - `tables/`: LaTeX tables of post-estimation results (shock
-                   decomopositions, parameter histories)
+## Paper artifact map
 
-- `tvar/`: results for TVAR model
-  - `MainModelX.m`: main scripts that generate all the results
-  - `DataCompleteLatest.xls`: input data
-  - `FiguresModelX/`: output figures for each model specification
-  - `Routines/`: functions called to run estimation and produce figures
-  - `output_data/`: output files for all TVAR models
+| Paper item | Reproduction source | Main outputs |
+| --- | --- | --- |
+| Figure 1. Actual and expected policy rates, long-term yields, and spreads | Excel-composed from `Main results/US/Chart US.xlsx`, `Main results/EA/Charts EA Final.xlsx`, and raw/input data under `dsge/input_data` and `Main results/*/raw data` | Excel chart exports in `Main results/US` and `Main results/EA` |
+| Figure 2. Model estimates of r* and output gaps | `dsge/Main_US_rstar_forecasts.jl`, `dsge/Main_EA_rstar_forecasts.jl`; final panel assembly is stored in `dsge/Final Paper/Figures` | `US_rstar_final_chart.png`, `EA_rstar_final_chart.png`, `US_rstar_final_chart_2016Q1_panel.*`, `EA_rstar_final_chart_2016Q1_panel.*` |
+| Table 1. Drivers of filtered r* | Historical-decomposition outputs from `dsge/Final Paper/Main_full*.jl`, `dsge/Final Paper/EA_Alternative_YC*.jl`, and Excel aggregation | `Main results/US/HVD/*.csv`, `Main results/EA/todelete/*shock_decomposition.csv`, `Main results/HVD_diff.xlsx`, `Main results/EA/todelete/EA_HVD_diff.xlsx` |
+| Figure 3. Estimated policy innovations and contribution to policy rates | `dsge/Final Paper/Main_full.jl`; Excel chart source `Main results/Raw_Policy_Shocks.xlsx` | `dsge/Final Paper/m1010_histstd_monetary_shocks.csv`, chart workbook output |
+| Figure 4. Contributions of monetary-policy shocks to inflation and output | Historical-decomposition CSVs and Excel chart workbooks | `Main results/US/HVD/*.csv`, `Main results/EA/todelete/*shock_decomposition.csv`, chart workbook output |
+| Figure 5. Interest-rate peg with contemporaneous and anticipated monetary shocks | `irf/Paper_IRF_Charts_combined_updated.jl` | `dsge/Final Paper/Figures/interest_rate_peg_combined_mit_vs_fg_vs_mpplusfg.pdf`, `irf/irf/Paper IRFs.xlsx` |
+| Figure 6. Interest-rate peg with convenience-yield shocks | `irf/Paper_IRF_Charts_combined_updated.jl` | `IRF_rate_peg_with_permanent_liquidity_shock_period0.pdf`, `IRF_rate_peg_with_permanent_and_transitory_liquidity_shocks_period0.pdf`, `IRF_rate_peg_with_permanent_and_transitory_safety_shocks_period0.pdf` |
+| Figure 7. Impact of interest-rate peg on interest rates and spreads | `irf/Paper_IRF_Charts_combined_other_observables.jl` | `interest_rate_peg_combined_other_observables.*`, `interest_rate_peg_liquidity_other_observables.*`, `interest_rate_peg_combined_convenience_yield.*`, `interest_rate_peg_liquidity_convenience_yield.*` |
+| Figure 8. Uncertainty bands and projected post-pandemic r* estimates | `dsge/US_rstar_w_confidence_bands.jl`, `dsge/EA_rstar_w_confidence_bands.jl`, plus `dsge/Main_US_rstar_forecasts.jl` and `dsge/Main_EA_rstar_forecasts.jl` | `USrstar_wCB_replication.*`, `EArstar_wCB_replication.*`, `US_rstar_starfish_chart*.png`, `EA_rstar_starfish_chart*.png` |
+| Figure 9. Counterfactual simulation under HLW r* since 2020Q4 | `counterfactual/Final_US_HLW_RR_gap.jl`, `counterfactual/Final_EA_HLW_RR_gap.jl` | US outputs in `dsge/Final Paper/Counterfactual`; EA outputs in `counterfactual/paper` |
+| Figure 10. US and EA convenience-yield estimates | `counterfactual/FINAL_Case2b_No_Exorbitant_Privilege.jl`, `counterfactual/FINAL_Case2d_EA_noCY.jl`; Excel/chart assembly may use the exported CSV | `ConvenienceYield_fullsample_US_EA.csv`, `EA Case2B no exorbitant privilege 3x2.*` |
+| Figure 11. Counterfactual with EA convenience-yield innovations in the United States | `counterfactual/FINAL_Case2b_No_Exorbitant_Privilege.jl` | `Exorbitant privilege 3x2 baseline_plus_delta.*`, `US no exorbitant privilege 3x2 baseline_plus_delta.*`, related CSV exports |
+| Appendix Figures II.1-II.2. Observable variables | Excel/input-data charts | `Main results/US/Chart US.xlsx`, `Main results/EA/Charts EA Final.xlsx` |
+| Appendix Figures IV.1-IV.2. r* decompositions | Excel-composed from HLW and DSGE decomposition outputs | `Main results/US/HLW vs DSGE.xlsx`, `Main results/EA/Charts EA Final.xlsx`, `Main results/US/*decomposition*.png`, `Main results/EA/*decomposition*.png` |
 
-- `plot/`: MATLAB code for plotting all results
-  - `makeRstarPlots.m`: Main driver script
-  - `helperFunctions/`: MATLAB functions called by `makeRstarPlots`
-  - `Figures/`: Output figure directory
-  - `Tables/`: Input table directory
+## Excel workbooks
 
+Some final paper graphics were composed in Excel rather than directly saved by
+Julia. The main workbook sources are:
 
-## How to run the DSGE code
+- `Main results/US/Chart US.xlsx`
+- `Main results/US/HLW vs DSGE.xlsx`
+- `Main results/US/Ex_post_real_rate_gaps.xlsx`
+- `Main results/EA/Charts EA Final.xlsx`
+- `Main results/Rstar_w_withoutFG.xlsx`
+- `Main results/Data_correlation_with_policy_rate.xlsx`
+- `Main results/Raw_Policy_Shocks.xlsx`
+- `irf/irf/Paper IRFs.xlsx`
 
-The script `spec1010_20_2016Q3_1221.jl` generates all results for the
-DSGE model. As provided, the script will create a model object with
-the appropriate settings to estimate the model, compute smoothed
-histories of pseudoobservables, and produce shock decompositions
-("pseudoobservables" is the term we use to describe linear
-transformations of states that we are interested in. In the Julia REPL
-with the DSGE package loaded, type `?pseudo_measurement` for more
-information.
+Temporary Office lock files such as `~$*.xlsx` and LibreOffice lock files are
+ignored by `.gitignore`; existing tracked lock files are legacy artifacts.
 
-Three boolean variables at the top of the script indicate the
-operations the script will perform next. If `run_estimation = true`,
-the code will load the pre-computed mode and hessian files and run
-Metropolis-Hastings (be aware that this runs sequentially and could
-take more than 20 hours). To compute a mode and hessian from scratch,
-set `reoptimize` and `calculate_hessian` to `true` under "Settings for
-estimation" in the script. This will take much longer.
+## Validation checklist
 
-If `run_modal_forecast = true`, the code will load the provided
-parameter mode and compute smoothed pseudoobservable histories and
-shock decompositions. This runs quite quickly.
+After running the scripts, verify that these representative outputs exist:
 
-If `run_full_forecast = true`, the code will load all parameter draws
-from the estimation and compute smoothed pseudoobservables and shock
-decomositions for each draw. It will then compute means and bands
-across all draws. Since we compute results for 20,000 parameter draws,
-we parallelize this computation across 50 workers. Blocks of 500 draws
-each are sent to the workers, which compute and record results
-draw-by-draw. If you are not working with a cluster, set `nworkers =
-1` in `spec1010_20_2016Q3_1221.jl` (under "Parallelization"). If you
-have a cluster, set `addprocsfcn` appropriately for your machine (see
-ClusterManagers.jl).
+```powershell
+$files = @(
+  "dsge/Final Paper/Figures/interest_rate_peg_combined_mit_vs_fg_vs_mpplusfg.pdf",
+  "dsge/Final Paper/Figures/IRF_rate_peg_with_permanent_liquidity_shock_period0.pdf",
+  "dsge/Final Paper/Figures/interest_rate_peg_combined_other_observables.pdf",
+  "dsge/Final Paper/Figures/interest_rate_peg_liquidity_other_observables.pdf",
+  "dsge/Final Paper/Figures/USrstar_wCB_replication.pdf",
+  "dsge/Final Paper/Figures/EArstar_wCB_replication.pdf",
+  "dsge/Final Paper/Counterfactual/What_if_real_rate_gap_change_HLW_using_policy_rate_shock.pdf",
+  "counterfactual/paper/EA_What_if_real_rate_gap_change_HLW_using_policy_rate_shock.pdf",
+  "dsge/Final Paper/Figures/Exorbitant privilege 3x2 baseline_plus_delta.pdf",
+  "dsge/Final Paper/Figures/EA Case2B no exorbitant privilege 3x2.pdf",
+  "Main results/US/Chart US.xlsx",
+  "Main results/EA/Charts EA Final.xlsx"
+)
 
+$files | ForEach-Object {
+  [pscustomobject]@{ File = $_; Exists = Test-Path -LiteralPath $_ }
+}
+```
 
-## How to run the TVAR code
+All entries should report `Exists = True`.
 
-The `MainModelX.m` scripts generate results for TVAR model (each script named
-according to the model number `X` specified in the paper). As provided, each
-script estimates the TVAR model for the given specification, outputs a `.mat`
-file of estimation results, produces figures for the distribution of trends, and
-prints the change in trends for the variables specified in the model.
+## Notes for maintainers
 
-If `RunEstimation = 1`, the code will run the estimation for the specified
-model. If `RunEstimation = 0`, the code will load the estimation results from a
-previous estimation. The first time the code is run, `RunEstimation` should be
-set to `1` to run the estimation and produce the necessary results.
+- This branch is documentation-oriented. It does not remove legacy files,
+  intermediate outputs, or exploratory scripts.
+- `.gitignore` is conservative: it ignores new transient files and generated
+  cache directories, but it does not untrack outputs already committed to the
+  repository.
+- Several paths contain spaces, especially under `dsge/Final Paper`; quote paths
+  when running scripts from a shell.
+- Some scripts contain absolute Windows/Mac-mounted paths from the original
+  research environment. If a script fails on another machine, first update those
+  paths locally rather than changing the analytical logic.
 
-We ran the estimation scripts in MATLAB R2016a.
+## License and original code base
 
-
-## How to run plots
-
-See the README.md file in the `plot` directory. All results are plotted using
-MATLAB 16a.
-
-Disclaimer
-------
-Copyright Federal Reserve Bank of New York. You may reproduce, use, modify, make derivative works of, and distribute and this code in whole or in part so long as you keep this notice in the documentation associated with any distributed works. Neither the name of the Federal Reserve Bank of New York (FRBNY) nor the names of any of the authors may be used to endorse or promote works derived from this code without prior written permission. Portions of the code attributed to third parties are subject to applicable third party licenses and rights. By your use of this code you accept this license and any applicable third party license.
-
-THIS CODE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT ANY WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTIES OR CONDITIONS OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, EXCEPT TO THE EXTENT THAT THESE DISCLAIMERS ARE HELD TO BE LEGALLY INVALID. FRBNY IS NOT, UNDER ANY CIRCUMSTANCES, LIABLE TO YOU FOR DAMAGES OF ANY KIND ARISING OUT OF OR IN CONNECTION WITH USE OF OR INABILITY TO USE THE CODE, INCLUDING, BUT NOT LIMITED TO DIRECT, INDIRECT, INCIDENTAL, CONSEQUENTIAL, PUNITIVE, SPECIAL OR EXEMPLARY DAMAGES, WHETHER BASED ON BREACH OF CONTRACT, BREACH OF WARRANTY, TORT OR OTHER LEGAL OR EQUITABLE THEORY, EVEN IF FRBNY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES OR LOSS AND REGARDLESS OF WHETHER SUCH DAMAGES OR LOSS IS FORESEEABLE.
+The original repository included replication files for `Safety, Liquidity, and
+the Natural Rate of Interest` by Marco Del Negro, Domenico Giannone, Marc
+Giannoni, and Andrea Tambalotti, Brookings Papers on Economic Activity, Spring
+2017. The license terms in `LICENSE` continue to apply.
