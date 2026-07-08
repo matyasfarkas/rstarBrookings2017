@@ -1,41 +1,65 @@
 # R-stars Across the Atlantic replication package
 
-This branch is a replication-package guide for the IMF Working Paper
-`R-stars Across the Atlantic - The Role of Policy Expectations` by Matyas
-Farkas, Zoltan Jakab, and Jesper Linde, June 2026.
+This repository is the replication package for *R-stars Across the Atlantic -
+The Role of Policy Expectations* by Matyas Farkas, Zoltan Jakab, and Jesper
+Linde, IMF Working Paper, June 2026.
 
-The repository began as the FRBNY/Brookings `rstarBrookings2017` code base and
-has been extended with United States and euro-area model runs, impulse-response
-figures, counterfactuals, Excel chart workbooks, and final paper outputs. This
-README documents the scripts and workbooks needed to reproduce the paper
-artifacts without reorganizing or deleting the existing research files.
+The package contains the Julia scripts, model inputs, chart workbooks, and final
+paper outputs used to reproduce the United States and euro-area results in the
+paper. It is intentionally kept close to the research working directory so that
+the published figures, intermediate outputs, and historical scripts remain
+traceable.
 
-For the shortest command-only guide, see `REPLICATION.md`. The quickstart was
-smoke-tested on June 30, 2026 with Julia 1.5.0 in the local Windows/Parallels
-environment; all listed scripts completed successfully after the small runtime
-path/scope fixes included on this branch.
+## Core relationship to the original r-star paper
 
-## What is in scope
+This project builds directly on the FRBNY/Brookings `rstarBrookings2017`
+replication code for *Safety, Liquidity, and the Natural Rate of Interest* by
+Marco Del Negro, Domenico Giannone, Marc Giannoni, and Andrea Tambalotti,
+*Brookings Papers on Economic Activity*, Spring 2017.
 
-The replication package preserves the existing repository contents. The
-intended reproducible path is:
+The original paper and code base provide the DSGE infrastructure, r-star
+measurement framework, safe/liquid asset convenience-yield block, and many of
+the model conventions used here. The Atlantic paper extends that framework to
+study policy expectations, US-euro-area comparisons, interest-rate peg
+counterfactuals, and convenience-yield exercises.
 
-- Run the final Julia scripts listed below to regenerate model-based CSV, PDF,
-  PNG, and XLSX outputs.
-- Use the Excel workbooks listed below for charts/tables that were composed in
-  Excel from the model outputs.
-- Treat `dsge/Final Paper/Figures`, `dsge/Final Paper/Counterfactual`,
-  `counterfactual/paper`, and `Main results` as the final paper artifact
-  directories.
+Original r-star paper:
+[*Safety, Liquidity, and the Natural Rate of Interest*](https://www.brookings.edu/bpea-articles/safety-liquidity-and-the-natural-rate-of-interest/)
 
-Running the scripts may overwrite existing output files in those directories.
-If exact archival preservation matters, copy the repository before rerunning the
-full sequence.
+Original FRBNY repository:
+[`FRBNY-DSGE/rstarBrookings2017`](https://github.com/FRBNY-DSGE/rstarBrookings2017)
+
+## What this package reproduces
+
+- US and euro-area DSGE estimates of r-star and related observables.
+- Confidence-band charts and post-pandemic r-star projections.
+- Interest-rate peg impulse responses under surprise, anticipated, and mixed
+  monetary-policy shocks.
+- Alternative policy-peg charts for OIS, AAA spreads, BAA spreads, and
+  convenience-yield responses.
+- Counterfactual paths under HLW real-rate gaps.
+- US and euro-area convenience-yield counterfactuals, including the
+  no-exorbitant-privilege exercises.
+- Excel-composed charts and tables used in the final paper package.
+
+## Recommended branch
+
+Use the `replication` branch for the paper-specific replication guide, script
+map, smoke-test checklist, and small runtime fixes needed in the local
+Julia 1.5.0 environment.
+
+```powershell
+git checkout replication
+```
+
+The `master` branch keeps the fork visible as a descendant of the original
+FRBNY repository, while pointing readers to the Atlantic-paper replication
+workflow.
 
 ## Software
 
-The scripts were checked on Julia 1.5.0 on Windows/Parallels paths pointing to a
-Mac-mounted working tree.
+The final scripts were smoke-tested with Julia 1.5.0 on Windows/Parallels paths
+pointing to a Mac-mounted working tree.
 
 Julia packages used by the final scripts include:
 
@@ -46,30 +70,13 @@ Julia packages used by the final scripts include:
 - `OrderedCollections`, `ClusterManagers`, `ModelConstructors`
 - Julia standard libraries: `Dates`, `LinearAlgebra`, `Statistics`
 
-Excel is required for the workbook-composed charts and tables. There is no root
-`Project.toml` in this package; use the working Julia environment that contains
-the packages above.
+Excel is required for paper charts and tables that were composed from model
+outputs in workbooks. There is no root `Project.toml`; use a Julia environment
+with the packages above installed.
 
-## Key inputs
+## Quick replication run order
 
-The final scripts rely on precomputed input data, parameter modes, and forecast
-objects already stored in the repository.
-
-Important inputs include:
-
-- `dsge/input_data`
-- `dsge/output_data/m1010/ss20/estimate/raw/paramsmode_vint=250825.h5`
-- `dsge/output_data/m1010/ss24/estimate/raw/paramsmode_vint=250115.h5`
-- `dsge/output_data/m1010/ss24/estimate/raw/paramsmode_vint=250116.h5`
-- `Main results/US/Ex_post_real_rate_gaps.csv`
-- `Main results/EA/Ex_post_real_rate_gaps.csv`
-- `counterfactual/rstarobs_mode`
-- `counterfactual/rstarobs_plus_fg`
-- `counterfactual/rstarobs_plus_convyieldobs`
-
-## Recommended run order
-
-From the repository root, run the final scripts with Julia:
+From the repository root on the `replication` branch, run:
 
 ```powershell
 julia "dsge/Main_US_rstar_forecasts.jl"
@@ -86,90 +93,52 @@ julia "counterfactual/FINAL_Case2b_No_Exorbitant_Privilege.jl"
 julia "counterfactual/FINAL_Case2d_EA_noCY.jl"
 ```
 
-The main estimation scripts under `dsge/Final Paper/Main_full*.jl` and
-`dsge/Final Paper/EA_Alternative_YC*.jl` are the historical-decomposition and
-forecast-generation scripts. They are heavier than the plotting/counterfactual
-scripts and may take materially longer.
+For a shorter command-only guide, see `REPLICATION.md` on the `replication`
+branch.
 
-## Paper artifact map
+## Main directories
 
-| Paper item | Reproduction source | Main outputs |
-| --- | --- | --- |
-| Figure 1. Actual and expected policy rates, long-term yields, and spreads | Excel-composed from `Main results/US/Chart US.xlsx`, `Main results/EA/Charts EA Final.xlsx`, and raw/input data under `dsge/input_data` and `Main results/*/raw data` | Excel chart exports in `Main results/US` and `Main results/EA` |
-| Figure 2. Model estimates of r* and output gaps | `dsge/Main_US_rstar_forecasts.jl`, `dsge/Main_EA_rstar_forecasts.jl`; final panel assembly is stored in `dsge/Final Paper/Figures` | `US_rstar_final_chart.png`, `EA_rstar_final_chart.png`, `US_rstar_final_chart_2016Q1_panel.*`, `EA_rstar_final_chart_2016Q1_panel.*` |
-| Table 1. Drivers of filtered r* | Historical-decomposition outputs from `dsge/Final Paper/Main_full*.jl`, `dsge/Final Paper/EA_Alternative_YC*.jl`, and Excel aggregation | `Main results/US/HVD/*.csv`, `Main results/EA/todelete/*shock_decomposition.csv`, `Main results/HVD_diff.xlsx`, `Main results/EA/todelete/EA_HVD_diff.xlsx` |
-| Figure 3. Estimated policy innovations and contribution to policy rates | `dsge/Final Paper/Main_full.jl`; Excel chart source `Main results/Raw_Policy_Shocks.xlsx` | `dsge/Final Paper/m1010_histstd_monetary_shocks.csv`, chart workbook output |
-| Figure 4. Contributions of monetary-policy shocks to inflation and output | Historical-decomposition CSVs and Excel chart workbooks | `Main results/US/HVD/*.csv`, `Main results/EA/todelete/*shock_decomposition.csv`, chart workbook output |
-| Figure 5. Interest-rate peg with contemporaneous and anticipated monetary shocks | `irf/Paper_IRF_Charts_combined_updated.jl` | `dsge/Final Paper/Figures/interest_rate_peg_combined_mit_vs_fg_vs_mpplusfg.pdf`, `irf/irf/Paper IRFs.xlsx` |
-| Figure 6. Interest-rate peg with convenience-yield shocks | `irf/Paper_IRF_Charts_combined_updated.jl` | `IRF_rate_peg_with_permanent_liquidity_shock_period0.pdf`, `IRF_rate_peg_with_permanent_and_transitory_liquidity_shocks_period0.pdf`, `IRF_rate_peg_with_permanent_and_transitory_safety_shocks_period0.pdf` |
-| Figure 7. Impact of interest-rate peg on interest rates and spreads | `irf/Paper_IRF_Charts_combined_other_observables.jl` | `interest_rate_peg_combined_other_observables.*`, `interest_rate_peg_liquidity_other_observables.*`, `interest_rate_peg_combined_convenience_yield.*`, `interest_rate_peg_liquidity_convenience_yield.*` |
-| Figure 8. Uncertainty bands and projected post-pandemic r* estimates | `dsge/US_rstar_w_confidence_bands.jl`, `dsge/EA_rstar_w_confidence_bands.jl`, plus `dsge/Main_US_rstar_forecasts.jl` and `dsge/Main_EA_rstar_forecasts.jl` | `USrstar_wCB_replication.*`, `EArstar_wCB_replication.*`, `US_rstar_starfish_chart*.png`, `EA_rstar_starfish_chart*.png` |
-| Figure 9. Counterfactual simulation under HLW r* since 2020Q4 | `counterfactual/Final_US_HLW_RR_gap.jl`, `counterfactual/Final_EA_HLW_RR_gap.jl` | US outputs in `dsge/Final Paper/Counterfactual`; EA outputs in `counterfactual/paper` |
-| Figure 10. US and EA convenience-yield estimates | `counterfactual/FINAL_Case2b_No_Exorbitant_Privilege.jl`, `counterfactual/FINAL_Case2d_EA_noCY.jl`; Excel/chart assembly may use the exported CSV | `ConvenienceYield_fullsample_US_EA.csv`, `EA Case2B no exorbitant privilege 3x2.*` |
-| Figure 11. Counterfactual with EA convenience-yield innovations in the United States | `counterfactual/FINAL_Case2b_No_Exorbitant_Privilege.jl` | `Exorbitant privilege 3x2 baseline_plus_delta.*`, `US no exorbitant privilege 3x2 baseline_plus_delta.*`, related CSV exports |
-| Appendix Figures II.1-II.2. Observable variables | Excel/input-data charts | `Main results/US/Chart US.xlsx`, `Main results/EA/Charts EA Final.xlsx` |
-| Appendix Figures IV.1-IV.2. r* decompositions | Excel-composed from HLW and DSGE decomposition outputs | `Main results/US/HLW vs DSGE.xlsx`, `Main results/EA/Charts EA Final.xlsx`, `Main results/US/*decomposition*.png`, `Main results/EA/*decomposition*.png` |
+- `dsge/`: DSGE model scripts, inputs, forecast outputs, and final paper
+  figures.
+- `irf/`: impulse-response and policy-peg chart scripts.
+- `counterfactual/`: HLW, convenience-yield, and no-exorbitant-privilege
+  counterfactuals.
+- `Main results/`: Excel workbooks, raw chart inputs, and final chart
+  workbooks for the US and euro area.
+- `tvar/` and `plot/`: legacy material inherited from the original
+  `rstarBrookings2017` replication package.
 
-## Excel workbooks
+## Key final outputs
 
-Some final paper graphics were composed in Excel rather than directly saved by
-Julia. The main workbook sources are:
+Representative outputs are written to:
 
-- `Main results/US/Chart US.xlsx`
-- `Main results/US/HLW vs DSGE.xlsx`
-- `Main results/US/Ex_post_real_rate_gaps.xlsx`
-- `Main results/EA/Charts EA Final.xlsx`
-- `Main results/Rstar_w_withoutFG.xlsx`
-- `Main results/Data_correlation_with_policy_rate.xlsx`
-- `Main results/Raw_Policy_Shocks.xlsx`
+- `dsge/Final Paper/Figures`
+- `dsge/Final Paper/Counterfactual`
+- `counterfactual/paper`
+- `Main results/US`
+- `Main results/EA`
 - `irf/irf/Paper IRFs.xlsx`
 
-Temporary Office lock files such as `~$*.xlsx` and LibreOffice lock files are
-ignored by `.gitignore`; existing tracked lock files are legacy artifacts.
+Running the scripts may overwrite existing generated outputs in those
+directories. If exact archival preservation matters, copy the repository before
+rerunning the full sequence.
 
-## Validation checklist
+## Citation
 
-After running the scripts, verify that these representative outputs exist:
+If you use this replication package, please cite:
 
-```powershell
-$files = @(
-  "dsge/Final Paper/Figures/interest_rate_peg_combined_mit_vs_fg_vs_mpplusfg.pdf",
-  "dsge/Final Paper/Figures/IRF_rate_peg_with_permanent_liquidity_shock_period0.pdf",
-  "dsge/Final Paper/Figures/interest_rate_peg_combined_other_observables.pdf",
-  "dsge/Final Paper/Figures/interest_rate_peg_liquidity_other_observables.pdf",
-  "dsge/Final Paper/Figures/USrstar_wCB_replication.pdf",
-  "dsge/Final Paper/Figures/EArstar_wCB_replication.pdf",
-  "dsge/Final Paper/Counterfactual/What_if_real_rate_gap_change_HLW_using_policy_rate_shock.pdf",
-  "counterfactual/paper/EA_What_if_real_rate_gap_change_HLW_using_policy_rate_shock.pdf",
-  "dsge/Final Paper/Figures/Exorbitant privilege 3x2 baseline_plus_delta.pdf",
-  "dsge/Final Paper/Figures/EA Case2B no exorbitant privilege 3x2.pdf",
-  "Main results/US/Chart US.xlsx",
-  "Main results/EA/Charts EA Final.xlsx"
-)
+Farkas, Matyas, Zoltan Jakab, and Jesper Linde. 2026. *R-stars Across the
+Atlantic - The Role of Policy Expectations*. IMF Working Paper.
 
-$files | ForEach-Object {
-  [pscustomobject]@{ File = $_; Exists = Test-Path -LiteralPath $_ }
-}
-```
+Please also cite the foundational r-star paper and code base:
 
-All entries should report `Exists = True`.
+Del Negro, Marco, Domenico Giannone, Marc Giannoni, and Andrea Tambalotti.
+2017. "Safety, Liquidity, and the Natural Rate of Interest." *Brookings Papers
+on Economic Activity*, Spring 2017, 235-294.
 
-## Notes for maintainers
+## License and disclaimer
 
-- This branch is documentation-oriented. It does not remove legacy files,
-  intermediate outputs, or exploratory scripts.
-- `.gitignore` is conservative: it ignores new transient files and generated
-  cache directories, but it does not untrack outputs already committed to the
-  repository.
-- Several paths contain spaces, especially under `dsge/Final Paper`; quote paths
-  when running scripts from a shell.
-- Some scripts contain absolute Windows/Mac-mounted paths from the original
-  research environment. If a script fails on another machine, first update those
-  paths locally rather than changing the analytical logic.
-
-## License and original code base
-
-The original repository included replication files for `Safety, Liquidity, and
-the Natural Rate of Interest` by Marco Del Negro, Domenico Giannone, Marc
-Giannoni, and Andrea Tambalotti, Brookings Papers on Economic Activity, Spring
-2017. The license terms in `LICENSE` continue to apply.
+This repository is a research fork of the FRBNY `rstarBrookings2017` code base.
+The original license terms in `LICENSE` continue to apply. The original code
+was provided by the Federal Reserve Bank of New York on an "as is" basis,
+without warranties or conditions of any kind.
