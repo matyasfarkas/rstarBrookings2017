@@ -50,27 +50,3 @@ dsge/output_data/*/*/forecast/work/
 # Legacy plotting outputs outside the final paper artifact directories
 plot/Figures*/
 plot/Tables/Bloomberg_rstar_spreads.xlsx
-
-# Replication-package pruning
-# Keep source scripts, paper-facing outputs, inputs, and DSGE estimate/raw files.
-# Ignore inherited or regenerated material that is not needed in the package.
-statespace/
-plot/
-update/
-sytem priors/
-
-# Historical scratch/output folders retained locally but not in the package
-**/todelete/
-**/%OUTDIR%/
-
-# Backup and duplicate working copies
-*backup*
-*Backup*
-* copy*
-* Copy*
-*.old
-*.orig
-
-# Generated DSGE outputs that can be rebuilt from scripts and estimate/raw files
-dsge/output_data/*/*/estimate/figures/
-dsge/output_data/*/*/forecast/figures/
