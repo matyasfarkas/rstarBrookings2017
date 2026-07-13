@@ -15,7 +15,7 @@ default(
     foreground_color_border = :black,
 )
 
-first_panel_legend_pos = (0.22, 0.25) # relative position within the first panel (convenience yield)
+first_panel_legend_pos = (0.20, 0.92) # first-panel legend position for the rate-domain counterfactual charts
 
 # This copy leaves the original Case2b script untouched and expresses the
 # convenience yield in the policy-rate domain: CY * ( -1 / Xi_r ).
