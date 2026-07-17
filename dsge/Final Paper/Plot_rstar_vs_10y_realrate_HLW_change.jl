@@ -4,8 +4,8 @@ using Dates
 using Plots
 using Measures
 
-# Compare the paper's 5-year-horizon r-star estimate with a 10-year-horizon
-# r-star object. The 5-year estimate carries the posterior confidence bands.
+# Compare 5-year-horizon and 10-year-horizon r-star estimates.
+# The 5-year estimate carries the posterior confidence bands used in the paper.
 
 repo_root = abspath(joinpath(@__DIR__, "..", ".."))
 dsge_root = joinpath(repo_root, "dsge")
@@ -148,12 +148,16 @@ combined_plot = plot(
 
 combined_pdf = joinpath(figures_dir, "rstar_5y_vs_10y_horizon_US_EA.pdf")
 combined_png = joinpath(figures_dir, "rstar_5y_vs_10y_horizon_US_EA.png")
-legacy_pdf = joinpath(figures_dir, "rstar_5y_vs_10y_realrate_HLW_change_US_EA.pdf")
-legacy_png = joinpath(figures_dir, "rstar_5y_vs_10y_realrate_HLW_change_US_EA.png")
+legacy_current_pdf = joinpath(figures_dir, "rstar_current_5y_10y_horizon_US_EA.pdf")
+legacy_current_png = joinpath(figures_dir, "rstar_current_5y_10y_horizon_US_EA.png")
+legacy_hlw_pdf = joinpath(figures_dir, "rstar_5y_vs_10y_realrate_HLW_change_US_EA.pdf")
+legacy_hlw_png = joinpath(figures_dir, "rstar_5y_vs_10y_realrate_HLW_change_US_EA.png")
 savefig(combined_plot, combined_pdf)
 savefig(combined_plot, combined_png)
-savefig(combined_plot, legacy_pdf)
-savefig(combined_plot, legacy_png)
+savefig(combined_plot, legacy_current_pdf)
+savefig(combined_plot, legacy_current_png)
+savefig(combined_plot, legacy_hlw_pdf)
+savefig(combined_plot, legacy_hlw_png)
 
 level_export = vcat(
     add_country_column(us_levels[:, [:Date, :RStar5Y_LB68, :RStar5Y_LB95, :RStar5Y_UB95,
@@ -163,6 +167,7 @@ level_export = vcat(
 )
 
 CSV.write(joinpath(figures_dir, "rstar_5y_vs_10y_horizon_US_EA.csv"), level_export)
+CSV.write(joinpath(figures_dir, "rstar_current_5y_10y_horizon_US_EA.csv"), level_export)
 
 println("Saved: $(combined_pdf)")
 println("Saved: $(combined_png)")
